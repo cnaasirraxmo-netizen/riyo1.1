@@ -9,4 +9,8 @@ class Constants {
   // TMDB (Optional fallback)
   static const String tmdbApiKey = 'YOUR_API_KEY';
   static const String tmdbBaseUrl = 'https://api.themoviedb.org/3';
+
+  // API-Football
+  static const String footballApiKey = 'YOUR_API_KEY';
+  static const String footballBaseUrl = 'https://v3.football.api-sports.io';
 }

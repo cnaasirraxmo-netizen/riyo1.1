@@ -23,6 +23,8 @@ import 'package:riyobox/presentation/screens/my_riyobox_screen.dart';
 import 'package:riyobox/presentation/screens/search_screen.dart';
 import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
 import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
+import 'package:riyobox/presentation/screens/sports_screen.dart';
+import 'package:riyobox/providers/football_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -109,6 +111,10 @@ GoRouter _createRouter(AuthProvider authProvider) {
               return GenreMoviesScreen(genreName: name);
             },
           ),
+          GoRoute(
+            path: '/sports',
+            builder: (context, state) => const SportsScreen(),
+          ),
         ],
       ),
       GoRoute(
@@ -163,6 +169,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DownloadProvider()),
         ChangeNotifierProvider(create: (_) => CastService()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => FootballProvider()),
       ],
       child: Consumer2<SettingsProvider, AuthProvider>(
         builder: (context, settings, auth, child) {

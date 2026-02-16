@@ -19,6 +19,7 @@ class CategoriesScreen extends StatelessWidget {
       {'name': 'Romance', 'image': 'https://picsum.photos/seed/romance/400/200'},
       {'name': 'Anime', 'image': 'https://picsum.photos/seed/anime/400/200'},
       {'name': 'Documentary', 'image': 'https://picsum.photos/seed/documentary/400/200'},
+      {'name': 'Sports', 'image': 'https://picsum.photos/seed/sports/400/200'},
     ];
 
     return Scaffold(
@@ -95,9 +96,13 @@ class CategoriesScreen extends StatelessWidget {
                   final genre = genres[index]['name']!;
                   return InkWell(
                     onTap: () {
-                      // Navigate to a screen showing movies of this genre
-                      // For now, we reuse search or a new route
-                      context.push('/genre/$genre');
+                      if (genre == 'Sports') {
+                        context.push('/sports');
+                      } else {
+                        // Navigate to a screen showing movies of this genre
+                        // For now, we reuse search or a new route
+                        context.push('/genre/$genre');
+                      }
                     },
                     child: _buildGenreCard(genre, genres[index]['image']!),
                   );
@@ -119,7 +124,7 @@ class CategoriesScreen extends StatelessWidget {
         alignment: Alignment.bottomLeft,
         children: [
           Image.network(
-            'https://picsum.photos/seed/van/800/400',
+            'https://picsum.photos/seed/football/800/400',
             height: 180,
             width: double.infinity,
             fit: BoxFit.cover,
@@ -140,12 +145,12 @@ class CategoriesScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('FEATURED CATEGORY', style: TextStyle(color: Colors.deepPurpleAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                const Text('FEATURED CATEGORY', style: TextStyle(color: Colors.yellowAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                const Text('ANIME HUB', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                const Text('SPORTS HUB', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => context.push('/sports'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
