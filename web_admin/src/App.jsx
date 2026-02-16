@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Movies from './pages/Movies';
 import Media from './pages/Media';
 import Users from './pages/Users';
+import Sports from './pages/Sports';
 import Sidebar from './components/Sidebar';
 
 function App() {
@@ -58,6 +59,7 @@ function App() {
             <Route path="/movies" element={<Movies />} />
             <Route path="/media" element={<Media />} />
             <Route path="/users" element={<Users />} />
+            <Route path="/sports" element={<Sports />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </main>

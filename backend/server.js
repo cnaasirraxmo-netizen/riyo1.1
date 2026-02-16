@@ -12,7 +12,8 @@ const requiredEnvVars = [
   'JWT_SECRET',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
-  'R2_BUCKET_NAME'
+  'R2_BUCKET_NAME',
+  'FOOTBALL_API_KEY'
 ];
 
 const validateEnv = () => {
@@ -41,6 +42,7 @@ app.use('/admin', require('./routes/admin'));
 app.use('/movies', require('./routes/movies'));
 app.use('/users', require('./routes/users'));
 app.use('/upload', require('./routes/upload'));
+app.use('/sports', require('./routes/sports'));
 
 app.get('/', (req, res) => {
   const r2Configured = !!(process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET_NAME);

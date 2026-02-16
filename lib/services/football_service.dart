@@ -4,21 +4,15 @@ import 'package:riyobox/core/constants.dart';
 import 'package:riyobox/models/football.dart';
 
 class FootballService {
-  static const String _apiKey = Constants.footballApiKey;
-  static const String _baseUrl = Constants.footballBaseUrl;
-
-  Map<String, String> get _headers => {
-    'x-apisports-key': _apiKey,
-  };
+  static const String _backendUrl = '${Constants.apiBaseUrl}/sports';
 
   Future<List<FootballFixture>> getFixtures({int? league, int? season}) async {
-    String url = '$_baseUrl/fixtures?';
+    String url = '$_backendUrl/fixtures?';
     if (league != null) url += 'league=$league&';
     if (season != null) url += 'season=$season&';
-    // If no params, maybe get live fixtures
     if (league == null && season == null) url += 'live=all';
 
-    final response = await http.get(Uri.parse(url), headers: _headers);
+    final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -31,8 +25,7 @@ class FootballService {
 
   Future<List<FootballStanding>> getStandings(int league, int season) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/standings?league=$league&season=$season'),
-      headers: _headers,
+      Uri.parse('$_backendUrl/standings?league=$league&season=$season'),
     );
 
     if (response.statusCode == 200) {
@@ -47,8 +40,7 @@ class FootballService {
 
   Future<List<FootballPlayerStats>> getTopScorers(int league, int season) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/players/topscorers?league=$league&season=$season'),
-      headers: _headers,
+      Uri.parse('$_backendUrl/topscorers?league=$league&season=$season'),
     );
 
     if (response.statusCode == 200) {
@@ -62,8 +54,7 @@ class FootballService {
 
   Future<List<Map<String, dynamic>>> getTeams(int league, int season) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/teams?league=$league&season=$season'),
-      headers: _headers,
+      Uri.parse('$_backendUrl/teams?league=$league&season=$season'),
     );
 
     if (response.statusCode == 200) {
@@ -77,8 +68,7 @@ class FootballService {
 
   Future<List<FootballPlayerStats>> getTeamPlayers(int teamId, int season) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/players?team=$teamId&season=$season'),
-      headers: _headers,
+      Uri.parse('$_backendUrl/players?team=$teamId&season=$season'),
     );
 
     if (response.statusCode == 200) {

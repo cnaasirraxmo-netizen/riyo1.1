@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Film, FolderOpen, Users, LogOut } from 'lucide-react';
+import { LayoutDashboard, Film, FolderOpen, Users, LogOut, Trophy } from 'lucide-react';
 
 const Sidebar = ({ onLogout }) => {
   const links = [
@@ -8,6 +8,7 @@ const Sidebar = ({ onLogout }) => {
     { path: '/movies', label: 'Movies', icon: <Film size={20} /> },
     { path: '/media', label: 'Media Library', icon: <FolderOpen size={20} /> },
     { path: '/users', label: 'Users', icon: <Users size={20} /> },
+    { path: '/sports', label: 'Sports', icon: <Trophy size={20} /> },
   ];
 
   return (
