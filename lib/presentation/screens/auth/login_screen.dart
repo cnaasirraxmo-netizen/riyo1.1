@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleLogin() async {
     setState(() => _isLoading = true);
     try {
-      await Provider.of<AuthProvider>(context, listen: false).login(
+      await Provider.of<AuthProvider>(context, listen: false).loginWithEmail(
         _emailController.text,
         _passwordController.text,
       );
@@ -34,9 +34,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _handleGoogleLogin() async {
+    try {
+      await Provider.of<AuthProvider>(context, listen: false).loginWithGoogle();
+      if (mounted) context.go('/home');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Login failed: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF141414),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -47,25 +61,29 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email or phone number',
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Email',
+                labelStyle: const TextStyle(color: Colors.grey),
                 filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
                 labelText: 'Password',
+                labelStyle: const TextStyle(color: Colors.grey),
                 filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
             const SizedBox(height: 24),
@@ -74,14 +92,41 @@ class _LoginScreenState extends State<LoginScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurpleAccent,
                 padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: _isLoading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('SIGN IN', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('SIGN IN', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+            ),
+            const SizedBox(height: 24),
+            const Row(
+              children: [
+                Expanded(child: Divider(color: Colors.white24)),
+                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('OR', style: TextStyle(color: Colors.grey, fontSize: 12))),
+                Expanded(child: Divider(color: Colors.white24)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: _handleGoogleLogin,
+              icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png', height: 20),
+              label: const Text('CONTINUE WITH GOOGLE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
             ),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                 if (_emailController.text.isEmpty) {
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter your email first')));
+                   return;
+                 }
+                 Provider.of<AuthProvider>(context, listen: false).sendPasswordReset(_emailController.text);
+                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password reset link sent to email')));
+              },
               child: const Text('Forgot password?', style: TextStyle(color: Colors.grey)),
             ),
             const SizedBox(height: 40),

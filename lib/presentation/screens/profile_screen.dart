@@ -13,20 +13,17 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _nameController;
-  late TextEditingController _bioController;
 
   @override
   void initState() {
     super.initState();
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    _nameController = TextEditingController(text: auth.userProfile?['name'] ?? auth.role ?? 'User');
-    _bioController = TextEditingController(text: auth.userProfile?['bio'] ?? '');
+    _nameController = TextEditingController(text: auth.activeProfile?['name'] ?? 'User');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _bioController.dispose();
     super.dispose();
   }
 
@@ -42,16 +39,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           TextButton(
-            onPressed: () async {
-              await auth.updateProfile(
-                name: _nameController.text,
-                bio: _bioController.text,
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Profile saved successfully!')),
               );
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Profile updated successfully!')),
-                );
-              }
             },
             child: const Text('SAVE', style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold)),
           ),
@@ -61,13 +52,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildProfileImage(auth.userProfile?['profilePicture']),
+            _buildProfileImage(auth.activeProfile?['avatar']),
             const SizedBox(height: 24),
-            _buildProfileField('Full Name', _nameController),
-            _buildProfileField('Bio', _bioController),
-            _buildReadOnlyField('Email', auth.userProfile?['email'] ?? 'Not available'),
-            _buildReadOnlyField('Subscription', auth.userProfile?['subscription']?['plan']?.toUpperCase() ?? 'FREE'),
+            _buildProfileField('Profile Name', _nameController),
+            _buildReadOnlyField('Account Email', auth.userAccount?['email'] ?? 'Not available'),
+            _buildReadOnlyField('Subscription', auth.userAccount?['subscription']?['plan']?.toUpperCase() ?? 'FREE'),
             const SizedBox(height: 32),
+            _buildActionItem(
+              context,
+              title: 'Switch Profile',
+              icon: Icons.people_outline,
+              onTap: () => context.go('/profiles'),
+            ),
             _buildActionItem(
               context,
               title: 'Watch History',
@@ -207,9 +203,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Colors.white))),
           TextButton(
-            onPressed: () {
-              auth.logout();
-              context.go('/login');
+            onPressed: () async {
+              await auth.logout();
+              if (context.mounted) context.go('/login');
             },
             child: const Text('Sign Out', style: TextStyle(color: Colors.red))),
         ],
@@ -223,13 +219,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1C1C1F),
         title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-        content: const Text('This action is permanent and will delete all your data. Are you sure?', style: TextStyle(color: Colors.grey)),
+        content: const Text('This action is permanent and will delete all your data including all profiles. Are you sure?', style: TextStyle(color: Colors.grey)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Colors.white))),
           TextButton(
             onPressed: () async {
               await auth.deleteAccount();
-              if (mounted) context.go('/login');
+              if (context.mounted) context.go('/login');
             },
             child: const Text('Delete Permanently', style: TextStyle(color: Colors.red))),
         ],

@@ -31,6 +31,12 @@ Minimal Node.js backend for the RIYOBOX streaming app. It handles authentication
     R2_SECRET_ACCESS_KEY=your_secret_key
     R2_BUCKET_NAME=your_bucket_name
     R2_S3_ENDPOINT=https://your_account_id.r2.cloudflarestorage.com
+
+    # Firebase Admin SDK
+    FIREBASE_SERVICE_ACCOUNT_PATH=config/firebase-service-account.json
+
+    # API-Football
+    FOOTBALL_API_KEY=your_api_football_key
     ```
 
 4.  **Start the server:**

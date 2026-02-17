@@ -19,7 +19,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _handleSignUp() async {
     setState(() => _isLoading = true);
     try {
-      await Provider.of<AuthProvider>(context, listen: false).signup(
+      await Provider.of<AuthProvider>(context, listen: false).signupWithEmail(
         _nameController.text,
         _emailController.text,
         _passwordController.text,
@@ -39,57 +39,65 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF141414),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('SIGN UP', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('CREATE ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
                 labelText: 'Full Name',
+                labelStyle: const TextStyle(color: Colors.grey),
                 filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
                 labelText: 'Email',
+                labelStyle: const TextStyle(color: Colors.grey),
                 filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
                 labelText: 'Password',
+                labelStyle: const TextStyle(color: Colors.grey),
                 filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _isLoading ? null : _handleSignUp,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurpleAccent,
                 padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: _isLoading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('CREATE ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('SIGN UP', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
             ),
             const SizedBox(height: 40),
             Row(

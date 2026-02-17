@@ -3,148 +3,138 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:riyobox/core/constants.dart';
-import 'package:riyobox/models/movie.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthProvider with ChangeNotifier {
   static const String _backendUrl = Constants.apiBaseUrl;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
   bool _isAuthenticated = false;
   bool _isOnboardingComplete = false;
   String? _token;
   String? _role;
-  Map<String, dynamic>? _userProfile;
+  Map<String, dynamic>? _userAccount;
+  Map<String, dynamic>? _activeProfile;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isOnboardingComplete => _isOnboardingComplete;
   String? get token => _token;
   String? get role => _role;
-  Map<String, dynamic>? get userProfile => _userProfile;
+  Map<String, dynamic>? get userAccount => _userAccount;
+  Map<String, dynamic>? get activeProfile => _activeProfile;
 
   AuthProvider() {
     _loadState();
+    _listenToAuthChanges();
+  }
+
+  void _listenToAuthChanges() {
+    _auth.authStateChanges().listen((User? user) async {
+      if (user == null) {
+        _isAuthenticated = false;
+        _token = null;
+        _userAccount = null;
+      } else {
+        _isAuthenticated = true;
+        _token = await user.getIdToken();
+        await fetchAccount();
+        await _syncFcmToken();
+      }
+      notifyListeners();
+    });
   }
 
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
-    _isAuthenticated = prefs.getBool('isAuthenticated') ?? false;
     _isOnboardingComplete = prefs.getBool('isOnboardingComplete') ?? false;
-    _token = prefs.getString('token');
-    _role = prefs.getString('role');
-    if (_isAuthenticated && _token != null) {
-      fetchProfile();
-    }
     notifyListeners();
   }
 
-  Future<void> fetchProfile() async {
+  Future<void> fetchAccount() async {
     if (_token == null) return;
     try {
       final response = await http.get(
-        Uri.parse('$_backendUrl/users/profile'),
+        Uri.parse('$_backendUrl/users/account'),
         headers: {'Authorization': 'Bearer $_token'},
       );
       if (response.statusCode == 200) {
-        _userProfile = jsonDecode(response.body);
+        _userAccount = jsonDecode(response.body);
+        _role = _userAccount?['role'];
         notifyListeners();
       }
     } catch (e) {
-      print('Error fetching profile: $e');
+      print('Error fetching account: $e');
     }
   }
 
-  Future<void> updateProfile({String? name, String? bio, String? profilePicture, Map<String, dynamic>? preferences}) async {
+  Future<void> selectProfile(String profileId) async {
     if (_token == null) return;
     try {
       final response = await http.put(
-        Uri.parse('$_backendUrl/users/profile'),
+        Uri.parse('$_backendUrl/users/profiles/active'),
         headers: {
           'Authorization': 'Bearer $_token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          if (name != null) 'name': name,
-          if (bio != null) 'bio': bio,
-          if (profilePicture != null) 'profilePicture': profilePicture,
-          if (preferences != null) 'preferences': preferences,
-        }),
+        body: jsonEncode({'profileId': profileId}),
       );
       if (response.statusCode == 200) {
-        _userProfile = jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+        _activeProfile = data['profile'];
         notifyListeners();
       }
     } catch (e) {
-      print('Error updating profile: $e');
+      print('Error selecting profile: $e');
     }
   }
 
-  Future<void> login(String email, String password) async {
+  Future<void> loginWithEmail(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_backendUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      ).timeout(const Duration(seconds: 30));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _token = data['token'];
-        _role = data['role'];
-        _isAuthenticated = true;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isAuthenticated', true);
-        await prefs.setString('token', _token!);
-        await prefs.setString('role', _role!);
-        await fetchProfile();
-        notifyListeners();
-      } else {
-        final errorMsg = _parseErrorMessage(response);
-        throw Exception(errorMsg);
-      }
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
     } catch (e) {
-      if (e is http.ClientException || e.toString().contains('SocketException')) {
-        throw Exception('Unable to connect to the server. Please check your internet connection and ensure the backend is running.');
-      }
-      rethrow;
+      throw Exception(e.toString());
     }
   }
 
-  Future<void> signup(String name, String email, String password) async {
+  Future<void> signupWithEmail(String name, String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_backendUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'name': name, 'email': email, 'password': password}),
-      ).timeout(const Duration(seconds: 30));
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        _token = data['token'];
-        _role = data['role'];
-        _isAuthenticated = true;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isAuthenticated', true);
-        await prefs.setString('token', _token!);
-        await prefs.setString('role', _role!);
-        await fetchProfile();
-        notifyListeners();
-      } else {
-        final errorMsg = _parseErrorMessage(response);
-        throw Exception(errorMsg);
-      }
+      final result = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      await result.user?.updateDisplayName(name);
+      // Sync with backend will happen via authStateChanges listener
     } catch (e) {
-      if (e is http.ClientException || e.toString().contains('SocketException')) {
-        throw Exception('Unable to connect to the server. Please check your internet connection and ensure the backend is running.');
-      }
-      rethrow;
+      throw Exception(e.toString());
     }
+  }
+
+  Future<void> loginWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth?.accessToken,
+        idToken: googleAuth?.idToken,
+      );
+      await _auth.signInWithCredential(credential);
+    } catch (e) {
+      print('Google Sign-In Error: $e');
+      throw Exception('Google Sign-In failed');
+    }
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
   }
 
   Future<void> logout() async {
+    await _auth.signOut();
+    await _googleSignIn.signOut();
     _isAuthenticated = false;
     _token = null;
-    _role = null;
-    _userProfile = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isAuthenticated', false);
-    await prefs.remove('token');
-    await prefs.remove('role');
+    _userAccount = null;
+    _activeProfile = null;
     notifyListeners();
   }
 
@@ -155,36 +145,38 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> deleteAccount() async {
+  Future<void> _syncFcmToken() async {
     if (_token == null) return;
     try {
-      final response = await http.delete(
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken != null) {
+        await http.post(
+          Uri.parse('$_backendUrl/users/fcm-token'),
+          headers: {
+            'Authorization': 'Bearer $_token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'token': fcmToken}),
+        );
+      }
+    } catch (e) {
+      print('Error syncing FCM token: $e');
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    if (_auth.currentUser == null) return;
+    try {
+      // 1. Delete from backend (GDPR)
+      await http.delete(
         Uri.parse('$_backendUrl/users/account'),
         headers: {'Authorization': 'Bearer $_token'},
       );
-      if (response.statusCode == 200) {
-        await logout();
-      }
+      // 2. Delete from Firebase
+      await _auth.currentUser?.delete();
+      await logout();
     } catch (e) {
       print('Error deleting account: $e');
     }
-  }
-
-  String _parseErrorMessage(http.Response response) {
-    try {
-      final data = jsonDecode(response.body);
-      return data['message'] ?? 'Status Code: ${response.statusCode}';
-    } catch (_) {
-      return 'Error: ${response.statusCode} - ${response.reasonPhrase}';
-    }
-  }
-
-  Future<bool> checkSession() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (_token == null) {
-      _isAuthenticated = false;
-      return false;
-    }
-    return true;
   }
 }

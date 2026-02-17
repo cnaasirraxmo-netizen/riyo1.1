@@ -24,11 +24,19 @@ import 'package:riyobox/presentation/screens/search_screen.dart';
 import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
 import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyobox/presentation/screens/sports_screen.dart';
+import 'package:riyobox/presentation/screens/profile_selection_screen.dart';
 import 'package:riyobox/providers/football_provider.dart';
 import 'package:riyobox/services/notification_service.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+  }
   await NotificationService().init();
   runApp(const MyApp());
 }
@@ -57,8 +65,17 @@ GoRouter _createRouter(AuthProvider authProvider) {
         return (loggingIn || signingUp || welcome) ? null : '/login';
       }
 
+      // Check for email verification (optional production requirement)
+      // if (FirebaseAuth.instance.currentUser != null && !FirebaseAuth.instance.currentUser!.emailVerified) {
+      //   return '/verify-email';
+      // }
+
+      if (authProvider.isAuthenticated && authProvider.activeProfile == null && state.uri.path != '/profiles') {
+        return '/profiles';
+      }
+
       if (loggingIn || signingUp || welcome) {
-        return '/home';
+        return (authProvider.activeProfile == null) ? '/profiles' : '/home';
       }
 
       return null;
@@ -79,6 +96,10 @@ GoRouter _createRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: '/profiles',
+        builder: (context, state) => const ProfileSelectionScreen(),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -177,8 +198,8 @@ class MyApp extends StatelessWidget {
         builder: (context, settings, auth, child) {
           final playback = Provider.of<PlaybackProvider>(context, listen: false);
           playback.updateToken(auth.token);
-          if (auth.userProfile != null) {
-            playback.loadFromProfile(auth.userProfile!['watchHistory']);
+          if (auth.activeProfile != null) {
+            playback.loadFromProfile(auth.activeProfile!['watchHistory']);
           }
 
           return MaterialApp.router(
