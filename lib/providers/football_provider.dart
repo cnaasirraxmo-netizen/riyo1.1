@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:riyobox/models/football.dart';
 import 'package:riyobox/services/football_service.dart';
+import 'package:riyobox/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FootballProvider with ChangeNotifier {
@@ -120,6 +121,22 @@ class FootballProvider with ChangeNotifier {
 
     try {
       final newFixtures = await _service.getFixtures(league: league, season: season);
+
+      // Check for score changes if not first load
+      if (_fixtures.isNotEmpty && silent) {
+        for (var newFix in newFixtures) {
+          final oldFix = _fixtures.firstWhere((f) => f.id == newFix.id, orElse: () => newFix);
+          if (oldFix != newFix && (oldFix.homeGoals != newFix.homeGoals || oldFix.awayGoals != newFix.awayGoals)) {
+             // Score changed!
+             NotificationService().showNotification(
+               id: newFix.id,
+               title: 'GOAL! ${newFix.homeTeam} ${newFix.homeGoals} - ${newFix.awayGoals} ${newFix.awayTeam}',
+               body: '${newFix.leagueName} match update',
+             );
+          }
+        }
+      }
+
       _fixtures = newFixtures;
       await _saveToCache();
     } catch (e) {

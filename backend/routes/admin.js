@@ -3,11 +3,11 @@ const Movie = require('../models/Movie');
 const User = require('../models/User');
 const Review = require('../models/Review');
 const Subscription = require('../models/Subscription');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // Get overall stats
-router.get('/stats', protect, admin, async (req, res) => {
+router.get('/stats', protect, adminOnly, async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
     const totalMovies = await Movie.countDocuments();
@@ -33,7 +33,7 @@ router.get('/stats', protect, admin, async (req, res) => {
 });
 
 // User management
-router.get('/users', protect, admin, async (req, res) => {
+router.get('/users', protect, adminOnly, async (req, res) => {
   try {
     const users = await User.find().select('-password');
     res.json(users);
@@ -42,7 +42,7 @@ router.get('/users', protect, admin, async (req, res) => {
   }
 });
 
-router.put('/users/:id/role', protect, admin, async (req, res) => {
+router.put('/users/:id/role', protect, adminOnly, async (req, res) => {
   try {
     const { role } = req.body;
     const user = await User.findById(req.params.id);

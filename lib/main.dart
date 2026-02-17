@@ -25,9 +25,11 @@ import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
 import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyobox/presentation/screens/sports_screen.dart';
 import 'package:riyobox/providers/football_provider.dart';
+import 'package:riyobox/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
   runApp(const MyApp());
 }
 

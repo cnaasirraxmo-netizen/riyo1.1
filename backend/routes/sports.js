@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { protect } = require('../middleware/authMiddleware');
 
 const FOOTBALL_API_URL = 'https://v3.football.api-sports.io';
 const API_KEY = process.env.FOOTBALL_API_KEY || 'YOUR_API_KEY';
@@ -9,7 +10,7 @@ const headers = {
   'x-apisports-key': API_KEY
 };
 
-router.get('/fixtures', async (req, res) => {
+router.get('/fixtures', protect, async (req, res) => {
   try {
     const { league, season, live } = req.query;
     let params = {};
@@ -24,7 +25,7 @@ router.get('/fixtures', async (req, res) => {
   }
 });
 
-router.get('/standings', async (req, res) => {
+router.get('/standings', protect, async (req, res) => {
   try {
     const { league, season } = req.query;
     const response = await axios.get(`${FOOTBALL_API_URL}/standings`, { headers, params: { league, season } });
@@ -34,7 +35,7 @@ router.get('/standings', async (req, res) => {
   }
 });
 
-router.get('/teams', async (req, res) => {
+router.get('/teams', protect, async (req, res) => {
   try {
     const { league, season } = req.query;
     const response = await axios.get(`${FOOTBALL_API_URL}/teams`, { headers, params: { league, season } });
@@ -44,7 +45,7 @@ router.get('/teams', async (req, res) => {
   }
 });
 
-router.get('/players', async (req, res) => {
+router.get('/players', protect, async (req, res) => {
   try {
     const { league, season, team } = req.query;
     let params = {};
@@ -59,7 +60,7 @@ router.get('/players', async (req, res) => {
   }
 });
 
-router.get('/topscorers', async (req, res) => {
+router.get('/topscorers', protect, async (req, res) => {
   try {
     const { league, season } = req.query;
     const response = await axios.get(`${FOOTBALL_API_URL}/players/topscorers`, { headers, params: { league, season } });
