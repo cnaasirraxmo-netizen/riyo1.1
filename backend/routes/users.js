@@ -43,13 +43,37 @@ router.put('/profiles/active', protect, async (req, res) => {
 router.get('/profile', protect, async (req, res) => {
   try {
     const profileId = req.user.activeProfileId || req.user.profiles[0]._id;
-    const profile = req.user.profiles.id(profileId);
 
-    // We need to manually populate if we want movie details
-    // Since subdocs don't support populate easily in this structure,
-    // we might need a different approach if lists get huge,
-    // but for now we'll return the profile with IDs.
+    // Use findOne to allow population of subdocument arrays
+    const user = await User.findById(req.user._id)
+      .populate('profiles.watchlist')
+      .populate('profiles.watchHistory.movie');
+
+    const profile = user.profiles.id(profileId);
     res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Toggle movie in watchlist for ACTIVE profile
+router.post('/watchlist/:movieId', protect, async (req, res) => {
+  try {
+    const profileId = req.user.activeProfileId || req.user.profiles[0]._id;
+    const profile = req.user.profiles.id(profileId);
+    const movieId = req.params.movieId;
+
+    const index = profile.watchlist.indexOf(movieId);
+    let isAdded = false;
+    if (index > -1) {
+      profile.watchlist.splice(index, 1);
+      isAdded = false;
+    } else {
+      profile.watchlist.push(movieId);
+      isAdded = true;
+    }
+    await req.user.save();
+    res.json({ message: isAdded ? 'Added to watchlist' : 'Removed from watchlist', isAdded });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -99,7 +123,6 @@ router.post('/fcm-token', protect, async (req, res) => {
 router.delete('/account', protect, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.user._id);
-    // In a real app, also delete the Firebase user via admin SDK
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

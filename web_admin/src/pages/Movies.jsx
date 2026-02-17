@@ -149,6 +149,21 @@ const Movies = () => {
                 />
                 <div className="absolute top-2 right-2 flex space-x-2">
                    <button
+                    onClick={() => {
+                      if (window.confirm(`Broadcast notification for "${movie.title}"?`)) {
+                        api.post('/admin/notify', {
+                          title: 'Available Now! 🎬',
+                          body: `"${movie.title}" is ready to stream. Watch it now!`,
+                          data: { movieId: movie._id }
+                        }).then(() => alert('Notification sent!')).catch(() => alert('Failed to send'));
+                      }
+                    }}
+                    className="p-2 bg-blue-600 rounded-full hover:bg-blue-700 shadow-lg"
+                    title="Notify Users"
+                   >
+                    🔔
+                   </button>
+                   <button
                     onClick={() => handleDelete(movie._id)}
                     className="p-2 bg-red-600 rounded-full hover:bg-red-700 shadow-lg"
                    >

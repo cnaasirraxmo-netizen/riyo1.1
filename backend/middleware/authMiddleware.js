@@ -47,7 +47,7 @@ const protect = async (req, res, next) => {
 
 const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
-    next();
+    return next();
   } else {
     return res.status(403).json({ message: 'Not authorized as an admin' });
   }
@@ -55,7 +55,7 @@ const adminOnly = (req, res, next) => {
 
 const premium = (req, res, next) => {
   if (req.user && (req.user.subscription.status === 'active' || req.user.role === 'admin')) {
-    next();
+    return next();
   } else {
     return res.status(403).json({ message: 'Premium subscription required to access this content' });
   }

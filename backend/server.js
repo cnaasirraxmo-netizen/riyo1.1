@@ -57,12 +57,15 @@ app.use('/sports', require('./routes/sports'));
 
 app.get('/', (req, res) => {
   const r2Configured = !!(process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET_NAME);
+  const { admin } = require('./utils/firebase');
+  const firebaseStatus = admin.apps.length > 0 ? 'Initialized' : 'Mock Mode (Dev Only)';
 
   res.json({
     message: 'Riyobox API is running...',
     status: 'Operational',
     database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     storage: r2Configured ? 'R2 Configured' : 'R2 Missing Configuration',
+    firebase: firebaseStatus,
     timestamp: new Date().toISOString()
   });
 });

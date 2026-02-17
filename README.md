@@ -35,6 +35,9 @@ The backend is configured for easy deployment on [Render](https://render.com).
     *   `PORT`: `5000` (Render will set this automatically).
 3.  **Update Frontend:** The frontend is currently pointing to `https://riyobox1-1.onrender.com`. You can change this in `lib/core/constants.dart`.
 
+## 📖 Full Setup & Guide
+For a comprehensive guide on how to configure Firebase, SMTP Email, and Sports APIs, see **[SYSTEM_GUIDE.md](./SYSTEM_GUIDE.md)**.
+
 ## 📂 Project Structure
 
 ```text
