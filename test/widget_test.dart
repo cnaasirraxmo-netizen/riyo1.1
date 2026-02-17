@@ -23,7 +23,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ChangeNotifierProvider(create: (_) => PlaybackProvider()),
           ChangeNotifierProvider(create: (_) => DownloadProvider()),
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => AuthProvider(false)),
           ChangeNotifierProvider(create: (_) => FootballProvider()),
         ],
         child: const MaterialApp(

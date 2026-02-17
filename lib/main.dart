@@ -32,14 +32,18 @@ import 'package:firebase_core/firebase_core.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  bool firebaseInitialized = false;
   try {
     // Basic Firebase initialization with timeout
     await Firebase.initializeApp().timeout(const Duration(seconds: 5));
+    firebaseInitialized = true;
+    debugPrint('✅ Firebase initialized successfully');
   } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
+    debugPrint('❌ Firebase initialization failed: $e');
+    firebaseInitialized = false;
   }
 
-  runApp(const MyApp());
+  runApp(MyApp(firebaseInitialized: firebaseInitialized));
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -182,7 +186,8 @@ GoRouter _createRouter(AuthProvider authProvider) {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool firebaseInitialized;
+  const MyApp({super.key, required this.firebaseInitialized});
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +197,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PlaybackProvider()),
         ChangeNotifierProvider(create: (_) => DownloadProvider()),
         ChangeNotifierProvider(create: (_) => CastService()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider(firebaseInitialized)),
         ChangeNotifierProvider(create: (_) => FootballProvider()),
       ],
       child: Consumer2<SettingsProvider, AuthProvider>(

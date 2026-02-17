@@ -29,15 +29,19 @@ class AuthProvider with ChangeNotifier {
   bool _firebaseAvailable = false;
   bool get isFirebaseAvailable => _firebaseAvailable;
 
-  AuthProvider() {
-    try {
-      _auth = FirebaseAuth.instance;
-      _googleSignIn = GoogleSignIn();
-      _firebaseAvailable = true;
-      _listenToAuthChanges();
-    } catch (e) {
-      debugPrint('Firebase not available in AuthProvider: $e');
-      _firebaseAvailable = false;
+  AuthProvider(bool firebaseInitialized) {
+    _firebaseAvailable = firebaseInitialized;
+    if (_firebaseAvailable) {
+      try {
+        _auth = FirebaseAuth.instance;
+        _googleSignIn = GoogleSignIn();
+        _listenToAuthChanges();
+      } catch (e) {
+        debugPrint('Firebase initialization error in AuthProvider: $e');
+        _firebaseAvailable = false;
+      }
+    } else {
+      debugPrint('Firebase not available - starting in Offline/Mock mode');
     }
     _loadState();
   }
