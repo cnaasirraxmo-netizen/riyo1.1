@@ -29,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     "Movies",
     "TV Shows",
     "Anime",
+    "Sports",
     "Kids",
     "My List"
   ];
@@ -118,6 +119,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           label: Text(_filters[index]),
                           selected: _selectedFilter == _filters[index],
                           onSelected: (bool selected) {
+                            if (_filters[index] == "Sports") {
+                              context.push('/sports');
+                              return;
+                            }
                             setState(() {
                               _selectedFilter = _filters[index];
                             });
