@@ -1,27 +1,38 @@
 const admin = require('firebase-admin');
+const path = require('path');
 
 const initializeFirebase = () => {
-  if (admin.apps.length) return admin;
+  if (admin.apps.length > 0) return admin;
 
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('Firebase Admin not configured.');
+  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+
+  if (serviceAccountPath) {
+    try {
+      const resolvedPath = path.isAbsolute(serviceAccountPath)
+        ? serviceAccountPath
+        : path.join(__dirname, '..', serviceAccountPath);
+
+      admin.initializeApp({
+        credential: admin.credential.cert(require(resolvedPath)),
+      });
+      console.log('✅ Firebase Admin initialized using service account.');
+    } catch (error) {
+      console.error('❌ Failed to initialize Firebase Admin with service account:', error.message);
+      _initializeMock();
     }
-    console.log('ℹ️ Running without Firebase (dev mode).');
-    return admin;
+  } else {
+    console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT_PATH not set.');
+    _initializeMock();
   }
 
-  const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT
-  );
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-
-  console.log('✅ Firebase Admin initialized.');
-
   return admin;
+};
+
+const _initializeMock = () => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Firebase Admin MUST be configured in production.');
+  }
+  console.log('ℹ️ Using Firebase Mock mode for development.');
 };
 
 module.exports = { initializeFirebase, admin };

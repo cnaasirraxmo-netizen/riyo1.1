@@ -4,7 +4,9 @@ class FootballFixture {
   final String status;
   final int? elapsed;
   final String homeTeam;
+  final int homeTeamId;
   final String awayTeam;
+  final int awayTeamId;
   final String homeLogo;
   final String awayLogo;
   final int? homeGoals;
@@ -17,7 +19,9 @@ class FootballFixture {
     required this.status,
     this.elapsed,
     required this.homeTeam,
+    required this.homeTeamId,
     required this.awayTeam,
+    required this.awayTeamId,
     required this.homeLogo,
     required this.awayLogo,
     this.homeGoals,
@@ -32,7 +36,9 @@ class FootballFixture {
       status: json['fixture']['status']['long'],
       elapsed: json['fixture']['status']['elapsed'],
       homeTeam: json['teams']['home']['name'],
+      homeTeamId: json['teams']['home']['id'],
       awayTeam: json['teams']['away']['name'],
+      awayTeamId: json['teams']['away']['id'],
       homeLogo: json['teams']['home']['logo'],
       awayLogo: json['teams']['away']['logo'],
       homeGoals: json['goals']['home'],
@@ -49,8 +55,8 @@ class FootballFixture {
         'status': {'long': status, 'elapsed': elapsed},
       },
       'teams': {
-        'home': {'name': homeTeam, 'logo': homeLogo},
-        'away': {'name': awayTeam, 'logo': awayLogo},
+        'home': {'name': homeTeam, 'id': homeTeamId, 'logo': homeLogo},
+        'away': {'name': awayTeam, 'id': awayTeamId, 'logo': awayLogo},
       },
       'goals': {'home': homeGoals, 'away': awayGoals},
       'league': {'name': leagueName},

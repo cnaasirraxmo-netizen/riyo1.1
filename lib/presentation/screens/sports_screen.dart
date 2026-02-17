@@ -389,7 +389,7 @@ class _TeamDetailsView extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 32),
-              _buildNotificationToggle(),
+              _buildNotificationToggle(context),
             ],
           ),
         ),
@@ -397,10 +397,11 @@ class _TeamDetailsView extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationToggle() {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isEnabled = false;
+  Widget _buildNotificationToggle(BuildContext context) {
+    return Consumer<FootballProvider>(
+      builder: (context, provider, child) {
+        final teamId = team['id'];
+        final isEnabled = provider.isFollowing(teamId);
         return SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Match Notifications', style: TextStyle(color: Colors.white)),
@@ -408,9 +409,12 @@ class _TeamDetailsView extends StatelessWidget {
           value: isEnabled,
           activeColor: Colors.yellow,
           onChanged: (value) {
-            setState(() => isEnabled = value);
+            provider.toggleFollowTeam(teamId);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(value ? 'Notifications enabled for ${team['name']}' : 'Notifications disabled')),
+              SnackBar(
+                content: Text(value ? 'Notifications enabled for ${team['name']}' : 'Notifications disabled for ${team['name']}'),
+                duration: const Duration(seconds: 2),
+              ),
             );
           },
         );

@@ -14,6 +14,7 @@ class FootballProvider with ChangeNotifier {
   List<FootballStanding> _standings = [];
   List<FootballPlayerStats> _topScorers = [];
   List<Map<String, dynamic>> _teams = [];
+  List<int> _followedTeams = [];
 
   bool _isLoadingFixtures = false;
   bool _isLoadingStandings = false;
@@ -26,6 +27,7 @@ class FootballProvider with ChangeNotifier {
   List<FootballStanding> get standings => _standings;
   List<FootballPlayerStats> get topScorers => _topScorers;
   List<Map<String, dynamic>> get teams => _teams;
+  List<int> get followedTeams => _followedTeams;
 
   bool get isLoading => _isLoadingFixtures || _isLoadingStandings || _isLoadingScorers || _isLoadingTeams;
   bool get isLoadingFixtures => _isLoadingFixtures;
@@ -46,6 +48,18 @@ class FootballProvider with ChangeNotifier {
     _selectedLeague = league;
     fetchAll();
   }
+
+  void toggleFollowTeam(int teamId) {
+    if (_followedTeams.contains(teamId)) {
+      _followedTeams.remove(teamId);
+    } else {
+      _followedTeams.add(teamId);
+    }
+    _saveToCache();
+    notifyListeners();
+  }
+
+  bool isFollowing(int teamId) => _followedTeams.contains(teamId);
 
   void fetchAll() {
     fetchFixtures(league: _selectedLeague, season: _selectedSeason);
@@ -95,6 +109,11 @@ class FootballProvider with ChangeNotifier {
         _topScorers = decoded.map((item) => FootballPlayerStats.fromJson(item)).toList();
       }
 
+      final followedJson = prefs.getString('football_followed');
+      if (followedJson != null) {
+        _followedTeams = List<int>.from(jsonDecode(followedJson));
+      }
+
       notifyListeners();
     } catch (e) {
       print('Error loading football cache: $e');
@@ -107,6 +126,7 @@ class FootballProvider with ChangeNotifier {
       await prefs.setString('football_fixtures', jsonEncode(_fixtures.map((f) => f.toJson()).toList()));
       await prefs.setString('football_standings', jsonEncode(_standings.map((s) => s.toJson()).toList()));
       await prefs.setString('football_topscorers', jsonEncode(_topScorers.map((p) => p.toJson()).toList()));
+      await prefs.setString('football_followed', jsonEncode(_followedTeams));
     } catch (e) {
       print('Error saving football cache: $e');
     }
@@ -128,11 +148,16 @@ class FootballProvider with ChangeNotifier {
           final oldFix = _fixtures.firstWhere((f) => f.id == newFix.id, orElse: () => newFix);
           if (oldFix != newFix && (oldFix.homeGoals != newFix.homeGoals || oldFix.awayGoals != newFix.awayGoals)) {
              // Score changed!
-             NotificationService().showNotification(
-               id: newFix.id,
-               title: 'GOAL! ${newFix.homeTeam} ${newFix.homeGoals} - ${newFix.awayGoals} ${newFix.awayTeam}',
-               body: '${newFix.leagueName} match update',
-             );
+             // Only notify if we follow one of the teams or no teams are followed (notify all)
+             if (_followedTeams.isEmpty ||
+                 _followedTeams.contains(newFix.homeTeamId) ||
+                 _followedTeams.contains(newFix.awayTeamId)) {
+               NotificationService().showNotification(
+                 id: newFix.id,
+                 title: 'GOAL! ${newFix.homeTeam} ${newFix.homeGoals} - ${newFix.awayGoals} ${newFix.awayTeam}',
+                 body: '${newFix.leagueName} match update',
+               );
+             }
           }
         }
       }
