@@ -18,7 +18,7 @@ A high-performance web application for users to stream movies and TV shows from 
 *   **Icons:** Lucide React
 *   **API:** Axios
 
-## 📦 Deployment to Vercel
+##  Deployment to Vercel
 
 1.  **Move to the web_user directory:**
     ```bash
