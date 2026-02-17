@@ -6,17 +6,37 @@ class NotificationService {
   factory NotificationService() => _instance;
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  late final FirebaseMessaging _fcm;
 
   NotificationService._internal();
 
+  bool _isInitialized = false;
+
   Future<void> init() async {
-    // 1. Request Permissions
-    await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    if (_isInitialized) return;
+
+    // 1. Request Permissions (Don't block forever)
+    try {
+      _fcm = FirebaseMessaging.instance;
+      await _fcm.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      ).timeout(const Duration(seconds: 3));
+
+      // 3. Handle Foreground FCM Messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        if (message.notification != null) {
+          showNotification(
+            title: message.notification!.title ?? 'RIYOBOX',
+            body: message.notification!.body ?? '',
+            payload: message.data.toString(),
+          );
+        }
+      });
+    } catch (e) {
+      print('FCM Initialization or Permission request failed: $e');
+    }
 
     // 2. Local Notifications Setup
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -26,18 +46,13 @@ class NotificationService {
       android: initializationSettingsAndroid,
     );
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    try {
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    } catch (e) {
+      print('Local Notifications initialization failed: $e');
+    }
 
-    // 3. Handle Foreground FCM Messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        showNotification(
-          title: message.notification!.title ?? 'RIYOBOX',
-          body: message.notification!.body ?? '',
-          payload: message.data.toString(),
-        );
-      }
-    });
+    _isInitialized = true;
   }
 
   Future<void> showNotification({

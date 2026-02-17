@@ -9,8 +9,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthProvider with ChangeNotifier {
   static const String _backendUrl = Constants.apiBaseUrl;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  late final FirebaseAuth _auth;
+  late final GoogleSignIn _googleSignIn;
 
   bool _isAuthenticated = false;
   bool _isOnboardingComplete = false;
@@ -26,9 +26,20 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? get userAccount => _userAccount;
   Map<String, dynamic>? get activeProfile => _activeProfile;
 
+  bool _firebaseAvailable = false;
+  bool get isFirebaseAvailable => _firebaseAvailable;
+
   AuthProvider() {
+    try {
+      _auth = FirebaseAuth.instance;
+      _googleSignIn = GoogleSignIn();
+      _firebaseAvailable = true;
+      _listenToAuthChanges();
+    } catch (e) {
+      debugPrint('Firebase not available in AuthProvider: $e');
+      _firebaseAvailable = false;
+    }
     _loadState();
-    _listenToAuthChanges();
   }
 
   void _listenToAuthChanges() {
@@ -92,6 +103,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> loginWithEmail(String email, String password) async {
+    if (!_firebaseAvailable) throw Exception('Firebase is not available');
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
     } catch (e) {
@@ -100,6 +112,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> signupWithEmail(String name, String email, String password) async {
+    if (!_firebaseAvailable) throw Exception('Firebase is not available');
     try {
       final result = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       await result.user?.updateDisplayName(name);
@@ -110,6 +123,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> loginWithGoogle() async {
+    if (!_firebaseAvailable) throw Exception('Firebase is not available');
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
@@ -125,12 +139,15 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> sendPasswordReset(String email) async {
+    if (!_firebaseAvailable) return;
     await _auth.sendPasswordResetEmail(email: email);
   }
 
   Future<void> logout() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+    if (_firebaseAvailable) {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+    }
     _isAuthenticated = false;
     _token = null;
     _userAccount = null;
@@ -165,7 +182,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> deleteAccount() async {
-    if (_auth.currentUser == null) return;
+    if (!_firebaseAvailable || _auth.currentUser == null) return;
     try {
       // 1. Delete from backend (GDPR)
       await http.delete(

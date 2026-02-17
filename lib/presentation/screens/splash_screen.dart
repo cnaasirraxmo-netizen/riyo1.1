@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:riyobox/providers/auth_provider.dart';
+import 'package:riyobox/services/notification_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -45,7 +46,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
 
-    _controller.forward().then((_) => _navigateToNext());
+    _initAndStart();
+  }
+
+  Future<void> _initAndStart() async {
+    // Initialize notifications while showing splash animation
+    NotificationService().init();
+
+    await _controller.forward();
+    _navigateToNext();
   }
 
   void _navigateToNext() {

@@ -26,18 +26,19 @@ import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyobox/presentation/screens/sports_screen.dart';
 import 'package:riyobox/presentation/screens/profile_selection_screen.dart';
 import 'package:riyobox/providers/football_provider.dart';
-import 'package:riyobox/services/notification_service.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   try {
-    await Firebase.initializeApp();
+    // Basic Firebase initialization with timeout
+    await Firebase.initializeApp().timeout(const Duration(seconds: 5));
   } catch (e) {
-    print('Firebase initialization failed: $e');
+    debugPrint('Firebase initialization failed: $e');
   }
-  await NotificationService().init();
+
   runApp(const MyApp());
 }
 
@@ -207,9 +208,10 @@ class MyApp extends StatelessWidget {
             title: 'RIYOBOX',
             locale: settings.language == 'Arabic' ? const Locale('ar', '') : const Locale('en', ''),
             builder: (context, child) {
+              if (child == null) return const SizedBox.shrink();
               return Directionality(
                 textDirection: settings.language == 'Arabic' ? TextDirection.rtl : TextDirection.ltr,
-                child: child!,
+                child: child,
               );
             },
             theme: ThemeData.dark().copyWith(
