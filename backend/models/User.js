@@ -15,32 +15,47 @@ const profileSchema = new mongoose.Schema({
 });
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  firebaseUid: {
+    type: String,
+    unique: true,
+    sparse: true // This allows multiple users to have 'null' firebaseUid while still enforcing uniqueness for non-null values
+  },
   email: { type: String, required: true, unique: true, lowercase: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['user','admin'], default: 'user' },
+  password: { type: String },
+  name: { type: String },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
   profiles: [profileSchema],
   activeProfileId: { type: mongoose.Schema.Types.ObjectId },
   fcmTokens: [String],
   subscription: {
-    plan: { type: String, enum: ['free','premium','pro'], default: 'free' },
+    plan: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
     startDate: Date,
     endDate: Date,
-    status: { type: String, enum: ['active','inactive','expired'], default: 'inactive' }
+    status: { type: String, enum: ['active', 'inactive', 'expired'], default: 'inactive' }
   }
 }, { timestamps: true });
 
-// Hash password
+// Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+  if (!this.isModified('password') || !this.password) {
+    return next();
+  }
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Compare password
-userSchema.methods.comparePassword = async function(password) {
-  return bcrypt.compare(password, this.password);
+// Method to compare passwords
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  if (!this.password) return false;
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-// 🔹 Prevent OverwriteModelError
-module.exports = mongoose.models.User || mongoose.model('User', userSchema);
+// Prevent OverwriteModelError
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+
+module.exports = User;

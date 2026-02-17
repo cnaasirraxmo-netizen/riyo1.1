@@ -1,6 +1,5 @@
-const { admin } = require('../utils/firebase');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { sendWelcomeEmail } = require('../utils/notifications');
 
 const protect = async (req, res, next) => {
   let token;
@@ -9,30 +8,16 @@ const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      let decodedToken;
-      if (admin.apps.length === 0) {
-        decodedToken = { uid: 'mock-uid', email: 'user@example.com', name: 'Mock User' };
-      } else {
-        decodedToken = await admin.auth().verifyIdToken(token);
+      // Verify JWT token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Get user from the token
+      req.user = await User.findById(decoded.id).select('-password');
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not found' });
       }
 
-      if (!decodedToken) {
-        return res.status(401).json({ message: 'Not authorized, token invalid' });
-      }
-
-      let user = await User.findOne({ firebaseUid: decodedToken.uid });
-      if (!user) {
-        user = await User.create({
-          firebaseUid: decodedToken.uid,
-          email: decodedToken.email,
-          name: decodedToken.name || 'User',
-          profiles: [{ name: decodedToken.name || 'Default', avatar: '' }]
-        });
-        // Trigger Welcome Email on Registration/Sync
-        await sendWelcomeEmail(user.email, user.name);
-      }
-
-      req.user = user;
       return next();
     } catch (error) {
       console.error('Auth Error:', error.message);
@@ -57,7 +42,7 @@ const premium = (req, res, next) => {
   if (req.user && (req.user.subscription.status === 'active' || req.user.role === 'admin')) {
     return next();
   } else {
-    return res.status(403).json({ message: 'Premium subscription required to access this content' });
+    return res.status(403).json({ message: 'Premium subscription required' });
   }
 };
 

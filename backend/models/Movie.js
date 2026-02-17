@@ -15,4 +15,6 @@ const movieSchema = new mongoose.Schema({
   contentRating: { type: String },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Movie', movieSchema);
+const Movie = mongoose.models.Movie || mongoose.model('Movie', movieSchema);
+
+module.exports = Movie;

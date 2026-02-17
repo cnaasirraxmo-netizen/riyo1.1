@@ -11,4 +11,6 @@ const reviewSchema = new mongoose.Schema({
 // Prevent multiple reviews from same user for same movie
 reviewSchema.index({ user: 1, movie: 1 }, { unique: true });
 
-module.exports = mongoose.model('Review', reviewSchema);
+const Review = mongoose.models.Review || mongoose.model('Review', reviewSchema);
+
+module.exports = Review;

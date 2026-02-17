@@ -11,4 +11,6 @@ const subscriptionSchema = new mongoose.Schema({
   endDate: { type: Date, required: true },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Subscription', subscriptionSchema);
+const Subscription = mongoose.models.Subscription || mongoose.model('Subscription', subscriptionSchema);
+
+module.exports = Subscription;
