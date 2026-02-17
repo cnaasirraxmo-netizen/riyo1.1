@@ -1,5 +1,6 @@
 const { admin } = require('../utils/firebase');
 const User = require('../models/User');
+const { sendWelcomeEmail } = require('../utils/notifications');
 
 const protect = async (req, res, next) => {
   let token;
@@ -9,9 +10,7 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
 
       let decodedToken;
-      // Check if we are in mock mode (no firebase apps initialized)
       if (admin.apps.length === 0) {
-        // development mock
         decodedToken = { uid: 'mock-uid', email: 'user@example.com', name: 'Mock User' };
       } else {
         decodedToken = await admin.auth().verifyIdToken(token);
@@ -21,7 +20,6 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'Not authorized, token invalid' });
       }
 
-      // Sync user with MongoDB
       let user = await User.findOne({ firebaseUid: decodedToken.uid });
       if (!user) {
         user = await User.create({
@@ -30,6 +28,8 @@ const protect = async (req, res, next) => {
           name: decodedToken.name || 'User',
           profiles: [{ name: decodedToken.name || 'Default', avatar: '' }]
         });
+        // Trigger Welcome Email on Registration/Sync
+        await sendWelcomeEmail(user.email, user.name);
       }
 
       req.user = user;

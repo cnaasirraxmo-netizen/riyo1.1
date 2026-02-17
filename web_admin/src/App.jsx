@@ -6,6 +6,7 @@ import Movies from './pages/Movies';
 import Media from './pages/Media';
 import Users from './pages/Users';
 import Sports from './pages/Sports';
+import Notifications from './pages/Notifications';
 import Sidebar from './components/Sidebar';
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
             <Route path="/media" element={<Media />} />
             <Route path="/users" element={<Users />} />
             <Route path="/sports" element={<Sports />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </main>

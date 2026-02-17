@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Review = require('../models/Review');
 const Subscription = require('../models/Subscription');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { sendPushNotification } = require('../utils/notifications');
 const router = express.Router();
 
 // Get overall stats
@@ -14,7 +15,6 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
     const totalReviews = await Review.countDocuments();
     const activeSubscriptions = await User.countDocuments({ 'subscription.status': 'active' });
 
-    // Revenue stats (mock)
     const revenueStats = await Subscription.aggregate([
       { $match: { status: 'active' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
@@ -51,6 +51,55 @@ router.put('/users/:id/role', protect, adminOnly, async (req, res) => {
     user.role = role;
     await user.save();
     res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Admin Movies with Notification flag
+router.get('/movies', protect, adminOnly, async (req, res) => {
+  try {
+    const movies = await Movie.find().sort({ createdAt: -1 });
+    res.json(movies);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/movies', protect, adminOnly, async (req, res) => {
+  try {
+    const { title, notify, ...rest } = req.body;
+    const movie = await Movie.create({ title, ...rest });
+
+    if (notify) {
+      await sendPushNotification(
+        'New Movie Added! 🎬',
+        `"${title}" is now available to stream on RIYOBOX.`,
+        { movieId: movie._id.toString() }
+      );
+    }
+
+    res.status(201).json(movie);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete('/movies/:id', protect, adminOnly, async (req, res) => {
+  try {
+    await Movie.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Movie deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Manual Push Notification
+router.post('/notify', protect, adminOnly, async (req, res) => {
+  try {
+    const { title, body, data } = req.body;
+    await sendPushNotification(title, body, data);
+    res.json({ message: 'Notification broadcasted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -18,7 +18,8 @@ const Movies = () => {
     year: '',
     duration: '',
     genre: '',
-    contentRating: ''
+    contentRating: '',
+    notify: false
   });
 
   const fetchMovies = async () => {
@@ -295,6 +296,18 @@ const Movies = () => {
                     onChange={(e) => setFormData({...formData, backdropUrl: e.target.value})}
                   />
                 </div>
+              </div>
+              <div className="flex items-center bg-[#262626] p-4 rounded-xl border border-white/5">
+                <input
+                  type="checkbox"
+                  id="notify"
+                  className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  checked={formData.notify}
+                  onChange={(e) => setFormData({...formData, notify: e.target.checked})}
+                />
+                <label htmlFor="notify" className="ml-3 block text-sm font-medium text-gray-300">
+                  Send Push Notification to all users
+                </label>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
