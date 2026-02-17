@@ -1,56 +1,56 @@
 const express = require('express');
 const Movie = require('../models/Movie');
 const User = require('../models/User');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const Review = require('../models/Review');
+const Subscription = require('../models/Subscription');
+const { protect, admin } = require('../middleware/authMiddleware');
 const router = express.Router();
 
-router.post('/movies', protect, adminOnly, async (req, res) => {
-  const {
-    title, description, posterUrl, backdropUrl,
-    videoUrl, duration, year, genre,
-    isTrending, contentRating
-  } = req.body;
-
+// Get overall stats
+router.get('/stats', protect, admin, async (req, res) => {
   try {
-    const movie = new Movie({
-      title, description, posterUrl, backdropUrl,
-      videoUrl, duration, year, genre,
-      isTrending, contentRating
+    const totalUsers = await User.countDocuments();
+    const totalMovies = await Movie.countDocuments();
+    const totalReviews = await Review.countDocuments();
+    const activeSubscriptions = await User.countDocuments({ 'subscription.status': 'active' });
+
+    // Revenue stats (mock)
+    const revenueStats = await Subscription.aggregate([
+      { $match: { status: 'active' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+
+    res.json({
+      totalUsers,
+      totalMovies,
+      totalReviews,
+      activeSubscriptions,
+      revenue: revenueStats.length > 0 ? revenueStats[0].total : 0
     });
-    const createdMovie = await movie.save();
-    res.status(201).json(createdMovie);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-router.get('/movies', protect, adminOnly, async (req, res) => {
+// User management
+router.get('/users', protect, admin, async (req, res) => {
   try {
-    const movies = await Movie.find({});
-    res.json(movies);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.delete('/movies/:id', protect, adminOnly, async (req, res) => {
-  try {
-    const movie = await Movie.findById(req.params.id);
-    if (movie) {
-      await movie.deleteOne();
-      res.json({ message: 'Movie removed' });
-    } else {
-      res.status(404).json({ message: 'Movie not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.get('/users', protect, adminOnly, async (req, res) => {
-  try {
-    const users = await User.find({}).select('-password');
+    const users = await User.find().select('-password');
     res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put('/users/:id/role', protect, admin, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.role = role;
+    await user.save();
+    res.json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

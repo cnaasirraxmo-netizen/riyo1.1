@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const User = require('./models/User');
 
@@ -29,6 +30,14 @@ const validateEnv = () => {
 validateEnv();
 const app = express();
 app.use(express.json());
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use('/auth/', limiter); // Apply limiter only to auth routes
 
 // Enable CORS for all origins
 app.use(cors({

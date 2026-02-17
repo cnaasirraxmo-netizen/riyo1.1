@@ -4,25 +4,54 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:riyobox/providers/auth_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late TextEditingController _nameController;
+  late TextEditingController _bioController;
+
+  @override
+  void initState() {
+    super.initState();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    _nameController = TextEditingController(text: auth.userProfile?['name'] ?? auth.role ?? 'User');
+    _bioController = TextEditingController(text: auth.userProfile?['bio'] ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1C1C2A),
+      backgroundColor: const Color(0xFF141414),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1C1C2A),
-        title: const Text('My Profile', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF141414),
+        title: const Text('My Profile', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Profile updated successfully!')),
+            onPressed: () async {
+              await auth.updateProfile(
+                name: _nameController.text,
+                bio: _bioController.text,
               );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Profile updated successfully!')),
+                );
+              }
             },
             child: const Text('SAVE', style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold)),
           ),
@@ -32,18 +61,13 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildProfileImage(),
+            _buildProfileImage(auth.userProfile?['profilePicture']),
             const SizedBox(height: 24),
-            _buildProfileField('Full Name', auth.isAuthenticated ? 'User' : 'Guest'),
-            _buildProfileField('Email', auth.isAuthenticated ? 'user@example.com' : 'Not signed in'),
-            _buildProfileField('Role', auth.role ?? 'N/A'),
+            _buildProfileField('Full Name', _nameController),
+            _buildProfileField('Bio', _bioController),
+            _buildReadOnlyField('Email', auth.userProfile?['email'] ?? 'Not available'),
+            _buildReadOnlyField('Subscription', auth.userProfile?['subscription']?['plan']?.toUpperCase() ?? 'FREE'),
             const SizedBox(height: 32),
-            _buildActionItem(
-              context,
-              title: 'Change Password',
-              icon: Icons.lock_outline,
-              onTap: () {},
-            ),
             _buildActionItem(
               context,
               title: 'Watch History',
@@ -58,19 +82,20 @@ class ProfileScreen extends StatelessWidget {
             ),
              _buildActionItem(
               context,
-              title: 'Payment Methods',
-              icon: Icons.payment,
-              onTap: () {},
+              title: 'Delete Account',
+              icon: Icons.delete_forever_outlined,
+              color: Colors.redAccent,
+              onTap: () => _showDeleteAccountDialog(context, auth),
             ),
             const SizedBox(height: 32),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: ListTile(
-                tileColor: Colors.red.withAlpha(25),
+                tileColor: Colors.white.withAlpha(12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Sign Out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red),
+                leading: const Icon(Icons.logout, color: Colors.white),
+                title: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                 onTap: () {
                   _showLogoutDialog(context, auth);
                 },
@@ -83,7 +108,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileImage() {
+  Widget _buildProfileImage(String? url) {
     return Center(
       child: Stack(
         children: [
@@ -93,9 +118,12 @@ class ProfileScreen extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.yellow, width: 2),
             ),
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 60,
-              backgroundImage: CachedNetworkImageProvider('https://picsum.photos/seed/profile/200/200'),
+              backgroundColor: Colors.grey[800],
+              backgroundImage: (url != null && url.isNotEmpty)
+                  ? CachedNetworkImageProvider(url)
+                  : const CachedNetworkImageProvider('https://picsum.photos/seed/profile/200/200') as ImageProvider,
             ),
           ),
           Positioned(
@@ -115,20 +143,20 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileField(String label, String value) {
+  Widget _buildProfileField(String label, TextEditingController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           TextField(
-            controller: TextEditingController(text: value),
+            controller: controller,
             style: const TextStyle(color: Colors.white, fontSize: 16),
             decoration: InputDecoration(
               filled: true,
-              fillColor: const Color(0xFF2A2A3A),
+              fillColor: Colors.white12,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -145,10 +173,25 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionItem(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildReadOnlyField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16)),
+          const Divider(color: Colors.white10),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionItem(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap, Color color = Colors.white}) {
     return ListTile(
-      leading: Icon(icon, color: Colors.yellow),
-      title: Text(title, style: const TextStyle(color: Colors.white)),
+      leading: Icon(icon, color: color == Colors.white ? Colors.yellow : color),
+      title: Text(title, style: TextStyle(color: color)),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       onTap: onTap,
     );
@@ -158,7 +201,7 @@ class ProfileScreen extends StatelessWidget {
      showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A3A),
+        backgroundColor: const Color(0xFF1C1C1F),
         title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
         content: const Text('Are you sure you want to sign out?', style: TextStyle(color: Colors.grey)),
         actions: [
@@ -169,6 +212,26 @@ class ProfileScreen extends StatelessWidget {
               context.go('/login');
             },
             child: const Text('Sign Out', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, AuthProvider auth) {
+     showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1F),
+        title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+        content: const Text('This action is permanent and will delete all your data. Are you sure?', style: TextStyle(color: Colors.grey)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Colors.white))),
+          TextButton(
+            onPressed: () async {
+              await auth.deleteAccount();
+              if (mounted) context.go('/login');
+            },
+            child: const Text('Delete Permanently', style: TextStyle(color: Colors.red))),
         ],
       ),
     );

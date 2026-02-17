@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:riyobox/core/constants.dart';
+import 'package:riyobox/models/movie.dart';
 
 class AuthProvider with ChangeNotifier {
   static const String _backendUrl = Constants.apiBaseUrl;
@@ -10,11 +11,13 @@ class AuthProvider with ChangeNotifier {
   bool _isOnboardingComplete = false;
   String? _token;
   String? _role;
+  Map<String, dynamic>? _userProfile;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isOnboardingComplete => _isOnboardingComplete;
   String? get token => _token;
   String? get role => _role;
+  Map<String, dynamic>? get userProfile => _userProfile;
 
   AuthProvider() {
     _loadState();
@@ -26,7 +29,51 @@ class AuthProvider with ChangeNotifier {
     _isOnboardingComplete = prefs.getBool('isOnboardingComplete') ?? false;
     _token = prefs.getString('token');
     _role = prefs.getString('role');
+    if (_isAuthenticated && _token != null) {
+      fetchProfile();
+    }
     notifyListeners();
+  }
+
+  Future<void> fetchProfile() async {
+    if (_token == null) return;
+    try {
+      final response = await http.get(
+        Uri.parse('$_backendUrl/users/profile'),
+        headers: {'Authorization': 'Bearer $_token'},
+      );
+      if (response.statusCode == 200) {
+        _userProfile = jsonDecode(response.body);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error fetching profile: $e');
+    }
+  }
+
+  Future<void> updateProfile({String? name, String? bio, String? profilePicture, Map<String, dynamic>? preferences}) async {
+    if (_token == null) return;
+    try {
+      final response = await http.put(
+        Uri.parse('$_backendUrl/users/profile'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          if (name != null) 'name': name,
+          if (bio != null) 'bio': bio,
+          if (profilePicture != null) 'profilePicture': profilePicture,
+          if (preferences != null) 'preferences': preferences,
+        }),
+      );
+      if (response.statusCode == 200) {
+        _userProfile = jsonDecode(response.body);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error updating profile: $e');
+    }
   }
 
   Future<void> login(String email, String password) async {
@@ -45,6 +92,7 @@ class AuthProvider with ChangeNotifier {
         await prefs.setBool('isAuthenticated', true);
         await prefs.setString('token', _token!);
         await prefs.setString('role', _role!);
+        await fetchProfile();
         notifyListeners();
       } else {
         final errorMsg = _parseErrorMessage(response);
@@ -74,6 +122,7 @@ class AuthProvider with ChangeNotifier {
         await prefs.setBool('isAuthenticated', true);
         await prefs.setString('token', _token!);
         await prefs.setString('role', _role!);
+        await fetchProfile();
         notifyListeners();
       } else {
         final errorMsg = _parseErrorMessage(response);
@@ -91,6 +140,7 @@ class AuthProvider with ChangeNotifier {
     _isAuthenticated = false;
     _token = null;
     _role = null;
+    _userProfile = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isAuthenticated', false);
     await prefs.remove('token');
@@ -105,6 +155,21 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteAccount() async {
+    if (_token == null) return;
+    try {
+      final response = await http.delete(
+        Uri.parse('$_backendUrl/users/account'),
+        headers: {'Authorization': 'Bearer $_token'},
+      );
+      if (response.statusCode == 200) {
+        await logout();
+      }
+    } catch (e) {
+      print('Error deleting account: $e');
+    }
+  }
+
   String _parseErrorMessage(http.Response response) {
     try {
       final data = jsonDecode(response.body);
@@ -115,13 +180,11 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> checkSession() async {
-    // Simulate API token validation
     await Future.delayed(const Duration(milliseconds: 500));
     if (_token == null) {
       _isAuthenticated = false;
       return false;
     }
-    // Assume token is valid if present for this mock
     return true;
   }
 }

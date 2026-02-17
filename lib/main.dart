@@ -173,6 +173,12 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer2<SettingsProvider, AuthProvider>(
         builder: (context, settings, auth, child) {
+          final playback = Provider.of<PlaybackProvider>(context, listen: false);
+          playback.updateToken(auth.token);
+          if (auth.userProfile != null) {
+            playback.loadFromProfile(auth.userProfile!['watchHistory']);
+          }
+
           return MaterialApp.router(
             routerConfig: _createRouter(auth),
             title: 'RIYOBOX',

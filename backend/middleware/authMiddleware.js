@@ -3,25 +3,24 @@ const User = require('../models/User');
 
 const protect = async (req, res, next) => {
   let token;
+
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      if (!process.env.JWT_SECRET) {
-        return res.status(500).json({ message: 'Internal server error: Security config missing' });
-      }
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id).select('-password');
-      return next();
+      next();
     } catch (error) {
-      return res.status(401).json({ message: 'Not authorized, token failed' });
+      res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
+
   if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
+    res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 
-const adminOnly = (req, res, next) => {
+const admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
@@ -29,4 +28,12 @@ const adminOnly = (req, res, next) => {
   }
 };
 
-module.exports = { protect, adminOnly };
+const premium = (req, res, next) => {
+  if (req.user && (req.user.subscription.status === 'active' || req.user.role === 'admin')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Premium subscription required to access this content' });
+  }
+};
+
+module.exports = { protect, admin, premium };

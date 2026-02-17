@@ -191,7 +191,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   void dispose() {
     if (widget.movieId != null && _controller != null) {
-      Provider.of<PlaybackProvider>(context, listen: false).updateProgress(widget.movieId!, _controller!.value.position);
+      Provider.of<PlaybackProvider>(context, listen: false).updateProgress(widget.movieId!, _controller!.value.position, _controller!.value.duration);
     }
     WakelockPlus.disable();
     _controller?.dispose();

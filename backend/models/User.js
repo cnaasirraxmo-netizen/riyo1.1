@@ -6,7 +6,27 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  profilePicture: { type: String, default: '' },
+  bio: { type: String, default: '' },
   watchlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Movie' }],
+  watchHistory: [{
+    movie: { type: mongoose.Schema.Types.ObjectId, ref: 'Movie' },
+    progress: { type: Number, default: 0 }, // in seconds
+    duration: { type: Number, default: 0 },
+    lastWatched: { type: Date, default: Date.now }
+  }],
+  preferences: {
+    language: { type: String, default: 'en' },
+    quality: { type: String, default: 'auto' },
+    notifications: { type: Boolean, default: true }
+  },
+  isVerified: { type: Boolean, default: false },
+  subscription: {
+    plan: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
+    startDate: Date,
+    endDate: Date,
+    status: { type: String, enum: ['active', 'inactive', 'expired'], default: 'inactive' }
+  }
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

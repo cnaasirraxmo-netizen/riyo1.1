@@ -16,6 +16,7 @@ class Movie {
   final List<Season>? seasons;
   final String? videoUrl;
   final String? localPath;
+  final List<Review>? reviews;
 
   // Download related fields
   final bool isDownloaded;
@@ -42,6 +43,7 @@ class Movie {
     this.seasons,
     this.videoUrl,
     this.localPath,
+    this.reviews,
     this.isDownloaded = false,
     this.isDownloading = false,
     this.downloadProgress = 0.0,
@@ -85,6 +87,7 @@ class Movie {
       isTvShow: json['is_tv_show'] ?? false,
       videoUrl: json['videoUrl'],
       localPath: json['local_path'],
+      reviews: json['reviews'] != null ? (json['reviews'] as List).map((r) => Review.fromJson(r)).toList() : null,
       isDownloaded: json['is_downloaded'] ?? false,
       isDownloading: json['is_downloading'] ?? false,
       downloadProgress: (json['download_progress'] as num?)?.toDouble() ?? 0.0,
@@ -161,4 +164,33 @@ class Episode {
   final String? videoUrl;
 
   Episode({required this.number, required this.title, required this.duration, this.videoUrl});
+}
+
+class Review {
+  final String id;
+  final String userName;
+  final String? userProfilePicture;
+  final double rating;
+  final String comment;
+  final DateTime createdAt;
+
+  Review({
+    required this.id,
+    required this.userName,
+    this.userProfilePicture,
+    required this.rating,
+    required this.comment,
+    required this.createdAt,
+  });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: json['_id'],
+      userName: json['user']['name'],
+      userProfilePicture: json['user']['profilePicture'],
+      rating: (json['rating'] as num).toDouble(),
+      comment: json['comment'],
+      createdAt: DateTime.parse(json['createdAt']),
+    );
+  }
 }

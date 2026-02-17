@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:riyobox/models/movie.dart';
@@ -21,40 +22,58 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Movie> _searchResults = [];
   bool _isLoading = false;
   bool _hasSearched = false;
+  Timer? _debounce;
 
-  void _onSearchChanged(String query, bool isOffline, {String? token}) async {
-    if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _isLoading = false;
-        _hasSearched = false;
-      });
-      return;
-    }
+  String? _selectedGenre;
+  String? _selectedSort;
 
-    setState(() {
-      _isLoading = true;
-      _hasSearched = true;
-    });
-
-    try {
-      final movies = await _apiService.getTrendingMovies(token: token);
-      var filteredMovies = movies.where((movie) =>
-        movie.title.toLowerCase().contains(query.toLowerCase())).toList();
-
-      if (isOffline) {
-        filteredMovies = filteredMovies.where((m) => m.isDownloaded).toList();
+  void _onSearchChanged(String query, bool isOffline, {String? token}) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (query.isEmpty && _selectedGenre == null) {
+        setState(() {
+          _searchResults = [];
+          _isLoading = false;
+          _hasSearched = false;
+        });
+        return;
       }
 
       setState(() {
-        _searchResults = filteredMovies;
-        _isLoading = false;
+        _isLoading = true;
+        _hasSearched = true;
       });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+
+      try {
+        final movies = await _apiService.getMovies(
+          token: token,
+          search: query.isEmpty ? null : query,
+          genre: _selectedGenre,
+          sort: _selectedSort,
+        );
+
+        var filteredMovies = movies;
+        if (isOffline) {
+          filteredMovies = filteredMovies.where((m) => m.isDownloaded).toList();
+        }
+
+        setState(() {
+          _searchResults = filteredMovies;
+          _isLoading = false;
+        });
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -68,6 +87,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           children: [
             _buildSearchHeader(settings.isOffline, token: auth.token),
+            if (!settings.isOffline) _buildFilters(auth.token),
             Expanded(
               child: _isLoading
                 ? _buildLoadingGrid()
@@ -81,7 +101,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildSearchHeader(bool isOffline, {String? token}) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Row(
         children: [
           Expanded(
@@ -111,21 +131,53 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
-          if (_searchController.text.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: GestureDetector(
-                onTap: () {
-                  _searchController.clear();
-                  _onSearchChanged('', isOffline, token: token);
-                  FocusScope.of(context).unfocus();
-                },
-                child: const Text(
-                  'CANCEL',
-                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilters(String? token) {
+    final genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance'];
+    final sorts = [
+      {'label': 'Newest', 'value': 'newest'},
+      {'label': 'Rating', 'value': 'rating'},
+      {'label': 'A-Z', 'value': 'title'}
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          ...genres.map((g) => Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ChoiceChip(
+              label: Text(g),
+              selected: _selectedGenre == g,
+              onSelected: (selected) {
+                setState(() => _selectedGenre = selected ? g : null);
+                _onSearchChanged(_searchController.text, false, token: token);
+              },
+              backgroundColor: const Color(0xFF262626),
+              selectedColor: Colors.deepPurpleAccent,
+              labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
             ),
+          )),
+          const VerticalDivider(color: Colors.white24),
+          ...sorts.map((s) => Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ChoiceChip(
+              label: Text(s['label']!),
+              selected: _selectedSort == s['value'],
+              onSelected: (selected) {
+                setState(() => _selectedSort = selected ? s['value'] : null);
+                _onSearchChanged(_searchController.text, false, token: token);
+              },
+              backgroundColor: const Color(0xFF262626),
+              selectedColor: Colors.deepPurpleAccent,
+              labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          )),
         ],
       ),
     );
@@ -135,27 +187,19 @@ class _SearchScreenState extends State<SearchScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       children: [
+        const SizedBox(height: 16.0),
         const Text(
           'TOP SEARCHES',
-          style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.0,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1),
+          style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold, letterSpacing: 1.1),
         ),
         const SizedBox(height: 16.0),
+        _buildTrendingSearch('The Boys'),
         _buildTrendingSearch('Inception'),
         _buildTrendingSearch('Interstellar'),
-        _buildTrendingSearch('The Dark Knight'),
-        _buildTrendingSearch('Pulp Fiction'),
         const SizedBox(height: 32.0),
         const Text(
-          'CATEGORIES',
-          style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.0,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1),
+          'POPULAR GENRES',
+          style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold, letterSpacing: 1.1),
         ),
         const SizedBox(height: 16.0),
         GridView.count(
@@ -181,8 +225,12 @@ class _SearchScreenState extends State<SearchScreen> {
       return NoSearchResultsState(
         query: _searchController.text,
         onBack: () {
-          _searchController.clear();
-          _onSearchChanged('', false);
+          setState(() {
+            _searchController.clear();
+            _selectedGenre = null;
+            _selectedSort = null;
+            _hasSearched = false;
+          });
         },
       );
     }
@@ -211,7 +259,7 @@ class _SearchScreenState extends State<SearchScreen> {
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: 6,
+      itemCount: 9,
       itemBuilder: (context, index) => const ShimmerLoading.rectangular(height: 150),
     );
   }
@@ -223,22 +271,28 @@ class _SearchScreenState extends State<SearchScreen> {
       trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14.0),
       onTap: () {
         _searchController.text = title;
-        // Logic to trigger search
+        _onSearchChanged(title, false, token: Provider.of<AuthProvider>(context, listen: false).token);
       },
     );
   }
 
   Widget _buildCategoryChip(String label, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4.0),
-        color: const Color(0xFF1C1C1C),
-        border: Border.all(color: color.withAlpha(50)),
-      ),
-      child: Center(
-        child: Text(
-          label.toUpperCase(),
-          style: const TextStyle(color: Colors.white, fontSize: 14.0, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+    return InkWell(
+      onTap: () {
+        setState(() => _selectedGenre = label);
+        _onSearchChanged(_searchController.text, false, token: Provider.of<AuthProvider>(context, listen: false).token);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(4.0),
+          color: const Color(0xFF1C1C1C),
+          border: Border.all(color: color.withAlpha(50)),
+        ),
+        child: Center(
+          child: Text(
+            label.toUpperCase(),
+            style: const TextStyle(color: Colors.white, fontSize: 14.0, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+          ),
         ),
       ),
     );
