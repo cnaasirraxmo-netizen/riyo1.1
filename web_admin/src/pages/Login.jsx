@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../utils/firebase';
 import api from '../utils/api';
 
 const Login = ({ onLogin }) => {
@@ -12,15 +14,27 @@ const Login = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await api.post('/auth/login', { email, password });
+      // 1. Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const token = await userCredential.user.getIdToken();
+
+      // 2. Verify with Backend and check role
+      // We send the Firebase token to our backend
+      const response = await api.get('/users/account', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
       if (response.data.role !== 'admin') {
+        await auth.signOut();
         setError('Unauthorized: Only admins can access this panel.');
         setLoading(false);
         return;
       }
-      onLogin(response.data.token, response.data.role);
+
+      onLogin(token, response.data.role);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      console.error(err);
+      setError(err.code === 'auth/user-not-found' ? 'User not found' : 'Login failed. Check credentials.');
     } finally {
       setLoading(false);
     }
@@ -75,7 +89,7 @@ const Login = ({ onLogin }) => {
         </form>
 
         <p className="mt-8 text-center text-xs text-gray-500">
-          Secure access only. Unauthorized attempts are logged.
+          Secure access only. Powered by Firebase Auth.
         </p>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../utils/firebase';
 import api from '../utils/api';
 
 const Login = ({ onLogin }) => {
@@ -8,17 +10,40 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleLogin = async (idToken) => {
+    try {
+      const response = await api.get('/users/account', {
+        headers: { Authorization: `Bearer ${idToken}` }
+      });
+      onLogin(idToken, response.data);
+    } catch (err) {
+      setError('Failed to sync with backend. Please try again.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const response = await api.post('/auth/login', { email, password });
-      onLogin(response.data.token, response.data);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const token = await userCredential.user.getIdToken();
+      await handleLogin(token);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      setError('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const token = await result.user.getIdToken();
+      await handleLogin(token);
+    } catch (err) {
+      setError('Google Login failed.');
     }
   };
 
@@ -42,7 +67,7 @@ const Login = ({ onLogin }) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <input
             type="email"
-            placeholder="Email or phone number"
+            placeholder="Email"
             required
             className="w-full bg-[#333] border-none rounded px-4 py-3 focus:ring-2 focus:ring-purple-600 outline-none transition-all"
             value={email}
@@ -64,6 +89,20 @@ const Login = ({ onLogin }) => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <div className="my-6 flex items-center">
+           <div className="flex-1 border-t border-white/10"></div>
+           <span className="px-4 text-xs text-gray-500">OR</span>
+           <div className="flex-1 border-t border-white/10"></div>
+        </div>
+
+        <button
+           onClick={handleGoogleLogin}
+           className="w-full bg-white text-black py-3 rounded font-bold flex items-center justify-center space-x-2 hover:bg-gray-200 transition-colors"
+        >
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png" className="h-5" alt="Google" />
+          <span>Continue with Google</span>
+        </button>
 
         <div className="mt-8 flex items-center justify-between text-xs text-gray-400 font-medium">
           <div className="flex items-center">

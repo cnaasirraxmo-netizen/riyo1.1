@@ -1,17 +1,4 @@
-const admin = require('firebase-admin');
-
-// Initialize Firebase Admin
-// In a real environment, this would use a service account JSON file
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(), // Fallback for environments with ADC
-    });
-  } catch (error) {
-    console.warn('Firebase Admin not initialized: Service account missing. Using MOCK mode for development.');
-  }
-}
-
+const { admin } = require('../utils/firebase');
 const User = require('../models/User');
 
 const protect = async (req, res, next) => {
@@ -22,11 +9,16 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
 
       let decodedToken;
-      if (process.env.NODE_ENV === 'test' || !admin.apps.length) {
-        // MOCK AUTH for testing/dev without Firebase credentials
-        decodedToken = { uid: 'mock-uid', email: 'user@example.com' };
+      // Check if we are in mock mode (no firebase apps initialized)
+      if (admin.apps.length === 0) {
+        // development mock
+        decodedToken = { uid: 'mock-uid', email: 'user@example.com', name: 'Mock User' };
       } else {
         decodedToken = await admin.auth().verifyIdToken(token);
+      }
+
+      if (!decodedToken) {
+        return res.status(401).json({ message: 'Not authorized, token invalid' });
       }
 
       // Sync user with MongoDB
@@ -43,7 +35,7 @@ const protect = async (req, res, next) => {
       req.user = user;
       return next();
     } catch (error) {
-      console.error('Auth Error:', error);
+      console.error('Auth Error:', error.message);
       return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }

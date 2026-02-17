@@ -3,9 +3,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
+const { initializeFirebase } = require('./utils/firebase');
 const User = require('./models/User');
 
 dotenv.config();
+initializeFirebase();
 
 // Validate Environment Variables
 const requiredEnvVars = [
