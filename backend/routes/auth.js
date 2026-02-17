@@ -1,43 +1,72 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const router = express.Router();
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-const generateToken = (id) => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is missing from environment variables');
+const profileSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  avatar: { type: String, default: '' },
+  isKids: { type: Boolean, default: false },
+  watchlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Movie' }],
+  watchHistory: [{
+    movie: { type: mongoose.Schema.Types.ObjectId, ref: 'Movie' },
+    progress: { type: Number, default: 0 },
+    duration: { type: Number, default: 0 },
+    lastWatched: { type: Date, default: Date.now }
+  }],
+});
+
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true
+  },
+
+  password: {
+    type: String,
+    required: true
+  },
+
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
+
+  profiles: [profileSchema],
+  activeProfileId: { type: mongoose.Schema.Types.ObjectId },
+  fcmTokens: [String],
+
+  subscription: {
+    plan: {
+      type: String,
+      enum: ['free', 'premium', 'pro'],
+      default: 'free'
+    },
+    startDate: Date,
+    endDate: Date,
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'expired'],
+      default: 'inactive'
+    }
   }
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+}, { timestamps: true });
+
+
+// 🔐 Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+// 🔐 Compare password on login
+userSchema.methods.comparePassword = async function(password) {
+  return await bcrypt.compare(password, this.password);
 };
 
-router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
-  try {
-    const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'User already exists' });
-    const user = await User.create({ name, email, password, role: 'user' });
-    if (user) {
-      res.status(201).json({ _id: user._id, name: user.name, email: user.email, role: user.role, token: generateToken(user._id) });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ email });
-    if (user && (await user.comparePassword(password))) {
-      res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, token: generateToken(user._id) });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-module.exports = router;
+module.exports = mongoose.model('User', userSchema);
