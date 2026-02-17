@@ -62,3 +62,14 @@ To support a Netflix-like experience, each RIYOBOX account (Firebase User) can h
 ### Environment Variables
 Add the following to your backend `.env`:
 *   `FIREBASE_SERVICE_ACCOUNT_PATH=config/firebase-service-account.json`
+
+## 5. Web Platform Details
+
+### Web User (Vite React)
+1. Initialize Firebase in `web_user/src/firebase.js` using your web config object.
+2. For FCM, ensure `web_user/public/firebase-messaging-sw.js` has the same config.
+3. Obtain your VAPID key from the Firebase Console (Cloud Messaging tab) and add it to `requestForToken`.
+
+### Admin Dashboard (React)
+1. Initialize Firebase in `web_admin/src/utils/firebase.js`.
+2. Admin authentication is also handled via Firebase. Ensure your admin email is added to the authorized list in the backend or marked as `role: 'admin'` in MongoDB.

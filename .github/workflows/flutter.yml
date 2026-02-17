@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -23,14 +24,10 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.16.7'
           channel: 'stable'
 
       - name: Disable Flutter Analytics
         run: flutter config --no-analytics
-
-      - name: Upgrade Flutter (force correct Dart)
-        run: flutter upgrade
 
       - name: Install dependencies
         run: flutter pub get
@@ -39,7 +36,7 @@ jobs:
         run: flutter test
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

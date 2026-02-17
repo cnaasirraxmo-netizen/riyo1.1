@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:riyobox/presentation/widgets/shimmer_loading.dart';
 import 'package:riyobox/models/movie.dart';
 import 'package:riyobox/services/api_service.dart';
-import 'package:riyobox/presentation/widgets/state_widgets.dart';
 import 'package:riyobox/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 

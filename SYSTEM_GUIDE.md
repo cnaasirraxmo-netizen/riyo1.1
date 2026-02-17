@@ -37,9 +37,14 @@ To transition from the current "Mock" development mode to a live production syst
 ### 🛠 Phase 1: Firebase
 1.  **Create a Firebase Project** at [console.firebase.google.com](https://console.firebase.google.com).
 2.  **Auth:** Enable Email/Password and Google Sign-in providers.
-3.  **Config:**
+3.  **Cloud Messaging:**
+    *   Go to Project Settings > Cloud Messaging.
+    *   Generate a **Web Push Certificate (VAPID Key)**.
+4.  **Config:**
     *   **Android:** Download `google-services.json` to `android/app/`.
-    *   **Web:** Copy your config object into `web_user/src/utils/firebase.js` and `web_admin/src/utils/firebase.js`.
+    *   **Web:** Copy your config object into `web_user/src/firebase.js` and `web_admin/src/utils/firebase.js`.
+    *   **Service Worker:** Update the config in `web_user/public/firebase-messaging-sw.js`.
+    *   **VAPID Key:** Add your VAPID key to `requestForToken` in `web_user/src/firebase.js`.
     *   **Backend:** Generate a **Service Account JSON** and save it to `backend/config/firebase-service-account.json`.
 
 ### 🛠 Phase 2: Environment Variables
@@ -56,7 +61,7 @@ FIREBASE_SERVICE_ACCOUNT_PATH=config/firebase-service-account.json
 EMAIL_USER=your_gmail@gmail.com
 EMAIL_PASS=your_app_specific_password
 
-# Sports API
+# Sports API (Get from dashboard.api-football.com)
 FOOTBALL_API_KEY=your_api_football_key
 
 # Storage (Cloudflare R2)
