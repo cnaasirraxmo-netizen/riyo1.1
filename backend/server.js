@@ -59,7 +59,7 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/riyobox';
 
 const createDefaultAdmin = async () => {
   try {
-    const adminEmail = 'admin@example.com';
+    const adminEmail = 'admin@exampl.com';
     const adminExists = await User.findOne({ email: adminEmail });
 
     if (!adminExists) {
