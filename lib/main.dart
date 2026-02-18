@@ -22,6 +22,7 @@ import 'package:riyobox/presentation/screens/downloads_screen.dart';
 import 'package:riyobox/presentation/screens/my_riyobox_screen.dart';
 import 'package:riyobox/presentation/screens/search_screen.dart';
 import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
+import 'package:riyobox/presentation/screens/cast_player_screen.dart';
 import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyobox/presentation/screens/sports_screen.dart';
 import 'package:riyobox/presentation/screens/profile_selection_screen.dart';
@@ -175,6 +176,11 @@ GoRouter _createRouter(AuthProvider authProvider) {
         path: '/cast',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const CastScreen(),
+      ),
+      GoRoute(
+        path: '/cast-player',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const CastPlayerScreen(),
       ),
     GoRoute(
       path: '/admin',

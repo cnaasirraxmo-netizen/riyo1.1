@@ -296,11 +296,14 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                  child: _buildActionIconButton(
                    Icons.cast_connected,
                    'CAST',
-                   onTap: () => castService.loadMedia(
-                     movie.videoUrl ?? '',
-                     title: movie.title,
-                     posterUrl: movie.posterPath
-                   )
+                   onTap: () {
+                     castService.loadMedia(
+                       movie.videoUrl ?? '',
+                       title: movie.title,
+                       posterUrl: movie.posterPath
+                     );
+                     context.push('/cast-player');
+                   }
                  ),
                ),
           ],

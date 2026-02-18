@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_chrome_cast/flutter_chrome_cast.dart';
 import 'package:riyobox/services/cast_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:io';
 
 class CastScreen extends StatefulWidget {
@@ -42,95 +44,256 @@ class _CastScreenState extends State<CastScreen> {
     final castService = context.watch<CastService>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF141414),
+      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF141414),
-        title: const Text('CAST TO DEVICE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: const Color(0xFF0F0F0F),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'CONNECT TO A DEVICE',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1.5,
+            color: Colors.white,
+          ),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (!castService.isScanning)
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.deepPurpleAccent),
-              onPressed: () => castService.startScanning(),
+          IconButton(
+            icon: Icon(
+              castService.isScanning ? Icons.stop : Icons.refresh,
+              color: Colors.deepPurpleAccent,
             ),
+            onPressed: () {
+              if (castService.isScanning) {
+                castService.stopScanning();
+              } else {
+                castService.startScanning();
+              }
+            },
+          ),
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (castService.isScanning && castService.devices.isEmpty)
-            const Expanded(child: Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent)))
-          else if (castService.devices.isEmpty)
-             Expanded(
-               child: Center(
+          if (castService.isScanning)
+            const LinearProgressIndicator(
+              backgroundColor: Colors.transparent,
+              color: Colors.deepPurpleAccent,
+              minHeight: 2,
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: Text(
+              'AVAILABLE DEVICES',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          if (castService.devices.isEmpty && !castService.isScanning)
+            Expanded(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.cast, size: 80, color: Colors.white10),
-                    const SizedBox(height: 16),
-                    const Text('No devices found', style: TextStyle(color: Colors.white70)),
-                    TextButton(onPressed: () => castService.startScanning(), child: const Text('SEARCH AGAIN')),
+                    Container(
+                      padding: const EdgeInsets.all(30),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.cast_connected_outlined, size: 60, color: Colors.white.withOpacity(0.2)),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'No devices found',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Make sure your TV is on the same Wi-Fi network',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: () => castService.startScanning(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurpleAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      ),
+                      child: const Text('SEARCH AGAIN'),
+                    ),
                   ],
                 ),
-            ),
-             )
+              ),
+            )
           else
             Expanded(
               child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 itemCount: castService.devices.length,
                 itemBuilder: (context, index) {
                   final device = castService.devices[index];
-                  final isConnected = castService.isConnected && castService.selectedDevice == device;
+                  final isConnected = castService.isConnected && castService.selectedDevice?.deviceID == device.deviceID;
 
-                  return ListTile(
-                    leading: Icon(Icons.cast, color: isConnected ? Colors.deepPurpleAccent : Colors.white70),
-                    title: Text(device.friendlyName, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(device.modelName ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                    trailing: isConnected
-                      ? const Icon(Icons.check_circle, color: Colors.deepPurpleAccent)
-                      : null,
-                    onTap: () async {
-                      if (isConnected) {
-                        await castService.disconnect();
-                      } else {
-                        await castService.connectToDevice(device);
-                      }
-                    },
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isConnected ? Colors.deepPurpleAccent.withOpacity(0.1) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isConnected ? Colors.deepPurpleAccent : Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          isConnected ? Icons.cast_connected : Icons.cast,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        device.friendlyName,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        device.modelName ?? 'Cast Device',
+                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                      ),
+                      trailing: isConnected
+                          ? const Icon(Icons.check_circle, color: Colors.deepPurpleAccent)
+                          : Icon(Icons.arrow_forward_ios, color: Colors.white.withOpacity(0.1), size: 14),
+                      onTap: () async {
+                        if (isConnected) {
+                          // Already connected
+                        } else {
+                          await castService.connectToDevice(device);
+                        }
+                      },
+                    ),
                   );
                 },
               ),
             ),
-          if (castService.isConnected)
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: const Color(0xFF1C1C1C),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  children: [
-                    Row(
+          if (castService.isConnected) _buildMiniPlayer(castService),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniPlayer(CastService castService) {
+    final mediaStatus = castService.mediaStatus;
+    final metadata = mediaStatus?.mediaInformation?.metadata;
+
+    String title = 'Nothing playing';
+    if (metadata is GoogleCastMovieMediaMetadata) {
+      title = metadata.title ?? title;
+    } else if (metadata is GoogleCastTvShowMediaMetadata) {
+      title = metadata.seriesTitle ?? title;
+    }
+
+    final subtitle = castService.selectedDevice?.friendlyName ?? 'Connected';
+
+    return GestureDetector(
+      onTap: () {
+        if (mediaStatus != null) {
+          context.push('/cast-player');
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1C1C),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      color: Colors.white.withOpacity(0.05),
+                      child: const Icon(Icons.movie, color: Colors.deepPurpleAccent),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.cast_connected, color: Colors.deepPurpleAccent),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text('Connected to ${castService.selectedDevice?.friendlyName}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        Text(
+                          title,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        IconButton(onPressed: () => castService.disconnect(), icon: const Icon(Icons.close, color: Colors.white)),
+                        Text(
+                          subtitle,
+                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => castService.loadMedia(_sampleVideoUrl, title: 'Big Buck Bunny'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
-                        child: const Text('CAST SAMPLE VIDEO'),
-                      ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      if (castService.isPlaying) {
+                        castService.pause();
+                      } else {
+                        castService.play();
+                      }
+                    },
+                    icon: Icon(
+                      castService.isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.white,
                     ),
-                  ],
+                  ),
+                  IconButton(
+                    onPressed: () => castService.disconnect(),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+            if (mediaStatus != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: LinearProgressIndicator(
+                  value: castService.duration.inSeconds > 0
+                      ? castService.position.inSeconds / castService.duration.inSeconds
+                      : 0,
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  color: Colors.deepPurpleAccent,
+                  minHeight: 2,
                 ),
               ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
