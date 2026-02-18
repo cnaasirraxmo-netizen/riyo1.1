@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "243412248404",
+    "project_id": "riobox-73d08",
+    "storage_bucket": "riobox-73d08.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:243412248404:android:26e190dc8994bfc27f4ac1",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "243412248404-b13tbmj32pf1enc4fcua7kva8osjpi51.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXRBcYKlFw4wnlekiXSgcyIXA9ixH3XpE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "243412248404-b13tbmj32pf1enc4fcua7kva8osjpi51.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:243412248404:android:b3741c148d8811e87f4ac1",
+        "android_client_info": {
+          "package_name": "com.sahan"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "243412248404-b13tbmj32pf1enc4fcua7kva8osjpi51.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXRBcYKlFw4wnlekiXSgcyIXA9ixH3XpE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "243412248404-b13tbmj32pf1enc4fcua7kva8osjpi51.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
