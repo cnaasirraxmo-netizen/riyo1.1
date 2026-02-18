@@ -4,7 +4,6 @@ const User = require('../models/User');
 const { admin } = require('../utils/firebase');
 const router = express.Router();
 
-// Generate JWT token
 const generateToken = (id) => {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET is missing from environment variables');
@@ -12,12 +11,9 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-// ---------------------
 // Register with Email/Password
-// ---------------------
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
-
   try {
     const userExists = await User.findOne({ email: email.toLowerCase() });
     if (userExists) {
@@ -29,7 +25,7 @@ router.post('/register', async (req, res) => {
       email: email.toLowerCase(),
       password,
       role: 'user',
-      profiles: [{ name: name || 'Primary' }]
+      profiles: [{ name: name || 'Primary' }] // Create a default profile
     });
 
     res.status(201).json({
@@ -45,12 +41,9 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// ---------------------
 // Login with Email/Password
-// ---------------------
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-
   try {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (user && (await user.comparePassword(password))) {
@@ -70,9 +63,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// ---------------------
-// Firebase Auth Login/Register
-// ---------------------
+// Firebase Auth Login/Register (Sync)
 router.post('/firebase', async (req, res) => {
   const { idToken } = req.body;
   if (!idToken) return res.status(400).json({ message: 'idToken is required' });
@@ -81,9 +72,6 @@ router.post('/firebase', async (req, res) => {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
 
-    if (!uid) return res.status(400).json({ message: 'Firebase UID is missing' });
-
-    // Find user by Firebase UID or email
     let user = await User.findOne({
       $or: [{ firebaseUid: uid }, { email: email.toLowerCase() }]
     });
@@ -98,7 +86,7 @@ router.post('/firebase', async (req, res) => {
         profiles: [{ name: name || 'Primary', avatar: picture || '' }]
       });
     } else if (!user.firebaseUid) {
-      // Link existing email account with Firebase UID
+      // Link existing email account with Firebase
       user.firebaseUid = uid;
       await user.save();
     }
