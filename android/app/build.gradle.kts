@@ -48,9 +48,15 @@ flutter {
 }
 
 dependencies {
-    // 🔥 Firebase dependencies
+    // 🔥 Firebase BoM (hal mar kaliya)
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+
+    // 🔥 Firebase modules
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+
+    // 🔥 Google Sign-In
+    implementation("com.google.android.gms:play-services-auth")
 
     // Pre-existing dependencies
     implementation("com.google.android.gms:play-services-cast-framework:21.4.0")
