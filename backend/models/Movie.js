@@ -12,6 +12,17 @@ const movieSchema = new mongoose.Schema({
   rating: { type: Number, default: 0 },
   isTrending: { type: Boolean, default: false },
   contentRating: { type: String },
+  isTvShow: { type: Boolean, default: false },
+  seasons: [{
+    number: Number,
+    title: String,
+    episodes: [{
+      number: Number,
+      title: String,
+      duration: String,
+      videoUrl: String
+    }]
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Movie', movieSchema);

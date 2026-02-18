@@ -490,13 +490,24 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         children: [
           Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: Container(
-                  width: 130,
-                  height: 75,
-                  color: const Color(0xFF262626),
-                  child: const Center(child: Icon(Icons.play_arrow, color: Colors.white, size: 32)),
+              GestureDetector(
+                onTap: () {
+                  if (episode.videoUrl != null) {
+                    context.push('/movie/${widget.movieId}/play?videoUrl=${Uri.encodeComponent(episode.videoUrl!)}');
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Video URL not available for this episode'))
+                    );
+                  }
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Container(
+                    width: 130,
+                    height: 75,
+                    color: const Color(0xFF262626),
+                    child: const Center(child: Icon(Icons.play_arrow, color: Colors.white, size: 32)),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

@@ -8,14 +8,14 @@ router.post('/movies', protect, adminOnly, async (req, res) => {
   const {
     title, description, posterUrl, backdropUrl,
     videoUrl, duration, year, genre,
-    isTrending, contentRating
+    isTrending, contentRating, isTvShow, seasons
   } = req.body;
 
   try {
     const movie = new Movie({
       title, description, posterUrl, backdropUrl,
       videoUrl, duration, year, genre,
-      isTrending, contentRating
+      isTrending, contentRating, isTvShow, seasons
     });
     const createdMovie = await movie.save();
     res.status(201).json(createdMovie);
