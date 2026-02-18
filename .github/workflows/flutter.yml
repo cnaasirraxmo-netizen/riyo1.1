@@ -71,8 +71,8 @@ jobs:
           echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.keystore
           chmod 600 release.keystore
 
-      # ===== Build signed APK (verbose) =====
-      - name: Build signed APK
+      # ===== Build signed APK =====
+      - name: Build signed APK (full log)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -83,7 +83,14 @@ jobs:
             --verbose \
             --build-name=1.0.0 \
             --build-number=1 \
-            --dart-define=FLUTTER_BUILD_MODE=release
+            --dart-define=FLUTTER_BUILD_MODE=release > build.log 2>&1 || true
+
+      # ===== Upload build log =====
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
 
       # ===== Upload APK =====
       - name: Upload APK
