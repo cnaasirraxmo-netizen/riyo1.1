@@ -35,34 +35,5 @@
       }
     },
     {
-      "client_info": {
-        "mobilesdk_app_id": "1:243412248404:android:b3741c148d8811e87f4ac1",
-        "android_client_info": {
-          "package_name": "com.sahan"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "243412248404-b13tbmj32pf1enc4fcua7kva8osjpi51.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDXRBcYKlFw4wnlekiXSgcyIXA9ixH3XpE"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "243412248404-b13tbmj32pf1enc4fcua7kva8osjpi51.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    }
-  ],
   "configuration_version": "1"
 }
