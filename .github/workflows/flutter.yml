@@ -53,9 +53,26 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      - name: Build APK
-        run: flutter build apk --release --no-tree-shake-icons --verbose
+      # ====== Decode keystore ======
+      - name: Decode keystore
+        run: |
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.keystore
 
+      # ====== Build signed APK ======
+      - name: Build signed APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          flutter build apk --release \
+            --no-tree-shake-icons \
+            --verbose \
+            --build-name=1.0.0 \
+            --build-number=1 \
+            --dart-define=FLUTTER_BUILD_MODE=release
+
+      # ====== Upload signed APK ======
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
