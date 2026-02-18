@@ -2,8 +2,9 @@ name: Flutter Build APK
 
 on:
   push:
+    branches: [ "main" ]
   pull_request:
-
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -64,7 +65,13 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      # ===== Build signed APK =====
+      # ===== Decode keystore =====
+      - name: Decode keystore
+        run: |
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.keystore
+          chmod 600 release.keystore
+
+      # ===== Build signed APK (verbose) =====
       - name: Build signed APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
