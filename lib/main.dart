@@ -17,6 +17,8 @@ import 'package:riyobox/presentation/screens/video_player_screen.dart';
 import 'package:riyobox/presentation/screens/settings_screen.dart';
 import 'package:riyobox/presentation/screens/profile_screen.dart';
 import 'package:riyobox/presentation/screens/cast_screen.dart';
+import 'package:riyobox/presentation/screens/about_screen.dart';
+import 'package:riyobox/presentation/screens/support_screen.dart';
 import 'package:riyobox/presentation/screens/categories_screen.dart';
 import 'package:riyobox/presentation/screens/downloads_screen.dart';
 import 'package:riyobox/presentation/screens/my_riyobox_screen.dart';
@@ -133,6 +135,16 @@ GoRouter _createRouter(AuthProvider authProvider) {
         builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
+        path: '/about',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        path: '/support',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SupportScreen(),
+      ),
+      GoRoute(
         path: '/profile',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const ProfileScreen(),
@@ -176,7 +188,15 @@ class MyApp extends StatelessWidget {
                 child: child!,
               );
             },
-            theme: ThemeData.dark().copyWith(
+            themeMode: settings.themeMode,
+            theme: ThemeData.light().copyWith(
+              primaryColor: Colors.deepPurple,
+              colorScheme: const ColorScheme.light(
+                primary: Colors.deepPurple,
+                secondary: Colors.deepPurpleAccent,
+              ),
+            ),
+            darkTheme: ThemeData.dark().copyWith(
               primaryColor: Colors.deepPurple,
               scaffoldBackgroundColor: const Color(0xFF1C1B1F),
               colorScheme: const ColorScheme.dark(
