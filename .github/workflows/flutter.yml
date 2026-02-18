@@ -65,32 +65,25 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      # ===== Decode keystore =====
+      # ===== Decode keystore from secret =====
       - name: Decode keystore
         run: |
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.keystore
-          chmod 600 release.keystore
+          mkdir -p android/app
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          chmod 600 android/app/release.keystore
 
       # ===== Build signed APK =====
-      - name: Build signed APK (full log)
+      - name: Build signed APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: |
-          flutter build apk --release \
+        run: flutter build apk --release \
             --no-tree-shake-icons \
             --verbose \
             --build-name=1.0.0 \
             --build-number=1 \
-            --dart-define=FLUTTER_BUILD_MODE=release > build.log 2>&1 || true
-
-      # ===== Upload build log =====
-      - name: Upload build log
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
+            --dart-define=FLUTTER_BUILD_MODE=release
 
       # ===== Upload APK =====
       - name: Upload APK
