@@ -65,13 +65,7 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      # ===== Decode keystore =====
-      - name: Decode keystore
-        run: |
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.keystore
-          chmod 600 release.keystore
-
-      # ===== Build signed APK (verbose) =====
+      # ===== Build signed APK =====
       - name: Build signed APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
