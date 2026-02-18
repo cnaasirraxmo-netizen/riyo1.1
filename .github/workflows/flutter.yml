@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ===== Cache Flutter dependencies =====
+      # ===== Cache Flutter =====
       - name: Cache Flutter
         uses: actions/cache@v4
         with:
@@ -71,7 +71,7 @@ jobs:
           echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.keystore
           chmod 600 release.keystore
 
-      # ===== Build signed APK =====
+      # ===== Build signed APK (verbose) =====
       - name: Build signed APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
