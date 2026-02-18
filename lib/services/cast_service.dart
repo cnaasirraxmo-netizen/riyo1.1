@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_chrome_cast/flutter_chrome_cast.dart';
 import 'dart:async';
 import 'dart:io';
+import 'dart:developer' as developer;
 
 class CastService extends ChangeNotifier {
   List<GoogleCastDevice> _devices = [];
@@ -10,11 +11,18 @@ class CastService extends ChangeNotifier {
   bool _isConnected = false;
   StreamSubscription? _discoverySubscription;
   StreamSubscription? _sessionSubscription;
+  StreamSubscription? _mediaStatusSubscription;
+  StreamSubscription? _positionSubscription;
+
+  GoggleCastMediaStatus? _mediaStatus;
+  Duration _currentPosition = Duration.zero;
 
   List<GoogleCastDevice> get devices => _devices;
   GoogleCastDevice? get selectedDevice => _selectedDevice;
   bool get isScanning => _isScanning;
   bool get isConnected => _isConnected;
+  GoggleCastMediaStatus? get mediaStatus => _mediaStatus;
+  Duration get currentPosition => _currentPosition;
 
   CastService() {
     _init();
@@ -26,7 +34,27 @@ class CastService extends ChangeNotifier {
       _isConnected = GoogleCastSessionManager.instance.connectionState == GoogleCastConnectState.connected;
       if (!_isConnected) {
          _selectedDevice = null;
+         _mediaStatus = null;
+         _currentPosition = Duration.zero;
+         _mediaStatusSubscription?.cancel();
+         _positionSubscription?.cancel();
+      } else {
+        _listenToMediaStatus();
       }
+      notifyListeners();
+    });
+  }
+
+  void _listenToMediaStatus() {
+    _mediaStatusSubscription?.cancel();
+    _mediaStatusSubscription = GoogleCastRemoteMediaClient.instance.mediaStatusStream.listen((status) {
+      _mediaStatus = status;
+      notifyListeners();
+    });
+
+    _positionSubscription?.cancel();
+    _positionSubscription = GoogleCastRemoteMediaClient.instance.playerPositionStream.listen((position) {
+      _currentPosition = position;
       notifyListeners();
     });
   }
@@ -70,10 +98,10 @@ class CastService extends ChangeNotifier {
     try {
       _selectedDevice = device;
       notifyListeners();
-      print('Connecting to device: ${device.friendlyName}');
+      developer.log('Connecting to device: ${device.friendlyName}');
       await GoogleCastSessionManager.instance.startSessionWithDevice(device);
     } catch (e) {
-      print('Error connecting to device: $e');
+      developer.log('Error connecting to device', error: e);
       _selectedDevice = null;
       notifyListeners();
     }
@@ -87,11 +115,11 @@ class CastService extends ChangeNotifier {
 
   Future<void> loadMedia(String url, {String? title, String? subtitle, String? posterUrl}) async {
     if (!_isConnected) {
-      print('Not connected to a cast device');
+      developer.log('Not connected to a cast device');
       return;
     }
 
-    print('Loading media: $url');
+    developer.log('Loading media: $url');
     final media = GoogleCastMediaInformation(
       contentId: url,
       contentType: 'video/mp4',
@@ -105,16 +133,43 @@ class CastService extends ChangeNotifier {
 
     try {
       await GoogleCastRemoteMediaClient.instance.loadMedia(media);
-      print('Media loaded successfully');
+      developer.log('Media loaded successfully');
     } catch (e) {
-      print('Error loading media: $e');
+      developer.log('Error loading media', error: e);
     }
+  }
+
+  Future<void> play() async {
+    await GoogleCastRemoteMediaClient.instance.play();
+  }
+
+  Future<void> pause() async {
+    await GoogleCastRemoteMediaClient.instance.pause();
+  }
+
+  Future<void> stop() async {
+    await GoogleCastRemoteMediaClient.instance.stop();
+  }
+
+  Future<void> seek(Duration position) async {
+    await GoogleCastRemoteMediaClient.instance.seek(
+      GoogleCastMediaSeekOption(
+        position: position,
+        resumeState: GoogleCastMediaResumeState.play,
+      ),
+    );
+  }
+
+  Future<void> setVolume(double volume) async {
+    GoogleCastSessionManager.instance.setDeviceVolume(volume);
   }
 
   @override
   void dispose() {
     _discoverySubscription?.cancel();
     _sessionSubscription?.cancel();
+    _mediaStatusSubscription?.cancel();
+    _positionSubscription?.cancel();
     super.dispose();
   }
 }

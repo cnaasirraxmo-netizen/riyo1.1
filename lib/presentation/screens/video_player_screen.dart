@@ -13,6 +13,7 @@ import 'package:riyobox/providers/auth_provider.dart';
 import 'package:riyobox/providers/download_provider.dart';
 import 'package:riyobox/services/api_service.dart';
 import 'package:riyobox/models/movie.dart';
+import 'package:riyobox/services/cast_service.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String? movieId;
@@ -26,6 +27,7 @@ class VideoPlayerScreen extends StatefulWidget {
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   VideoPlayerController? _controller;
+  Movie? _movie;
   bool _isControlsVisible = true;
   Timer? _hideControlsTimer;
   double _currentVolume = 0.5;
@@ -46,11 +48,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _initPlayer() async {
+    final downloads = Provider.of<DownloadProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     String? url = widget.videoUrl;
 
     // Prioritize local file if downloaded
     if (widget.movieId != null) {
-      final downloads = Provider.of<DownloadProvider>(context, listen: false);
       final downloadedMovie = downloads.downloadedMovies.firstWhere(
         (m) => (m.backendId ?? m.id.toString()) == widget.movieId,
         orElse: () => Movie(id: 0, title: '', overview: '', posterPath: '', releaseDate: '')
@@ -65,8 +68,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               if (mounted) {
                 setState(() {});
                 final progress = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId ?? '');
-                if (progress > Duration.zero) _showResumeDialog(progress);
-                else _controller!.play();
+                if (progress > Duration.zero) {
+                  _showResumeDialog(progress);
+                } else {
+                  _controller!.play();
+                }
                 _startHideControlsTimer();
               }
             });
@@ -78,9 +84,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     if (url == null && widget.movieId != null) {
       try {
-        final token = Provider.of<AuthProvider>(context, listen: false).token;
+        final token = authProvider.token;
         final movie = await ApiService().getMovieDetails(widget.movieId!, token: token);
-        url = movie.videoUrl;
+        if (mounted) {
+          url = movie.videoUrl;
+          setState(() => _movie = movie);
+        }
       } catch (e) {
         developer.log('Error fetching movie details: $e');
       }
@@ -302,7 +311,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () => context.push('/cast')),
+          IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: _handleCast),
           IconButton(icon: const Icon(Icons.more_vert, color: Colors.white), onPressed: () => _showSettingsMenu()),
         ],
       ),
@@ -460,6 +469,74 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         ),
       ),
     );
+  }
+
+  void _handleCast() {
+    final castService = Provider.of<CastService>(context, listen: false);
+    if (castService.isConnected) {
+      _showCastOptions(castService);
+    } else {
+      context.push('/cast');
+    }
+  }
+
+  void _showCastOptions(CastService castService) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF2A2A3A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('CAST TO DEVICE', style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.cast_connected, color: Colors.yellow),
+              title: Text('Cast to ${castService.selectedDevice?.friendlyName}', style: const TextStyle(color: Colors.white)),
+              subtitle: const Text('Start playing on your TV', style: TextStyle(color: Colors.white54)),
+              onTap: () {
+                Navigator.pop(context);
+                _startCasting(castService);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings, color: Colors.white),
+              title: const Text('Cast Settings', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/cast');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _startCasting(CastService castService) async {
+    String? url = widget.videoUrl ?? _movie?.videoUrl;
+
+    if (url == null || url.startsWith('file://') || !url.startsWith('http')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot cast local or invalid files')),
+        );
+      }
+      return;
+    }
+
+    _controller?.pause();
+    await castService.loadMedia(
+      url,
+      title: _movie?.title ?? 'RIYOBOX Video',
+      subtitle: _movie?.overview ?? '',
+      posterUrl: _movie?.posterPath,
+    );
+    if (mounted) {
+      context.push('/cast');
+    }
   }
 
   String _formatDuration(Duration duration) {
