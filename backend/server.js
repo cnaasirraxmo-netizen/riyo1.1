@@ -83,7 +83,7 @@ const createDefaultAdmin = async () => {
       const admin = await User.create({
         name: 'Super Admin',
         email: adminEmail,
-        password: 'admin123',
+        password: 'admin12',
         role: 'admin'
       });
       console.log('✅ Default admin created successfully:', admin.email);
