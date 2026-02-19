@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:123456789012:android:d4576356987c678a",
         "android_client_info": {
-          "package_name": "com.example.myapp"
+          "package_name": "com.riyobox.app"
         }
       },
       "oauth_client": [],
