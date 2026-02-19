@@ -3,12 +3,12 @@ const Movie = require('../models/Movie');
 const User = require('../models/User');
 const Review = require('../models/Review');
 const Subscription = require('../models/Subscription');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { protect, adminOnly, hasPermission } = require('../middleware/authMiddleware');
 const { sendPushNotification } = require('../utils/notifications');
 const router = express.Router();
 
 // Get overall stats
-router.get('/stats', protect, adminOnly, async (req, res) => {
+router.get('/stats', protect, hasPermission('view_analytics'), async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
     const totalMovies = await Movie.countDocuments();
@@ -32,8 +32,22 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
   }
 });
 
+router.put('/users/:id/permissions', protect, adminOnly, async (req, res) => {
+  try {
+    const { permissions } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.permissions = permissions;
+    await user.save();
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // User management
-router.get('/users', protect, adminOnly, async (req, res) => {
+router.get('/users', protect, hasPermission('manage_users'), async (req, res) => {
   try {
     const users = await User.find().select('-password');
     res.json(users);
@@ -42,7 +56,7 @@ router.get('/users', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.put('/users/:id/role', protect, adminOnly, async (req, res) => {
+router.put('/users/:id/role', protect, hasPermission('manage_admins'), async (req, res) => {
   try {
     const { role } = req.body;
     const user = await User.findById(req.params.id);
@@ -66,7 +80,7 @@ router.get('/movies', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.post('/movies', protect, adminOnly, async (req, res) => {
+router.post('/movies', protect, hasPermission('manage_movies'), async (req, res) => {
   try {
     const { title, notify, ...rest } = req.body;
     const movie = await Movie.create({ title, ...rest });
@@ -85,7 +99,7 @@ router.post('/movies', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.delete('/movies/:id', protect, adminOnly, async (req, res) => {
+router.delete('/movies/:id', protect, hasPermission('manage_movies'), async (req, res) => {
   try {
     await Movie.findByIdAndDelete(req.params.id);
     res.json({ message: 'Movie deleted' });
@@ -95,7 +109,7 @@ router.delete('/movies/:id', protect, adminOnly, async (req, res) => {
 });
 
 // Manual Push Notification
-router.post('/notify', protect, adminOnly, async (req, res) => {
+router.post('/notify', protect, hasPermission('manage_settings'), async (req, res) => {
   try {
     const { title, body, data } = req.body;
     await sendPushNotification(title, body, data);

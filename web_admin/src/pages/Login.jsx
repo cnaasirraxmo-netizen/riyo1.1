@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../utils/firebase';
 import api from '../utils/api';
 
 const Login = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,27 +13,29 @@ const Login = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      // 1. Sign in with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const token = await userCredential.user.getIdToken();
-
-      // 2. Verify with Backend and check role
-      // We send the Firebase token to our backend
-      const response = await api.get('/users/account', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await api.post('/auth/admin/login', {
+        email,
+        password,
+        rememberMe
       });
 
-      if (response.data.role !== 'admin') {
-        await auth.signOut();
-        setError('Unauthorized: Only admins can access this panel.');
-        setLoading(false);
-        return;
+      const { token, refreshToken, role } = response.data;
+
+      // Store tokens
+      if (rememberMe) {
+        localStorage.setItem('adminToken', token);
+        localStorage.setItem('adminRefreshToken', refreshToken);
+      } else {
+        sessionStorage.setItem('adminToken', token);
       }
 
-      onLogin(token, response.data.role);
+      onLogin(token, role);
     } catch (err) {
       console.error(err);
-      setError(err.code === 'auth/user-not-found' ? 'User not found' : 'Login failed. Check credentials.');
+      const message = err.response?.data?.message || 'Login failed. Check credentials.';
+      const attemptsLeft = err.response?.data?.attemptsLeft;
+
+      setError(attemptsLeft !== undefined ? `${message}. ${attemptsLeft} attempts remaining.` : message);
     } finally {
       setLoading(false);
     }
@@ -79,6 +80,22 @@ const Login = ({ onLogin }) => {
             />
           </div>
 
+          <div className="flex items-center justify-between">
+            <label className="flex items-center text-sm text-gray-400 cursor-pointer group">
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <div className={`w-4 h-4 rounded border border-white/20 mr-2 flex items-center justify-center transition-colors ${rememberMe ? 'bg-purple-600 border-purple-600' : 'group-hover:border-purple-500'}`}>
+                {rememberMe && <div className="w-2 h-2 bg-white rounded-full" />}
+              </div>
+              Remember me
+            </label>
+            <a href="#" className="text-sm text-purple-500 hover:text-purple-400 transition-colors">Forgot Password?</a>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -89,7 +106,7 @@ const Login = ({ onLogin }) => {
         </form>
 
         <p className="mt-8 text-center text-xs text-gray-500">
-          Secure access only. Powered by Firebase Auth.
+          Secure access only. Secure JWT & Multi-Role Authentication.
         </p>
       </div>
     </div>

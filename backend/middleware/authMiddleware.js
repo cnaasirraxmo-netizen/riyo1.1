@@ -61,11 +61,22 @@ const protect = async (req, res, next) => {
 };
 
 const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  const adminRoles = ['admin', 'super-admin', 'content-admin', 'support-admin', 'analytics-admin', 'moderator'];
+  if (req.user && adminRoles.includes(req.user.role)) {
     return next();
   } else {
     return res.status(403).json({ message: 'Not authorized as an admin' });
   }
+};
+
+const hasPermission = (permission) => {
+  return (req, res, next) => {
+    if (req.user && (req.user.role === 'super-admin' || req.user.role === 'admin' || (req.user.permissions && req.user.permissions[permission]))) {
+      return next();
+    } else {
+      return res.status(403).json({ message: `Access denied. Missing permission: ${permission}` });
+    }
+  };
 };
 
 const premium = (req, res, next) => {
@@ -76,4 +87,4 @@ const premium = (req, res, next) => {
   }
 };
 
-module.exports = { protect, adminOnly, premium };
+module.exports = { protect, adminOnly, hasPermission, premium };

@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 
+const ROLES = ['user', 'admin', 'super-admin', 'content-admin', 'support-admin', 'analytics-admin', 'moderator'];
+const PERMISSIONS = [
+  { key: 'manage_movies', label: 'Manage Movies' },
+  { key: 'manage_users', label: 'Manage Users' },
+  { key: 'manage_settings', label: 'Manage Settings' },
+  { key: 'manage_admins', label: 'Manage Admins' },
+  { key: 'view_analytics', label: 'View Analytics' },
+  { key: 'financial_access', label: 'Financial Access' },
+];
+
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -18,6 +30,37 @@ const Users = () => {
     };
     fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/users');
+      setUsers(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateRole = async (userId, role) => {
+    try {
+      await api.put(`/admin/users/${userId}/role`, { role });
+      fetchUsers();
+    } catch (err) {
+      alert('Error updating role');
+    }
+  };
+
+  const handleUpdatePermissions = async (userId, permissions) => {
+    try {
+      await api.put(`/admin/users/${userId}/permissions`, { permissions });
+      fetchUsers();
+      setIsModalOpen(false);
+    } catch (err) {
+      alert('Error updating permissions');
+    }
+  };
 
   return (
     <div>
@@ -57,14 +100,72 @@ const Users = () => {
                   {new Date(user.createdAt).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4">
-                   <button className="text-gray-500 hover:text-white mr-4">Edit</button>
-                   <button className="text-red-500/50 hover:text-red-500">Suspend</button>
+                   <select
+                     value={user.role}
+                     onChange={(e) => handleUpdateRole(user._id, e.target.value)}
+                     className="bg-[#262626] border border-white/10 rounded text-xs px-2 py-1 outline-none focus:border-purple-500"
+                   >
+                     {ROLES.map(role => <option key={role} value={role}>{role}</option>)}
+                   </select>
+                </td>
+                <td className="px-6 py-4 text-gray-500 text-sm">
+                  {new Date(user.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4">
+                   <button
+                     onClick={() => { setSelectedUser(user); setIsModalOpen(true); }}
+                     className="text-purple-500 hover:text-purple-400 mr-4 text-sm"
+                   >
+                     Permissions
+                   </button>
+                   <button className="text-red-500/50 hover:text-red-500 text-sm">Suspend</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {isModalOpen && selectedUser && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#1C1C1C] border border-white/10 rounded-xl max-w-md w-full p-8">
+            <h2 className="text-2xl font-bold mb-2">Permissions</h2>
+            <p className="text-gray-400 mb-6 italic text-sm">Managing: {selectedUser.name}</p>
+
+            <div className="space-y-4 mb-8">
+              {PERMISSIONS.map(perm => (
+                <label key={perm.key} className="flex items-center justify-between group cursor-pointer">
+                  <span className="text-gray-300 group-hover:text-white transition-colors">{perm.label}</span>
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 rounded border-white/10 bg-[#262626] text-purple-600 focus:ring-purple-500"
+                    checked={selectedUser.permissions?.[perm.key] || false}
+                    onChange={(e) => {
+                      const newPerms = { ...selectedUser.permissions, [perm.key]: e.target.checked };
+                      setSelectedUser({ ...selectedUser, permissions: newPerms });
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleUpdatePermissions(selectedUser._id, selectedUser.permissions)}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 py-2 rounded font-bold transition-colors"
+              >
+                SAVE CHANGES
+              </button>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 bg-white/5 hover:bg-white/10 py-2 rounded font-bold transition-colors"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

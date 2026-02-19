@@ -23,7 +23,24 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String },
   name: { type: String },
-  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'super-admin', 'content-admin', 'support-admin', 'analytics-admin', 'moderator'],
+    default: 'user'
+  },
+  permissions: {
+    manage_movies: { type: Boolean, default: false },
+    manage_users: { type: Boolean, default: false },
+    manage_settings: { type: Boolean, default: false },
+    manage_admins: { type: Boolean, default: false },
+    view_analytics: { type: Boolean, default: false },
+    financial_access: { type: Boolean, default: false }
+  },
+  loginAttempts: { type: Number, required: true, default: 0 },
+  lockUntil: { type: Number },
+  refreshToken: { type: String },
+  twoFactorSecret: { type: String },
+  twoFactorEnabled: { type: Boolean, default: false },
   profiles: [profileSchema],
   activeProfileId: { type: mongoose.Schema.Types.ObjectId },
   fcmTokens: [String],
@@ -54,6 +71,10 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+userSchema.virtual('isLocked').get(function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+});
 
 // Prevent OverwriteModelError
 const User = mongoose.models.User || mongoose.model('User', userSchema);

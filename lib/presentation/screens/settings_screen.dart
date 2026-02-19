@@ -117,13 +117,13 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.help_outline, color: Colors.white),
             title: const Text('Help Center', style: TextStyle(color: Colors.white)),
             trailing: const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
-            onTap: () {},
+            onTap: () => context.push('/support'),
           ),
           ListTile(
             leading: const Icon(Icons.info_outline, color: Colors.white),
             title: const Text('About RIYOBOX', style: TextStyle(color: Colors.white)),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {},
+            onTap: () => context.push('/about'),
           ),
           _buildDivider(),
           ListTile(

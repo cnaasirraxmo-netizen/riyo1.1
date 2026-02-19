@@ -17,6 +17,8 @@ import 'package:riyobox/presentation/screens/video_player_screen.dart';
 import 'package:riyobox/presentation/screens/settings_screen.dart';
 import 'package:riyobox/presentation/screens/profile_screen.dart';
 import 'package:riyobox/presentation/screens/cast_screen.dart';
+import 'package:riyobox/presentation/screens/about_screen.dart';
+import 'package:riyobox/presentation/screens/support_screen.dart';
 import 'package:riyobox/presentation/screens/categories_screen.dart';
 import 'package:riyobox/presentation/screens/downloads_screen.dart';
 import 'package:riyobox/presentation/screens/my_riyobox_screen.dart';
@@ -175,6 +177,16 @@ GoRouter _createRouter(AuthProvider authProvider) {
         path: '/cast',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const CastScreen(),
+      ),
+      GoRoute(
+        path: '/about',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        path: '/support',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SupportScreen(),
       ),
     GoRoute(
       path: '/admin',

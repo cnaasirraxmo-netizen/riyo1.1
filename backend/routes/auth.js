@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { admin } = require('../utils/firebase');
+const { generateAccessToken, generateRefreshToken } = require('../utils/auth');
 const router = express.Router();
 
 const generateToken = (id) => {
@@ -41,7 +42,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login with Email/Password
+// Login with Email/Password (Regular User)
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -52,7 +53,7 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        token: generateToken(user._id)
+        token: generateAccessToken(user._id)
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -60,6 +61,84 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Error logging in' });
+  }
+});
+
+// Admin Login with advanced security
+router.post('/admin/login', async (req, res) => {
+  const { email, password, rememberMe } = req.body;
+  const MAX_ATTEMPTS = 5;
+  const LOCK_TIME = 2 * 60 * 60 * 1000; // 2 hours
+
+  try {
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user || !['admin', 'super-admin', 'content-admin', 'support-admin', 'analytics-admin', 'moderator'].includes(user.role)) {
+      return res.status(401).json({ message: 'Access denied. Admin credentials required.' });
+    }
+
+    // Check if account is locked
+    if (user.isLocked) {
+      return res.status(403).json({ message: 'Account is temporarily locked due to too many failed attempts. Try again later.' });
+    }
+
+    if (await user.comparePassword(password)) {
+      // Success: Reset failed attempts
+      user.loginAttempts = 0;
+      user.lockUntil = undefined;
+
+      const accessToken = generateAccessToken(user._id);
+      const refreshToken = generateRefreshToken(user._id, rememberMe);
+
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        permissions: user.permissions,
+        token: accessToken,
+        refreshToken: refreshToken
+      });
+    } else {
+      // Failed: Increment attempts
+      user.loginAttempts += 1;
+      if (user.loginAttempts >= MAX_ATTEMPTS) {
+        user.lockUntil = Date.now() + LOCK_TIME;
+      }
+      await user.save();
+
+      const attemptsLeft = MAX_ATTEMPTS - user.loginAttempts;
+      res.status(401).json({
+        message: 'Invalid password',
+        attemptsLeft: attemptsLeft > 0 ? attemptsLeft : 0
+      });
+    }
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ message: 'Error logging in' });
+  }
+});
+
+// Refresh Token Route
+router.post('/refresh-token', async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return res.status(401).json({ message: 'Refresh token required' });
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    const newAccessToken = generateAccessToken(user._id);
+    res.json({ token: newAccessToken });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid or expired refresh token' });
   }
 });
 

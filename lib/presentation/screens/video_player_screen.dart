@@ -13,6 +13,7 @@ import 'package:riyobox/providers/auth_provider.dart';
 import 'package:riyobox/providers/download_provider.dart';
 import 'package:riyobox/services/api_service.dart';
 import 'package:riyobox/models/movie.dart';
+import 'package:riyobox/services/cast_service.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String? movieId;
@@ -26,6 +27,7 @@ class VideoPlayerScreen extends StatefulWidget {
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   VideoPlayerController? _controller;
+  Movie? _movie;
   bool _isControlsVisible = true;
   Timer? _hideControlsTimer;
   double _currentVolume = 0.5;
@@ -79,8 +81,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     if (url == null && widget.movieId != null) {
       try {
         final token = Provider.of<AuthProvider>(context, listen: false).token;
-        final movie = await ApiService().getMovieDetails(widget.movieId!, token: token);
-        url = movie.videoUrl;
+        _movie = await ApiService().getMovieDetails(widget.movieId!, token: token);
+        url = _movie?.videoUrl;
       } catch (e) {
         developer.log('Error fetching movie details: $e');
       }
@@ -108,6 +110,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void _setupControllerListeners() {
     _controller!.addListener(() {
       if (mounted) {
+        final castService = Provider.of<CastService>(context, listen: false);
+        if (castService.isConnected && _controller!.value.isPlaying) {
+          // Sync logic could go here
+        }
+
         final isBuffering = _controller!.value.isBuffering;
         if (isBuffering != _isBuffering) {
            setState(() => _isBuffering = isBuffering);
@@ -219,9 +226,106 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final castService = context.watch<CastService>();
+    final isCastingCurrent = castService.isConnected &&
+        (castService.currentContentId == widget.videoUrl || castService.currentContentId == _movie?.videoUrl);
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: GestureDetector(
+      body: isCastingCurrent ? _buildCastingBody(castService) : _buildLocalPlayerBody(),
+    );
+  }
+
+  Widget _buildCastingBody(CastService castService) {
+    return Container(
+      width: double.infinity,
+      color: Colors.black,
+      child: SafeArea(
+        child: Column(
+          children: [
+            _buildTopBar(),
+            const Spacer(),
+            Column(
+              children: [
+                const Icon(Icons.cast_connected, size: 100, color: Colors.yellow),
+                const SizedBox(height: 24),
+                Text('Casting to ${castService.selectedDevice?.friendlyName}',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text(_movie?.title ?? 'Movie', style: const TextStyle(color: Colors.white70)),
+              ],
+            ),
+            const Spacer(),
+            _buildCastControls(castService),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCastControls(CastService castService) {
+    return Column(
+      children: [
+         Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(_formatDuration(castService.position), style: const TextStyle(color: Colors.white, fontSize: 12)),
+              Text(_formatDuration(castService.duration), style: const TextStyle(color: Colors.white, fontSize: 12)),
+            ],
+          ),
+        ),
+        Slider(
+          value: castService.duration.inSeconds > 0
+              ? (castService.position.inSeconds / castService.duration.inSeconds).clamp(0.0, 1.0)
+              : 0.0,
+          activeColor: Colors.yellow,
+          onChanged: (value) {
+            final newPos = Duration(seconds: (value * castService.duration.inSeconds).toInt());
+            castService.seek(newPos);
+          },
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.replay_10, color: Colors.white, size: 40),
+              onPressed: () => castService.seek(castService.position - const Duration(seconds: 10)),
+            ),
+            const SizedBox(width: 32),
+            IconButton(
+              icon: Icon(
+                castService.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                color: Colors.yellow,
+                size: 80,
+              ),
+              onPressed: () => castService.isPlaying ? castService.pause() : castService.play(),
+            ),
+            const SizedBox(width: 32),
+            IconButton(
+              icon: const Icon(Icons.forward_10, color: Colors.white, size: 40),
+              onPressed: () => castService.seek(castService.position + const Duration(seconds: 10)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: () {
+            _controller?.seekTo(castService.position);
+            _controller?.play();
+            castService.stop();
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white),
+          child: const Text('STOP CASTING & PLAY HERE'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLocalPlayerBody() {
+    return GestureDetector(
         onTap: _toggleControls,
         onDoubleTapDown: (details) {
           if (details.localPosition.dx < MediaQuery.of(context).size.width / 2) {
@@ -232,11 +336,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         },
         onVerticalDragUpdate: (details) {
           if (details.localPosition.dx < MediaQuery.of(context).size.width / 2) {
-            // Brightness
             _currentBrightness = (_currentBrightness - details.delta.dy / 100).clamp(0.0, 1.0);
             ScreenBrightness().setApplicationScreenBrightness(_currentBrightness);
           } else {
-            // Volume
             _currentVolume = (_currentVolume - details.delta.dy / 100).clamp(0.0, 1.0);
             FlutterVolumeController.setVolume(_currentVolume);
           }
@@ -265,7 +367,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             if (_isControlsVisible) _buildControls(),
           ],
         ),
-      ),
     );
   }
 
@@ -287,6 +388,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Widget _buildTopBar() {
+    final castService = context.watch<CastService>();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -302,9 +404,73 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () => context.push('/cast')),
+          IconButton(
+            icon: Icon(
+              castService.isConnected ? Icons.cast_connected : Icons.cast,
+              color: castService.isConnected ? Colors.yellow : Colors.white,
+            ),
+            onPressed: () {
+               if (castService.isConnected) {
+                  _showCastControlDialog(castService);
+               } else {
+                  context.push('/cast');
+               }
+            },
+          ),
           IconButton(icon: const Icon(Icons.more_vert, color: Colors.white), onPressed: () => _showSettingsMenu()),
         ],
+      ),
+    );
+  }
+
+  void _showCastControlDialog(CastService castService) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1C),
+      builder: (context) => Consumer<CastService>(
+        builder: (context, service, child) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.cast_connected, color: Colors.yellow),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Casting to ${service.selectedDevice?.friendlyName}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white70)),
+                ],
+              ),
+              const Divider(color: Colors.white10, height: 32),
+              if (widget.videoUrl != null || widget.movieId != null)
+                ListTile(
+                  leading: const Icon(Icons.play_circle_outline, color: Colors.white),
+                  title: const Text('Play on TV', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    service.loadMedia(
+                      widget.videoUrl ?? _movie?.videoUrl ?? '',
+                      title: _movie?.title ?? 'Movie',
+                      subtitle: _movie?.overview,
+                      posterUrl: _movie?.posterPath,
+                    );
+                    _controller?.pause();
+                    Navigator.pop(context);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.stop_circle_outlined, color: Colors.redAccent),
+                title: const Text('Stop Casting', style: TextStyle(color: Colors.redAccent)),
+                onTap: () {
+                  service.disconnect();
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
