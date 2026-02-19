@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "riyobox-dummy",
-    "storage_bucket": "riyobox-dummy.appspot.com"
+    "project_number": "243412248404",
+    "project_id": "riobox-73d08",
+    "storage_bucket": "riobox-73d08.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:d4576356987c678a",
+        "mobilesdk_app_id": "1:243412248404:android:2d3e6325dd6a70377f4ac1",
         "android_client_info": {
           "package_name": "com.riyobox.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "dummy-api-key"
+          "current_key": "AIzaSyDXRBcYKlFw4wnlekiXSgcyIXA9ixH3XpE"
         }
       ],
       "services": {
