@@ -2,8 +2,38 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Movie = require('../models/Movie');
 const Review = require('../models/Review');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
+
+// Bulk Actions (Move this above /:id to prevent conflict)
+router.post('/bulk', protect, adminOnly, async (req, res) => {
+  try {
+    const { action, movieIds, data } = req.body;
+
+    if (!Array.isArray(movieIds) || movieIds.length === 0) {
+      return res.status(400).json({ message: 'No movie IDs provided' });
+    }
+
+    switch (action) {
+      case 'delete':
+        await Movie.deleteMany({ _id: { $in: movieIds } });
+        return res.json({ message: `${movieIds.length} items deleted` });
+      case 'publish':
+        await Movie.updateMany({ _id: { $in: movieIds } }, { status: 'Public' });
+        return res.json({ message: `${movieIds.length} items published` });
+      case 'mark-premium':
+        await Movie.updateMany({ _id: { $in: movieIds } }, { isPremium: true });
+        return res.json({ message: `${movieIds.length} items marked as premium` });
+      case 'add-to-collection':
+        await Movie.updateMany({ _id: { $in: movieIds } }, { collectionName: data.collectionName });
+        return res.json({ message: `${movieIds.length} items added to collection ${data.collectionName}` });
+      default:
+        return res.status(400).json({ message: 'Invalid bulk action' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 router.get('/', protect, async (req, res) => {
   try {
@@ -70,6 +100,43 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // Add a review
+// Create a movie (Admin)
+router.post('/', protect, adminOnly, async (req, res) => {
+  try {
+    const movie = await Movie.create(req.body);
+    res.status(201).json(movie);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update a movie (Admin)
+router.put('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const movie = await Movie.findById(req.params.id);
+    if (!movie) return res.status(404).json({ message: 'Movie not found' });
+
+    Object.assign(movie, req.body);
+    const updatedMovie = await movie.save();
+    res.json(updatedMovie);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Delete a movie (Admin)
+router.delete('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const movie = await Movie.findById(req.params.id);
+    if (!movie) return res.status(404).json({ message: 'Movie not found' });
+
+    await movie.deleteOne();
+    res.json({ message: 'Movie removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.post('/:id/reviews', protect, async (req, res) => {
   try {
     const { rating, comment } = req.body;

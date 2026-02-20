@@ -89,8 +89,8 @@ function App() {
             <Route path="/movies/categories" element={<Placeholder title="Movie Categories" />} />
 
             {/* Series */}
-            <Route path="/series" element={<Placeholder title="TV Series Management" />} />
-            <Route path="/series/add" element={<Placeholder title="Add New Series" />} />
+            <Route path="/series" element={<Movies isTvShow={true} />} />
+            <Route path="/series/add" element={<AddMovie isTvShow={true} />} />
             <Route path="/series/episodes" element={<Placeholder title="Episode Manager" />} />
 
             {/* Users */}

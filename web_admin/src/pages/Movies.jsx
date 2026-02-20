@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const Movies = () => {
+const Movies = ({ isTvShow = false }) => {
   const navigate = useNavigate();
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ const Movies = () => {
   const fetchMovies = async () => {
     setLoading(true);
     try {
-      const movieRes = await api.get('/admin/movies');
+      const movieRes = await api.get(`/movies?isTvShow=${isTvShow}`);
       setMovies(movieRes.data);
     } catch (err) {
       console.error(err);
@@ -61,9 +61,35 @@ const Movies = () => {
     else setSelectedMovies(movies.map(m => m._id));
   };
 
-  const handleBulkAction = (action) => {
-    alert(`Performing ${action} on ${selectedMovies.length} movies.`);
-    setSelectedMovies([]);
+  const handleBulkAction = async (action) => {
+    const actionMap = {
+      'Publish': 'publish',
+      'Mark Premium': 'mark-premium',
+      'Delete': 'delete',
+      'Add to Collection': 'add-to-collection'
+    };
+
+    const apiAction = actionMap[action];
+    if (!apiAction) return;
+
+    if (apiAction === 'delete' && !window.confirm(`Are you sure you want to delete ${selectedMovies.length} items?`)) {
+      return;
+    }
+
+    try {
+      await api.post('/movies/bulk', {
+        action: apiAction,
+        movieIds: selectedMovies,
+        data: apiAction === 'add-to-collection' ? { collectionName: prompt('Enter collection name:') } : {}
+      });
+
+      alert(`Successfully performed ${action} on ${selectedMovies.length} items.`);
+      setSelectedMovies([]);
+      fetchMovies();
+    } catch (err) {
+      console.error(err);
+      alert('Error performing bulk action: ' + (err.response?.data?.message || err.message));
+    }
   };
 
   const filteredMovies = movies.filter(m =>
@@ -74,14 +100,14 @@ const Movies = () => {
     <div className="p-8 pb-24">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white">Movie Management</h1>
-          <p className="text-gray-400 mt-1">Manage and curate your movie library.</p>
+          <h1 className="text-3xl font-black text-white">{isTvShow ? 'TV Series' : 'Movie'} Management</h1>
+          <p className="text-gray-400 mt-1">Manage and curate your {isTvShow ? 'series' : 'movie'} library.</p>
         </div>
         <button
-          onClick={() => navigate('/movies/add')}
+          onClick={() => navigate(isTvShow ? '/series/add' : '/movies/add')}
           className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white px-6 py-3 rounded-2xl font-black transition-all flex items-center shadow-lg shadow-[#0ea5e9]/20"
         >
-          <Plus size={20} className="mr-2" /> ADD NEW MOVIE
+          <Plus size={20} className="mr-2" /> ADD NEW {isTvShow ? 'SERIES' : 'MOVIE'}
         </button>
       </div>
 

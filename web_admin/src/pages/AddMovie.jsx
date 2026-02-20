@@ -22,7 +22,7 @@ import {
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 
-const AddMovie = () => {
+const AddMovie = ({ isTvShow: isTvShowProp = false }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('basic');
   const [uploadMethod, setUploadMethod] = useState('file');
@@ -52,6 +52,16 @@ const AddMovie = () => {
     isDownloadable: true,
     isFeatured: false,
     isOriginal: false,
+    isTvShow: isTvShowProp,
+
+    // TV Show Specific
+    seasons: [
+      {
+        number: 1,
+        status: 'Completed',
+        episodes: [{ number: 1, title: '', duration: '', videoUrl: '', thumbnailUrl: '', isDownloadable: true, sources: { '480p': '', '720p': '', '1080p': '', '4K': '' } }]
+      }
+    ],
 
     // Media
     posterUrl: '',
@@ -83,6 +93,7 @@ const AddMovie = () => {
     { id: 'categorization', label: 'Categorization', icon: <Globe size={16} /> },
     { id: 'media', label: 'Media Assets', icon: <ImageIcon size={16} /> },
     { id: 'video', label: 'Video & Sources', icon: <Video size={16} /> },
+    ...(formData.isTvShow ? [{ id: 'episodes', label: 'Seasons & Episodes', icon: <Tv size={16} /> }] : []),
     { id: 'monetization', label: 'Monetization', icon: <DollarSign size={16} /> },
     { id: 'settings', label: 'Final Settings', icon: <Settings size={16} /> },
   ];
@@ -115,25 +126,38 @@ const AddMovie = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsUploading(true);
-    // Simulation of API call
-    setTimeout(() => {
+
+    try {
+      // Map frontend genres to backend format (ensure it matches backend expectactions)
+      const submissionData = {
+        ...formData,
+        genre: formData.genres,
+        collectionName: formData.collection,
+      };
+
+      const response = await api.post('/movies', submissionData);
+
       setIsUploading(false);
-      alert('Movie added successfully!');
-      navigate('/movies');
-    }, 2000);
+      alert(`${formData.isTvShow ? 'TV Show' : 'Movie'} added successfully!`);
+      navigate(formData.isTvShow ? '/series' : '/movies');
+    } catch (err) {
+      console.error(err);
+      setIsUploading(false);
+      alert('Error adding content: ' + (err.response?.data?.message || err.message));
+    }
   };
 
   return (
     <div className="p-8 max-w-6xl mx-auto pb-24">
       <div className="flex items-center space-x-2 text-gray-500 text-sm mb-4">
-        <span className="hover:text-white cursor-pointer" onClick={() => navigate('/movies')}>Movies</span>
+        <span className="hover:text-white cursor-pointer" onClick={() => navigate(formData.isTvShow ? '/series' : '/movies')}>{formData.isTvShow ? 'TV Series' : 'Movies'}</span>
         <ChevronRight size={14} />
         <span className="text-[#0ea5e9] font-bold uppercase tracking-widest text-xs">Add New Content</span>
       </div>
 
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white">Create Movie</h1>
+          <h1 className="text-3xl font-black text-white">Create {formData.isTvShow ? 'Series' : 'Movie'}</h1>
           <p className="text-gray-400 mt-1">Configure metadata, media, and distribution settings.</p>
         </div>
         <div className="flex space-x-3">
@@ -379,6 +403,169 @@ const AddMovie = () => {
             </div>
           )}
 
+          {activeTab === 'episodes' && formData.isTvShow && (
+            <div className="bg-[#1f2937] p-8 rounded-3xl border border-white/5 space-y-8 animate-in fade-in duration-500">
+               <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-white">Series Structure</h3>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, seasons: [...formData.seasons, { number: formData.seasons.length + 1, episodes: [] }]})}
+                    className="text-[#0ea5e9] text-xs font-black flex items-center hover:bg-[#0ea5e9]/10 px-3 py-2 rounded-lg transition-colors border border-[#0ea5e9]/20"
+                  >
+                    <Plus size={14} className="mr-1" /> ADD SEASON
+                  </button>
+               </div>
+
+               {formData.seasons.map((season, sIdx) => (
+                 <div key={sIdx} className="bg-[#111827] rounded-3xl border border-white/5 overflow-hidden">
+                    <div className="p-4 bg-white/5 flex justify-between items-center">
+                       <div className="flex items-center space-x-4">
+                          <span className="text-sm font-black text-white uppercase tracking-widest">Season {season.number}</span>
+                          <select
+                            value={season.status}
+                            onChange={(e) => {
+                              const newSeasons = [...formData.seasons];
+                              newSeasons[sIdx].status = e.target.value;
+                              setFormData({...formData, seasons: newSeasons});
+                            }}
+                            className="bg-[#1f2937] text-[10px] font-bold text-gray-300 border border-white/10 rounded px-2 py-1 outline-none"
+                          >
+                            <option>Ongoing</option>
+                            <option>Completed</option>
+                          </select>
+                       </div>
+                       <div className="flex space-x-2">
+                         <button
+                           type="button"
+                           onClick={() => {
+                             const newSeasons = [...formData.seasons];
+                             const nextNum = newSeasons[sIdx].episodes.length + 1;
+                             newSeasons[sIdx].episodes.push({ number: nextNum, title: '', duration: '', videoUrl: '', thumbnailUrl: '', isDownloadable: true, sources: { '480p': '', '720p': '', '1080p': '', '4K': '' } });
+                             setFormData({...formData, seasons: newSeasons});
+                           }}
+                           className="text-[10px] font-black text-[#0ea5e9] uppercase bg-[#0ea5e9]/10 px-3 py-1.5 rounded-lg border border-[#0ea5e9]/20"
+                         >
+                           Add Episode
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => {
+                             const input = document.createElement('input');
+                             input.type = 'file';
+                             input.multiple = true;
+                             input.onchange = (e) => {
+                               const files = Array.from(e.target.files);
+                               const newSeasons = [...formData.seasons];
+                               files.forEach((file, idx) => {
+                                 // Simple auto-numbering from filename
+                                 const match = file.name.match(/\d+/);
+                                 const num = match ? parseInt(match[0]) : newSeasons[sIdx].episodes.length + 1;
+                                 newSeasons[sIdx].episodes.push({
+                                   number: num,
+                                   title: file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
+                                   duration: '--',
+                                   videoUrl: 'Local: ' + file.name,
+                                   thumbnailUrl: '',
+                                   isDownloadable: true,
+                                   sources: { '480p': '', '720p': '', '1080p': '', '4K': '' }
+                                 });
+                               });
+                               setFormData({...formData, seasons: newSeasons});
+                             };
+                             input.click();
+                           }}
+                           className="text-[10px] font-black text-purple-400 uppercase bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20"
+                         >
+                           Batch Upload
+                         </button>
+                       </div>
+                    </div>
+                    <div className="p-6 space-y-4">
+                       {season.episodes.sort((a,b) => a.number - b.number).map((ep, eIdx) => (
+                         <div key={eIdx} className="p-4 bg-[#1f2937] rounded-2xl border border-white/5 space-y-3">
+                            <div className="flex items-center gap-4">
+                              <input
+                                type="number"
+                                value={ep.number}
+                                onChange={(e) => {
+                                  const newSeasons = [...formData.seasons];
+                                  newSeasons[sIdx].episodes[eIdx].number = parseInt(e.target.value);
+                                  setFormData({...formData, seasons: newSeasons});
+                                }}
+                                className="w-12 bg-[#111827] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-[#0ea5e9] font-black text-center"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Episode Title"
+                                value={ep.title}
+                                onChange={(e) => {
+                                  const newSeasons = [...formData.seasons];
+                                  newSeasons[sIdx].episodes[eIdx].title = e.target.value;
+                                  setFormData({...formData, seasons: newSeasons});
+                                }}
+                                className="flex-1 bg-[#111827] border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-[#0ea5e9]"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Duration"
+                                value={ep.duration}
+                                onChange={(e) => {
+                                  const newSeasons = [...formData.seasons];
+                                  newSeasons[sIdx].episodes[eIdx].duration = e.target.value;
+                                  setFormData({...formData, seasons: newSeasons});
+                                }}
+                                className="w-24 bg-[#111827] border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-[#0ea5e9]"
+                              />
+                              <div className="flex items-center space-x-2">
+                                <span className="text-[10px] text-gray-500 font-bold uppercase">DL</span>
+                                <input
+                                  type="checkbox"
+                                  checked={ep.isDownloadable}
+                                  onChange={(e) => {
+                                    const newSeasons = [...formData.seasons];
+                                    newSeasons[sIdx].episodes[eIdx].isDownloadable = e.target.checked;
+                                    setFormData({...formData, seasons: newSeasons});
+                                  }}
+                                  className="w-4 h-4 rounded border-white/10 bg-[#111827] text-[#0ea5e9]"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSeasons = [...formData.seasons];
+                                  newSeasons[sIdx].episodes.splice(eIdx, 1);
+                                  setFormData({...formData, seasons: newSeasons});
+                                }}
+                                className="p-2 text-gray-600 hover:text-rose-500 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                            <div className="flex gap-4">
+                               <div className="w-24 h-16 bg-[#111827] rounded-lg border border-white/10 flex items-center justify-center text-gray-700 cursor-pointer overflow-hidden relative group">
+                                  {ep.thumbnailUrl ? <img src={ep.thumbnailUrl} className="w-full h-full object-cover" /> : <ImageIcon size={20} />}
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[8px] text-white font-bold">SET THUMB</div>
+                               </div>
+                               <input
+                                type="text"
+                                placeholder="Main Stream URL / Path"
+                                value={ep.videoUrl}
+                                onChange={(e) => {
+                                  const newSeasons = [...formData.seasons];
+                                  newSeasons[sIdx].episodes[eIdx].videoUrl = e.target.value;
+                                  setFormData({...formData, seasons: newSeasons});
+                                }}
+                                className="flex-1 bg-[#111827] border border-white/10 rounded-xl px-4 py-2 text-xs text-gray-400 outline-none focus:border-[#0ea5e9]"
+                              />
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+               ))}
+            </div>
+          )}
+
           {activeTab === 'video' && (
             <div className="bg-[#1f2937] p-8 rounded-3xl border border-white/5 space-y-8">
                 <div className="flex flex-wrap gap-3">
@@ -562,6 +749,13 @@ const AddMovie = () => {
                       <span className="text-sm font-bold text-gray-300">RIYOBOX Original Badge</span>
                     </div>
                     <input type="checkbox" checked={formData.isOriginal} name="isOriginal" onChange={handleInputChange} className="w-5 h-5 rounded border-white/10 bg-[#1f2937] text-purple-500 focus:ring-purple-500" />
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-2xl border border-purple-500/20 hover:bg-purple-500/20 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <Tv className="text-purple-500" size={20} />
+                      <span className="text-sm font-black text-white uppercase tracking-tighter">Is TV Series / Show</span>
+                    </div>
+                    <input type="checkbox" checked={formData.isTvShow} name="isTvShow" onChange={handleInputChange} className="w-6 h-6 rounded-lg border-white/10 bg-[#1f2937] text-purple-500 focus:ring-purple-500" />
                   </div>
                 </div>
 
