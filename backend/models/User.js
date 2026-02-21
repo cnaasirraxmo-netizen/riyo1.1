@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema({
     sparse: true // This allows multiple users to have 'null' firebaseUid while still enforcing uniqueness for non-null values
   },
   email: { type: String, required: true, unique: true, lowercase: true },
+  username: { type: String, unique: true, sparse: true },
   password: { type: String },
   name: { type: String },
   role: {

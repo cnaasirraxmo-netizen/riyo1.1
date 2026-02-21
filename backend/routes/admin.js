@@ -7,6 +7,35 @@ const { protect, adminOnly, hasPermission } = require('../middleware/authMiddlew
 const { sendPushNotification } = require('../utils/notifications');
 const router = express.Router();
 
+// Update admin profile (Self)
+router.put('/profile', protect, adminOnly, async (req, res) => {
+  try {
+    const { username, email, password, name } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (username) user.username = username;
+    if (email) user.email = email.toLowerCase();
+    if (name) user.name = name;
+    if (password) user.password = password; // Hashing is handled by pre-save hook
+
+    await user.save();
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      message: 'Profile updated successfully'
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Username or Email already in use' });
+    }
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get overall stats
 router.get('/stats', protect, hasPermission('view_analytics'), async (req, res) => {
   try {

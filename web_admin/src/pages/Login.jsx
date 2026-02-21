@@ -19,14 +19,18 @@ const Login = ({ onLogin }) => {
         rememberMe
       });
 
-      const { token, refreshToken, role } = response.data;
+      const { token, refreshToken, role, ...user } = response.data;
 
-      // Store tokens
+      // Store tokens and user
       if (rememberMe) {
         localStorage.setItem('adminToken', token);
         localStorage.setItem('adminRefreshToken', refreshToken);
+        localStorage.setItem('adminUser', JSON.stringify(user));
+        localStorage.setItem('role', role);
       } else {
         sessionStorage.setItem('adminToken', token);
+        sessionStorage.setItem('adminUser', JSON.stringify(user));
+        sessionStorage.setItem('role', role);
       }
 
       onLogin(token, role);
@@ -57,9 +61,9 @@ const Login = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Email Address</label>
+            <label className="block text-sm font-medium text-gray-400 mb-2">Admin Email or Username</label>
             <input
-              type="email"
+              type="text"
               required
               className="w-full bg-[#262626] border border-white/10 rounded px-4 py-3 focus:outline-none focus:border-purple-500 transition-colors"
               placeholder="admin@example.com"

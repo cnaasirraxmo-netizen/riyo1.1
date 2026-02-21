@@ -44,14 +44,21 @@ router.post('/register', async (req, res) => {
 
 // Login with Email/Password (Regular User)
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, username, password } = req.body;
+  const loginIdentifier = email || username;
   try {
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({
+      $or: [
+        { email: loginIdentifier?.toLowerCase() },
+        { username: loginIdentifier }
+      ]
+    });
     if (user && (await user.comparePassword(password))) {
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         token: generateAccessToken(user._id)
       });
@@ -66,12 +73,18 @@ router.post('/login', async (req, res) => {
 
 // Admin Login with advanced security
 router.post('/admin/login', async (req, res) => {
-  const { email, password, rememberMe } = req.body;
+  const { email, username, password, rememberMe } = req.body;
+  const loginIdentifier = email || username;
   const MAX_ATTEMPTS = 5;
   const LOCK_TIME = 2 * 60 * 60 * 1000; // 2 hours
 
   try {
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({
+      $or: [
+        { email: loginIdentifier?.toLowerCase() },
+        { username: loginIdentifier }
+      ]
+    });
 
     if (!user || !['admin', 'super-admin', 'content-admin', 'support-admin', 'analytics-admin', 'moderator'].includes(user.role)) {
       return res.status(401).json({ message: 'Access denied. Admin credentials required.' });
@@ -97,6 +110,7 @@ router.post('/admin/login', async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         permissions: user.permissions,
         token: accessToken,

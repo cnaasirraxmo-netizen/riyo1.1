@@ -8,6 +8,7 @@ import Media from './pages/Media';
 import Users from './pages/Users';
 import Sports from './pages/Sports';
 import Notifications from './pages/Notifications';
+import AdminProfile from './pages/AdminProfile';
 import Sidebar from './components/Sidebar';
 
 // Placeholder components for new routes
@@ -37,8 +38,10 @@ function App() {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminRefreshToken');
     localStorage.removeItem('role');
+    localStorage.removeItem('adminUser');
     sessionStorage.removeItem('adminToken');
     sessionStorage.removeItem('role');
+    sessionStorage.removeItem('adminUser');
     setIsAuthenticated(false);
     setRole(null);
   };
@@ -100,6 +103,7 @@ function App() {
             <Route path="/media" element={<Media />} />
             <Route path="/sports" element={<Sports />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/profile" element={<AdminProfile />} />
 
             {/* Analytics */}
             <Route path="/analytics" element={<Placeholder title="Analytics Overview" />} />

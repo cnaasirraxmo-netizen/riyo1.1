@@ -91,6 +91,11 @@ const Sidebar = ({ onLogout }) => {
       icon: <Settings size={20} />,
       path: '/settings',
     },
+    {
+      label: 'Profile',
+      icon: <ShieldCheck size={20} />,
+      path: '/profile',
+    },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -188,8 +193,27 @@ const Sidebar = ({ onLogout }) => {
         ))}
       </nav>
 
-      {/* Footer / Logout */}
-      <div className="p-4 border-t border-white/5">
+      {/* Footer / User Profile & Logout */}
+      <div className="p-4 border-t border-white/5 space-y-2">
+        {!isCollapsed && (
+          <NavLink
+            to="/profile"
+            className="flex items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all mb-4 group"
+          >
+             <div className="w-10 h-10 bg-[#0ea5e9] rounded-lg flex items-center justify-center text-white font-black mr-3 shadow-lg shadow-[#0ea5e9]/20">
+                {JSON.parse(localStorage.getItem('adminUser') || sessionStorage.getItem('adminUser') || '{}').name?.charAt(0) || 'A'}
+             </div>
+             <div className="flex-1 overflow-hidden">
+                <p className="text-xs font-black text-white truncate uppercase tracking-tighter">
+                  {JSON.parse(localStorage.getItem('adminUser') || sessionStorage.getItem('adminUser') || '{}').name || 'Admin User'}
+                </p>
+                <p className="text-[9px] text-gray-500 font-bold truncate">
+                  {localStorage.getItem('role') || sessionStorage.getItem('role')}
+                </p>
+             </div>
+             <ChevronRight size={14} className="text-gray-600 group-hover:text-[#0ea5e9] transition-colors" />
+          </NavLink>
+        )}
         <button
           onClick={onLogout}
           className={`w-full flex items-center px-3 py-3 rounded-lg transition-all duration-200 group ${
