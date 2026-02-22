@@ -66,7 +66,21 @@ const Sidebar = ({ onLogout }) => {
       subItems: [
         { label: 'Manage Users', path: '/users', icon: <Users size={16} /> },
         { label: 'Admins', path: '/users/admins', icon: <ShieldCheck size={16} /> },
+        { label: 'Activity Logs', path: '/logs', icon: <ShieldCheck size={16} /> },
       ],
+    },
+    {
+      label: 'Billing',
+      icon: <DollarSign size={20} />,
+      subItems: [
+        { label: 'Transactions', path: '/transactions', icon: <List size={16} /> },
+        { label: 'Subscription Plans', path: '/plans', icon: <CreditCard size={16} /> },
+      ],
+    },
+    {
+      label: 'Help Desk',
+      icon: <MessageSquare size={20} />,
+      path: '/tickets',
     },
     {
       label: 'Sports',
@@ -89,7 +103,11 @@ const Sidebar = ({ onLogout }) => {
     {
       label: 'Settings',
       icon: <Settings size={20} />,
-      path: '/settings',
+      subItems: [
+        { label: 'General Config', path: '/settings', icon: <Settings size={16} /> },
+        { label: 'Infrastructure', path: '/settings?tab=tools', icon: <Cpu size={16} /> },
+        { label: 'Audit Trail', path: '/logs', icon: <Shield size={16} /> },
+      ],
     },
     {
       label: 'Profile',

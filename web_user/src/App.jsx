@@ -8,6 +8,7 @@ import MovieDetails from './pages/MovieDetails';
 import Player from './pages/Player';
 import Search from './pages/Search';
 import MyList from './pages/MyList';
+import Subscription from './pages/Subscription';
 import Navbar from './components/Navbar';
 
 function App() {
@@ -74,6 +75,7 @@ function App() {
           <Route path="/watch/:id" element={isAuthenticated ? <Player /> : <Navigate to="/login" />} />
           <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
           <Route path="/my-list" element={isAuthenticated ? <MyList /> : <Navigate to="/login" />} />
+          <Route path="/subscription" element={isAuthenticated ? <Subscription /> : <Navigate to="/login" />} />
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

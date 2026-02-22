@@ -24,11 +24,13 @@ const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, sparse: true },
   password: { type: String },
   name: { type: String },
+  phone: { type: String },
   role: {
     type: String,
     enum: ['user', 'admin', 'super-admin', 'content-admin', 'support-admin', 'analytics-admin', 'moderator'],
     default: 'user'
   },
+  status: { type: String, enum: ['Active', 'Suspended', 'Deleted'], default: 'Active' },
   permissions: {
     manage_movies: { type: Boolean, default: false },
     manage_users: { type: Boolean, default: false },
@@ -46,11 +48,20 @@ const userSchema = new mongoose.Schema({
   activeProfileId: { type: mongoose.Schema.Types.ObjectId },
   fcmTokens: [String],
   subscription: {
-    plan: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
+    planId: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },
+    planName: { type: String, default: 'free' },
     startDate: Date,
     endDate: Date,
     status: { type: String, enum: ['active', 'inactive', 'expired'], default: 'inactive' }
-  }
+  },
+  devices: [{
+    deviceId: String,
+    deviceName: String,
+    deviceType: String, // Mobile, Web, TV
+    lastLogin: { type: Date, default: Date.now }
+  }],
+  balance: { type: Number, default: 0 },
+  totalWatchTime: { type: Number, default: 0 }, // in minutes
 }, { timestamps: true });
 
 // Hash password before saving

@@ -9,6 +9,11 @@ import Users from './pages/Users';
 import Sports from './pages/Sports';
 import Notifications from './pages/Notifications';
 import AdminProfile from './pages/AdminProfile';
+import Tickets from './pages/Tickets';
+import Plans from './pages/Plans';
+import Transactions from './pages/Transactions';
+import AppSettings from './pages/AppSettings';
+import AuditLogs from './pages/AuditLogs';
 import Sidebar from './components/Sidebar';
 
 // Placeholder components for new routes
@@ -104,6 +109,11 @@ function App() {
             <Route path="/sports" element={<Sports />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<AdminProfile />} />
+            <Route path="/tickets" element={<Tickets />} />
+            <Route path="/plans" element={<Plans />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/settings" element={<AppSettings />} />
+            <Route path="/logs" element={<AuditLogs />} />
 
             {/* Analytics */}
             <Route path="/analytics" element={<Placeholder title="Analytics Overview" />} />

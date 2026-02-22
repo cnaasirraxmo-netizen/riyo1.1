@@ -56,7 +56,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             _buildProfileField('Profile Name', _nameController),
             _buildReadOnlyField('Account Email', auth.userAccount?['email'] ?? 'Not available'),
-            _buildReadOnlyField('Subscription', auth.userAccount?['subscription']?['plan']?.toUpperCase() ?? 'FREE'),
+            _buildReadOnlyField('Subscription', auth.userAccount?['subscription']?['planName']?.toUpperCase() ?? 'FREE'),
+            _buildReadOnlyField('Wallet Balance', '\$${auth.userAccount?['balance']?.toStringAsFixed(2) ?? '0.00'}'),
             const SizedBox(height: 32),
             _buildActionItem(
               context,
@@ -69,6 +70,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Watch History',
               icon: Icons.history,
               onTap: () => context.push('/my-riyobox'),
+            ),
+            _buildActionItem(
+              context,
+              title: 'Subscription & Billing',
+              icon: Icons.credit_card_outlined,
+              onTap: () => _showSubscriptionInfo(context, auth),
+            ),
+            _buildActionItem(
+              context,
+              title: 'Help Center & Tickets',
+              icon: Icons.help_outline,
+              onTap: () => _showHelpCenter(context),
             ),
             _buildActionItem(
               context,
@@ -210,6 +223,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Sign Out', style: TextStyle(color: Colors.red))),
         ],
       ),
+    );
+  }
+
+  void _showSubscriptionInfo(BuildContext context, AuthProvider auth) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1F),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('SUBSCRIPTION', style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+            const SizedBox(height: 16),
+            Text('Current Plan: ${auth.userAccount?['subscription']?['planName']?.toUpperCase() ?? 'FREE'}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('Status: ${auth.userAccount?['subscription']?['status'] ?? 'Inactive'}', style: const TextStyle(color: Colors.grey)),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.yellow, foregroundColor: Colors.black, minimumSize: const Size(double.infinity, 50)),
+              child: const Text('UPGRADE PLAN', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {},
+              child: const Center(child: Text('View Billing History', style: TextStyle(color: Colors.grey))),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showHelpCenter(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1F),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        expand: false,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(24),
+          children: [
+            const Text('HELP CENTER', style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+            const SizedBox(height: 24),
+            const Text('Frequently Asked Questions', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _buildFaqItem('How to download movies?', 'Click the download icon on any movie detail page.'),
+            _buildFaqItem('Can I use multiple devices?', 'Yes, depending on your subscription tier.'),
+            _buildFaqItem('How to cancel my plan?', 'Go to Subscription & Billing and click Cancel.'),
+            const SizedBox(height: 32),
+            const Text('Still need help?', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.message_outlined),
+              label: const Text('CREATE SUPPORT TICKET'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white12, minimumSize: const Size(double.infinity, 50)),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFaqItem(String q, String a) {
+    return ExpansionTile(
+      title: Text(q, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+      children: [Padding(padding: const EdgeInsets.all(16), child: Text(a, style: const TextStyle(color: Colors.grey, fontSize: 13)))],
     );
   }
 

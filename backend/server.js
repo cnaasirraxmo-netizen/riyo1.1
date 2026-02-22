@@ -5,6 +5,8 @@ const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const { initializeFirebase } = require('./utils/firebase');
 const User = require('./models/User');
+const { loggerMiddleware } = require('./middleware/loggerMiddleware');
+const { geoBlock } = require('./middleware/geoMiddleware');
 
 dotenv.config();
 initializeFirebase();
@@ -32,6 +34,8 @@ const validateEnv = () => {
 validateEnv();
 const app = express();
 app.use(express.json());
+app.use(loggerMiddleware);
+app.use(geoBlock);
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -54,6 +58,12 @@ app.use('/movies', require('./routes/movies'));
 app.use('/users', require('./routes/users'));
 app.use('/upload', require('./routes/upload'));
 app.use('/sports', require('./routes/sports'));
+app.use('/plans', require('./routes/plans'));
+app.use('/tickets', require('./routes/tickets'));
+app.use('/transactions', require('./routes/transactions'));
+app.use('/settings', require('./routes/settings'));
+app.use('/logs', require('./routes/logs'));
+app.use('/bulk', require('./routes/bulk'));
 
 app.get('/', (req, res) => {
   const r2Configured = !!(process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET_NAME);

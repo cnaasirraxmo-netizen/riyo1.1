@@ -20,7 +20,7 @@ const Navbar = ({ onLogout }) => {
     { name: 'Home', path: '/' },
     { name: 'TV Shows', path: '/?type=tv' },
     { name: 'Movies', path: '/?type=movie' },
-    { name: 'New & Popular', path: '/' },
+    { name: 'Plans', path: '/subscription' },
     { name: 'My List', path: '/my-list' },
   ];
 
