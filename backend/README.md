@@ -52,7 +52,8 @@ Minimal Node.js backend for the RIYOBOX streaming app. It handles authentication
 
 The system automatically creates a Super Admin on the first run.
 
-*   **Email:** `admin@example.com`
+*   **Email:** `admin@riyobox.app`
+*   **Username:** `admin`
 *   **Password:** `admin123`
 
 ### Roles

@@ -75,20 +75,41 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/riyobox';
 
 const createDefaultAdmin = async () => {
   try {
-    const adminEmail = 'admin@example.com';
-    const adminExists = await User.findOne({ email: adminEmail });
+    const adminEmail = 'admin@riyobox.app';
+    const adminUsername = 'admin';
+    const adminExists = await User.findOne({
+      $or: [{ email: adminEmail }, { username: adminUsername }]
+    });
 
     if (!adminExists) {
-      console.log('Creating default admin account...');
+      console.log('🚀 Creating default Super Admin account...');
       const admin = await User.create({
-        name: 'Super Admin',
+        name: 'RIYOBOX Admin',
         email: adminEmail,
+        username: adminUsername,
         password: 'admin123',
-        role: 'admin'
+        role: 'super-admin',
+        permissions: {
+          manage_movies: true,
+          manage_users: true,
+          manage_settings: true,
+          manage_admins: true,
+          view_analytics: true,
+          financial_access: true
+        }
       });
-      console.log('✅ Default admin created successfully:', admin.email);
+      console.log('✅ Default admin created successfully!');
+      console.log(`📧 Email: ${admin.email}`);
+      console.log(`👤 Username: ${admin.username}`);
+      console.log('🔑 Password: admin123');
     } else {
-      console.log('ℹ️ Admin account already exists:', adminExists.email);
+      console.log('ℹ️ Admin account already exists:', adminExists.email || adminExists.username);
+      // Ensure it has super-admin role if it's the primary admin
+      if (adminExists.email === adminEmail && adminExists.role !== 'super-admin') {
+        adminExists.role = 'super-admin';
+        await adminExists.save();
+        console.log('✅ Admin role upgraded to super-admin');
+      }
     }
   } catch (error) {
     console.error('❌ Error creating default admin:', error.message);

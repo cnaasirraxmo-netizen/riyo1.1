@@ -74,10 +74,11 @@ For detailed instructions on running the Node.js backend and MongoDB, please ref
 The Admin Panel is hidden from regular users and only appears for accounts with the `admin` role.
 
 *   **Default Admin Credentials:**
-    *   **Email:** `admin@example.com`
+    *   **Email:** `admin@riyobox.app`
+    *   **Username:** `admin`
     *   **Password:** `admin123`
 
-To access it, log in with the credentials above, go to **My RIYOBOX** (Profile tab), and click on **Admin Panel**.
+To access it, log in to the **Web Admin Panel** or use these credentials in the mobile app. In the app, go to **My RIYOBOX** (Profile tab), and click on **Admin Panel**. Administrators can change their username and password anytime in the **Profile** section of the Admin Panel.
 
 ## 📺 Casting Setup
 For detailed instructions on configuring TV casting for Android and iOS, see [CAST_SETUP.md](./CAST_SETUP.md).
