@@ -6,6 +6,7 @@ import Movies from './pages/Movies';
 import Media from './pages/Media';
 import Users from './pages/Users';
 import Layout from './pages/Layout';
+import Management from './pages/Management';
 import Sidebar from './components/Sidebar';
 import api from './utils/api';
 
@@ -27,6 +28,7 @@ function App() {
             <Route path="/media" element={<Media />} />
             <Route path="/users" element={<Users />} />
             <Route path="/layout" element={<Layout />} />
+            <Route path="/management" element={<Management />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </main>

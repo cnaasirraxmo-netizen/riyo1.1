@@ -176,15 +176,29 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Prominent Poster overlay
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: movie.posterPath.startsWith('http') ? movie.posterPath : 'https://image.tmdb.org/t/p/w500${movie.posterPath}',
-                width: 100,
-                height: 150,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const ShimmerLoading.rectangular(width: 100, height: 150),
-              ),
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: movie.posterPath.startsWith('http') ? movie.posterPath : 'https://image.tmdb.org/t/p/w500${movie.posterPath}',
+                    width: 100,
+                    height: 150,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => const ShimmerLoading.rectangular(width: 100, height: 150),
+                  ),
+                ),
+                if (movie.contentType == 'premium')
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(color: Colors.yellow, borderRadius: BorderRadius.circular(2)),
+                      child: const Text('PREMIUM', style: TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.w900)),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -273,6 +287,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     final bool isDownloaded = downloads.isDownloaded(movie.id);
     final bool isDownloading = downloads.isDownloading(movie.id);
     final double progress = downloads.getDownloadProgress(movie.id);
+    final bool isComingSoon = movie.contentType == 'coming_soon';
 
     return Column(
       children: [
@@ -291,7 +306,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
              Expanded(
                child: _buildActionIconButton(Icons.share_outlined, 'SHARE'),
              ),
-             if (castService.isConnected)
+             if (castService.isConnected && !isComingSoon)
                Expanded(
                  child: _buildActionIconButton(
                    Icons.cast_connected,
@@ -311,10 +326,18 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
           child: ElevatedButton.icon(
             onPressed: () {
                final id = movie.backendId ?? movie.id.toString();
-               context.push('/movie/$id/play');
+               if (isComingSoon) {
+                  if (movie.trailerUrl != null) {
+                    context.push('/movie/$id/play?url=${Uri.encodeComponent(movie.trailerUrl!)}');
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
+                  }
+               } else {
+                  context.push('/movie/$id/play');
+               }
             },
-            icon: const Icon(Icons.play_arrow, color: Colors.black),
-            label: const Text('RESUME', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            icon: Icon(isComingSoon ? Icons.play_circle_outline : Icons.play_arrow, color: Colors.black),
+            label: Text(isComingSoon ? 'WATCH TRAILER' : 'RESUME', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -325,7 +348,29 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
-          child: isDownloading
+          child: isComingSoon
+            ? OutlinedButton.icon(
+                onPressed: () async {
+                  if (!auth.isAuthenticated) {
+                    context.push('/login');
+                    return;
+                  }
+                  final res = await _apiService.toggleNotifyMe(movie.backendId ?? movie.id.toString(), auth.token!);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(res ? 'We will notify you when it is released!' : 'Notifications disabled'))
+                    );
+                  }
+                },
+                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                label: const Text('NOTIFY ME', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white24),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                ),
+              )
+            : isDownloading
             ? Column(
                 children: [
                   LinearProgressIndicator(value: progress, color: Colors.deepPurpleAccent, backgroundColor: Colors.white10),

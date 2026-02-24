@@ -211,4 +211,38 @@ class ApiService {
       {'title': 'New Releases', 'type': 'new_releases'},
     ]; // Fallback
   }
+
+  Future<List<Movie>> getComingSoonMovies({String? token}) async {
+    try {
+      final url = '$_backendUrl/movies/coming-soon';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> results = json.decode(response.body);
+        return results.map((json) => Movie.fromJson(json)).toList();
+      }
+    } catch (e) {
+      print('Error fetching coming soon: $e');
+    }
+    return [];
+  }
+
+  Future<bool> toggleNotifyMe(String movieId, String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_backendUrl/users/notify-me/$movieId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['isNotified'];
+      }
+    } catch (e) {
+      print('Error toggling notification: $e');
+    }
+    return false;
+  }
 }

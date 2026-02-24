@@ -20,6 +20,7 @@ import 'package:riyobox/presentation/screens/categories_screen.dart';
 import 'package:riyobox/presentation/screens/downloads_screen.dart';
 import 'package:riyobox/presentation/screens/my_riyobox_screen.dart';
 import 'package:riyobox/presentation/screens/search_screen.dart';
+import 'package:riyobox/presentation/screens/coming_soon_screen.dart';
 import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
 import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyobox/presentation/screens/download_settings_screen.dart';
@@ -105,6 +106,10 @@ GoRouter _createRouter(AuthProvider authProvider) {
           GoRoute(
             path: '/my-riyobox',
             builder: (context, state) => const MyRiyoboxScreen(),
+          ),
+          GoRoute(
+            path: '/coming-soon',
+            builder: (context, state) => const ComingSoonScreen(),
           ),
           GoRoute(
             path: '/genre/:name',
@@ -245,11 +250,11 @@ class MainScreen extends StatelessWidget {
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/category')) return 1;
+    if (location.startsWith('/coming-soon')) return 1;
     if (location.startsWith('/downloads')) return 2;
     if (location.startsWith('/search')) return 3;
     if (location.startsWith('/my-riyobox')) return 4;
-    return 1; // Default
+    return 0; // Default
   }
 
   void _onItemTapped(int index, BuildContext context) {
@@ -258,7 +263,7 @@ class MainScreen extends StatelessWidget {
         context.go('/home');
         break;
       case 1:
-        context.go('/category');
+        context.go('/coming-soon');
         break;
       case 2:
         context.go('/downloads');
@@ -284,9 +289,9 @@ class MainScreen extends StatelessWidget {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.category_outlined),
-            activeIcon: Icon(Icons.category),
-            label: 'Category',
+            icon: Icon(Icons.video_library_outlined),
+            activeIcon: Icon(Icons.video_library),
+            label: 'Coming Soon',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.download_outlined),

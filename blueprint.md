@@ -130,5 +130,15 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Featured Carousel**: The Home screen carousel now prioritizes "Featured" movies (marked by admin) with **extra-large posters** for a more immersive experience.
 - **Admin Content Control**: Added the ability for administrators to mark specific movies as "Featured" via the Web Admin Panel, giving them direct control over the home screen's main highlights.
 
+### 11. Coming Soon & Trailer Management System
+- **Content Classification**: Movies can now be categorized as **Free**, **Premium**, or **Coming Soon**.
+- **Coming Soon System**:
+  - Dedicated **Coming Soon** tab in the mobile app.
+  - Users can watch trailers and tap "Notify Me" for upcoming releases.
+  - When a movie is published, users receive an automatic notification record in the database.
+- **Trailer Management**: Admin can upload, replace, and manage trailers for any movie.
+- **Premium Control**: Integrated "Premium" badges on movie cards and details to highlight exclusive content.
+- **Publication Flow**: Seamless transition from "Coming Soon" to "Published" status with automatic user alerts.
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.

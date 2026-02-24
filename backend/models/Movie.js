@@ -12,6 +12,10 @@ const movieSchema = new mongoose.Schema({
   rating: { type: Number, default: 0 },
   isTrending: { type: Boolean, default: false },
   isFeatured: { type: Boolean, default: false },
+  contentType: { type: String, enum: ['free', 'premium', 'coming_soon'], default: 'free' },
+  trailerUrl: { type: String },
+  isPublished: { type: Boolean, default: true },
+  notifyUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   contentRating: { type: String },
 }, { timestamps: true });
 

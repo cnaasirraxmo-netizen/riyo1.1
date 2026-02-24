@@ -36,6 +36,19 @@ class MovieCard extends StatelessWidget {
               ),
             ),
           ),
+          if (movie.contentType == 'premium')
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.yellow,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                      child: const Text('PREMIUM', style: TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.w900)),
+              ),
+            ),
           if (movie.isDownloaded)
             Positioned(
               top: 8,

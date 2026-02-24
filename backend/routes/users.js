@@ -34,4 +34,28 @@ router.post('/watchlist/:movieId', protect, async (req, res) => {
   }
 });
 
+// Toggle Notify Me for a movie
+router.post('/notify-me/:movieId', protect, async (req, res) => {
+  try {
+    const Movie = require('../models/Movie');
+    const movie = await Movie.findById(req.params.movieId);
+    if (!movie) return res.status(404).json({ message: 'Movie not found' });
+
+    const userId = req.user._id;
+    const index = movie.notifyUsers.indexOf(userId);
+
+    if (index > -1) {
+      movie.notifyUsers.splice(index, 1);
+      await movie.save();
+      res.json({ message: 'Notifications disabled', isNotified: false });
+    } else {
+      movie.notifyUsers.push(userId);
+      await movie.save();
+      res.json({ message: 'Notifications enabled', isNotified: true });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

@@ -7,15 +7,16 @@ const router = express.Router();
 router.post('/movies', protect, adminOnly, async (req, res) => {
   const {
     title, description, posterUrl, backdropUrl,
-    videoUrl, duration, year, genre,
-    isTrending, isFeatured, contentRating
+    videoUrl, trailerUrl, duration, year, genre,
+    isTrending, isFeatured, contentType, contentRating
   } = req.body;
 
   try {
     const movie = new Movie({
       title, description, posterUrl, backdropUrl,
-      videoUrl, duration, year, genre,
-      isTrending, isFeatured, contentRating
+      videoUrl, trailerUrl, duration, year, genre,
+      isTrending, isFeatured, contentType, contentRating,
+      isPublished: contentType !== 'coming_soon'
     });
     const createdMovie = await movie.save();
     res.status(201).json(createdMovie);
@@ -26,8 +27,42 @@ router.post('/movies', protect, adminOnly, async (req, res) => {
 
 router.get('/movies', protect, adminOnly, async (req, res) => {
   try {
-    const movies = await Movie.find({});
+    const movies = await Movie.find({}).sort('-createdAt');
     res.json(movies);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Publish Coming Soon movie
+router.put('/movies/:id/publish', protect, adminOnly, async (req, res) => {
+  try {
+    const movie = await Movie.findById(req.params.id).populate('notifyUsers');
+    if (!movie) return res.status(404).json({ message: 'Movie not found' });
+
+    const { videoUrl, contentType } = req.body;
+    movie.videoUrl = videoUrl || movie.videoUrl;
+    movie.contentType = contentType || 'free';
+    movie.isPublished = true;
+
+    await movie.save();
+
+    // Create notifications for interested users
+    const Notification = require('../models/Notification');
+    const notifications = movie.notifyUsers.map(user => ({
+      user: user._id,
+      title: 'Movie Released!',
+      message: `${movie.title} is now available to watch!`,
+      movie: movie._id
+    }));
+
+    if (notifications.length > 0) {
+      await Notification.insertMany(notifications);
+    }
+
+    console.log(`Created notifications for ${movie.notifyUsers.length} users about publication of ${movie.title}`);
+
+    res.json({ message: 'Movie published successfully', movie });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

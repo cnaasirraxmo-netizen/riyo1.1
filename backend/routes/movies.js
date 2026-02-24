@@ -6,13 +6,23 @@ const router = express.Router();
 
 router.get('/', protect, async (req, res) => {
   try {
-    const { genre, isTrending, isFeatured } = req.query;
-    let query = {};
+    const { genre, isTrending, isFeatured, contentType } = req.query;
+    let query = { isPublished: true }; // Only regular movies by default
     if (genre) query.genre = genre;
     if (isTrending) query.isTrending = isTrending === 'true';
     if (isFeatured) query.isFeatured = isFeatured === 'true';
+    if (contentType) query.contentType = contentType;
 
     const movies = await Movie.find(query);
+    res.json(movies);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/coming-soon', protect, async (req, res) => {
+  try {
+    const movies = await Movie.find({ contentType: 'coming_soon' }).sort('-createdAt');
     res.json(movies);
   } catch (error) {
     res.status(500).json({ message: error.message });
