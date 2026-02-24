@@ -13,6 +13,7 @@ class Movie {
   final String? director;
   final String? contentRating;
   final bool isTvShow;
+  final int? seasonNumber;
   final List<Season>? seasons;
   final String? videoUrl;
   final String? localPath;
@@ -39,6 +40,7 @@ class Movie {
     this.director,
     this.contentRating,
     this.isTvShow = false,
+    this.seasonNumber,
     this.seasons,
     this.videoUrl,
     this.localPath,
@@ -62,6 +64,7 @@ class Movie {
       'runtime': runtime,
       'genre': genres,
       'is_tv_show': isTvShow,
+      'season_number': seasonNumber,
       'videoUrl': videoUrl,
       'local_path': localPath,
       'is_downloaded': isDownloaded,
@@ -83,6 +86,7 @@ class Movie {
       genres: json['genre'] != null ? List<String>.from(json['genre']) : null,
       contentRating: json['contentRating'],
       isTvShow: json['is_tv_show'] ?? false,
+      seasonNumber: json['season_number'] ?? (json['seasons'] != null && (json['seasons'] as List).isNotEmpty ? json['seasons'][0]['number'] : null),
       videoUrl: json['videoUrl'],
       localPath: json['local_path'],
       isDownloaded: json['is_downloaded'] ?? false,
@@ -118,6 +122,7 @@ class Movie {
     String? localPath,
     String? videoUrl,
     String? fileSize,
+    int? seasonNumber,
   }) {
     return Movie(
       id: id,
@@ -134,6 +139,7 @@ class Movie {
       director: director,
       contentRating: contentRating,
       isTvShow: isTvShow,
+      seasonNumber: seasonNumber ?? this.seasonNumber,
       seasons: seasons,
       videoUrl: videoUrl ?? this.videoUrl,
       localPath: localPath ?? this.localPath,

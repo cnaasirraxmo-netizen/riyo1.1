@@ -22,6 +22,7 @@ import 'package:riyobox/presentation/screens/my_riyobox_screen.dart';
 import 'package:riyobox/presentation/screens/search_screen.dart';
 import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
 import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
+import 'package:riyobox/presentation/screens/download_settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -135,6 +136,11 @@ GoRouter _createRouter(AuthProvider authProvider) {
         path: '/cast',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const CastScreen(),
+      ),
+      GoRoute(
+        path: '/download-settings',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DownloadSettingsScreen(),
       ),
     GoRoute(
       path: '/admin',

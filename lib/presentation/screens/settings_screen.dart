@@ -44,6 +44,13 @@ class SettingsScreen extends StatelessWidget {
           _buildDivider(),
           _buildSectionHeader('DOWNLOAD SETTINGS'),
           ListTile(
+            leading: const Icon(Icons.download_for_offline_outlined, color: Colors.white),
+            title: const Text('Download Management', style: TextStyle(color: Colors.white)),
+            subtitle: const Text('Manage storage and delete files', style: TextStyle(color: Colors.grey)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            onTap: () => context.push('/download-settings'),
+          ),
+          ListTile(
             leading: const Icon(Icons.high_quality_outlined, color: Colors.white),
             title: const Text('Video Quality for Downloads', style: TextStyle(color: Colors.white)),
             subtitle: Text(_getQualityText(downloads.quality), style: const TextStyle(color: Colors.grey)),

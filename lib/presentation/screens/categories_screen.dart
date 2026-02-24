@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:riyobox/providers/settings_provider.dart';
 
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
-
     final List<Map<String, String>> genres = [
       {'name': 'Action', 'image': 'https://picsum.photos/seed/action/400/200'},
       {'name': 'Comedy', 'image': 'https://picsum.photos/seed/comedy/400/200'},
@@ -27,25 +23,7 @@ class CategoriesScreen extends StatelessWidget {
         slivers: [
           SliverAppBar(
             backgroundColor: const Color(0xFF141414),
-            title: Row(
-              children: [
-                const Text('RIYOBOX', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(width: 12),
-                if (!settings.isOffline) ...[
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Text('Online', style: TextStyle(color: Colors.green, fontSize: 12)),
-                ] else
-                   const Text('Offline', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-              ],
-            ),
+            title: const Text('RIYOBOX', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
             actions: [
               IconButton(
                 icon: const Icon(Icons.cast, color: Colors.white),

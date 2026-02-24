@@ -90,5 +90,25 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Enhanced Movie Info**: Horizontal lists and grids now show the movie's **release year** and **duration** (e.g., "2024 | 2h 15m") directly below the poster, providing more context to users at a glance.
 - **Functional 'View All'**: Category and Genre headers (like "Trending Now", "Popular", etc.) are now interactive. Clicking on a header or its arrow icon navigates to a full list of movies in that category.
 
+### 6. Advanced Download Management & UI Polish
+- **Redesigned Downloads Screen**:
+  - Movie items now display **Title, Year, Duration, and File Size**.
+  - Tapping a movie item starts playback immediately.
+  - Added a YouTube-style action menu (`more_vert`) for each download with options to Save, Delete, or Add to Playlist.
+  - Added a three-dot header menu with quick access to "Download Settings" and "Help".
+- **New Download Settings Screen**:
+  - Centralized location for managing offline content.
+  - New features: **Delete Oldest Download**, **Delete Largest Download**, and a list to manage downloads by size.
+  - Accessible from both the main Settings and the Downloads screen.
+- **Header Cleanup**:
+  - Completely removed profile icons/avatars from all app headers.
+  - Removed "Online/Offline" status indicators from the Categories header for a cleaner look.
+
+### 7. TV Series Enhancements in Downloads
+- **TV Show Details**: The Downloads screen now distinguishes between movies and TV series.
+- **Series-Specific Info**: For series, the UI now displays the **Series Name, Season Number, and the number of downloaded episodes** (e.g., "The Boys | Season 6 | 5 episodes").
+- **Integrated Storage Stats**: Each download (movie or series) continues to show its total file size.
+- **Model Updates**: Updated the `Movie` data model to support `seasonNumber` and improved the parsing of TV show metadata.
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.
