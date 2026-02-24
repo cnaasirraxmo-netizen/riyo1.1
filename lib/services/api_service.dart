@@ -207,7 +207,7 @@ class ApiService {
     } catch (e) {}
     return [
       {'title': 'Trending Now', 'type': 'trending'},
-      {'title': 'Popular on RIYOBOX', 'type': 'top_rated'},
+      {'title': 'Popular on RIYO', 'type': 'top_rated'},
       {'title': 'New Releases', 'type': 'new_releases'},
     ]; // Fallback
   }

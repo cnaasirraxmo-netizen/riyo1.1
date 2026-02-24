@@ -123,12 +123,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text(
-                            'RIYOBOX',
+                            'RIYO',
                             style: TextStyle(
-                              fontSize: 48,
+                              fontSize: 64,
                               fontWeight: FontWeight.w900,
                               color: Colors.white,
-                              letterSpacing: 8,
+                              letterSpacing: 12,
                             ),
                           ),
                           Container(

@@ -98,7 +98,7 @@ class CastService extends ChangeNotifier {
       streamType: CastMediaStreamType.buffered,
       metadata: GoogleCastMovieMediaMetadata(
         title: title ?? 'Video',
-        subtitle: subtitle ?? 'RIYOBOX',
+        subtitle: subtitle ?? 'RIYO',
         images: posterUrl != null ? [GoogleCastImage(url: Uri.parse(posterUrl))] : [],
       ),
     );

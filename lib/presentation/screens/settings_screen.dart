@@ -155,7 +155,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 40),
           const Center(
-            child: Text('RIYOBOX v2.4.0', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text('RIYO v2.4.0', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 40),
         ],

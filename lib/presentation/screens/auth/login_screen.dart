@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('New to RIYOBOX? ', style: TextStyle(color: Colors.grey)),
+                const Text('New to RIYO? ', style: TextStyle(color: Colors.grey)),
                 GestureDetector(
                   onTap: () => context.push('/signup'),
                   child: const Text('Sign up now.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

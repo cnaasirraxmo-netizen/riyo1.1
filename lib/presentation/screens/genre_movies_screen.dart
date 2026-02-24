@@ -21,7 +21,7 @@ class GenreMoviesScreen extends StatelessWidget {
         return _apiService.getWatchlist(auth.token ?? "");
       } else if (genreName == 'Trending Now') {
         return _apiService.getTrendingMovies(token: auth.token); // Trending is default if genre is null in some cases, or handle as needed
-      } else if (genreName == 'Popular on RIYOBOX') {
+      } else if (genreName == 'Popular on RIYO') {
         return _apiService.getTopRatedMovies(token: auth.token);
       } else if (genreName == 'New Releases') {
         return _apiService.getNowPlayingMovies(token: auth.token);

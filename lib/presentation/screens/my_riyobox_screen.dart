@@ -20,7 +20,7 @@ class MyRiyoboxScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF141414),
         elevation: 0,
-        title: const Text('MY RIYOBOX', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
+        title: const Text('MY RIYO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
         actions: [
           IconButton(
             icon: const Icon(Icons.cast, color: Colors.white),
@@ -223,7 +223,7 @@ class MyRiyoboxScreen extends StatelessWidget {
   Widget _buildFooter() {
     return const Column(
       children: [
-        Text('RIYOBOX PREMIUM V2.4.0', style: TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+        Text('RIYO PREMIUM V2.4.0', style: TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
         SizedBox(height: 4),
         Text('CLOUD ID: 9L6K4D38', style: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 1.1)),
       ],

@@ -35,7 +35,7 @@ const Dashboard = () => {
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-gray-400">Welcome to RIYOBOX control center.</p>
+        <p className="text-gray-400">Welcome to RIYO control center.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">

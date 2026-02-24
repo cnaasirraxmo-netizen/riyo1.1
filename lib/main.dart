@@ -28,9 +28,18 @@ import 'package:riyobox/presentation/screens/support/contacts_screen.dart';
 import 'package:riyobox/presentation/screens/support/terms_screen.dart';
 import 'package:riyobox/presentation/screens/support/privacy_screen.dart';
 import 'package:riyobox/presentation/screens/support/about_screen.dart';
+import 'package:riyobox/services/notification_service.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Firebase initialization (requires google-services.json in real apps)
+  try {
+    await Firebase.initializeApp();
+    await NotificationService.initialize();
+  } catch (e) {
+    debugPrint('Firebase/Notification Init Error: $e');
+  }
   runApp(const MyApp());
 }
 
@@ -197,7 +206,7 @@ class MyApp extends StatelessWidget {
         builder: (context, settings, auth, child) {
           return MaterialApp.router(
             routerConfig: _createRouter(auth),
-            title: 'RIYOBOX',
+            title: 'RIYO',
             themeMode: settings.themeMode,
             locale: settings.language == 'Arabic' ? const Locale('ar', '') : const Locale('en', ''),
             builder: (context, child) {
@@ -306,7 +315,7 @@ class MainScreen extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
-            label: 'My RIYOBOX',
+            label: 'My RIYO',
           ),
         ],
         currentIndex: _calculateSelectedIndex(context),

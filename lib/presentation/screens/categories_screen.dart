@@ -23,7 +23,7 @@ class CategoriesScreen extends StatelessWidget {
         slivers: [
           SliverAppBar(
             backgroundColor: const Color(0xFF141414),
-            title: const Text('RIYOBOX', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            title: const Text('RIYO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
             actions: [
               IconButton(
                 icon: const Icon(Icons.cast, color: Colors.white),

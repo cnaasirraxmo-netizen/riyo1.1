@@ -30,7 +30,7 @@ class WelcomeScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 40),
                   const Text(
-                    'RIYOBOX',
+                    'RIYO',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,

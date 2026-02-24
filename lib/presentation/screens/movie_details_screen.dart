@@ -410,7 +410,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     return const Wrap(
       spacing: 8,
       children: [
-        _Badge(text: 'RIYOBOX ORIGINAL', color: Colors.deepPurpleAccent),
+        _Badge(text: 'RIYO ORIGINAL', color: Colors.deepPurpleAccent),
         _Badge(text: 'TRENDING NOW', color: Colors.redAccent),
       ],
     );

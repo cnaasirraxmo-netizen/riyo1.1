@@ -95,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return <Widget>[
             SliverAppBar(
               backgroundColor: const Color(0xFF141414),
-              title: const Text('RIYOBOX',
+              title: const Text('RIYO',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
               actions: [
                 if (settings.isOffline)

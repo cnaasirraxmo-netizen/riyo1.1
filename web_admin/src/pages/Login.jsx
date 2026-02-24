@@ -30,7 +30,7 @@ const Login = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4">
       <div className="max-w-md w-full bg-[#1C1C1C] p-8 rounded-lg shadow-xl border border-white/5">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-black text-purple-500 tracking-tighter">RIYOBOX</h1>
+          <h1 className="text-4xl font-black text-purple-500 tracking-tighter">RIYO</h1>
           <p className="text-gray-400 mt-2">Admin Control Center</p>
         </div>
 

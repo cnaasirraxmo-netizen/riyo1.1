@@ -141,5 +141,12 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Premium Control**: Integrated "Premium" badges on movie cards and details to highlight exclusive content.
 - **Publication Flow**: Seamless transition from "Coming Soon" to "Published" status with automatic user alerts.
 
+### 12. Rebranding & Professional Notification System
+- **Rebranded to RIYO**: Updated app labels, text, and created a sleek geometric "R" logo styled after professional aerospace branding.
+- **FCM & Local Notifications**: Integrated Firebase Cloud Messaging for push notifications and `flutter_local_notifications` for high-priority foreground alerts (WhatsApp-style banners).
+- **Status Bar Optimization**: Derived a professional white-mask notification icon from the APK logo, following Android guidelines for transparency and contrast.
+- **Dynamic Alerts**: Implemented a notification infrastructure that handles upcoming movie alerts, notifying interested users the moment a "Coming Soon" title is published.
+- **Developer Infrastructure**: Provided `NOTIFICATION_ICON_SETUP.md` with precise instructions for generating density-perfect icons.
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.

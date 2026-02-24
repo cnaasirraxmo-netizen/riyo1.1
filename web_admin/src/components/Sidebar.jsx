@@ -15,7 +15,7 @@ const Sidebar = ({ onLogout }) => {
   return (
     <div className="w-64 bg-[#1C1C1C] border-r border-white/5 flex flex-col">
       <div className="p-8">
-        <h1 className="text-2xl font-black text-purple-500 tracking-tighter">RIYOBOX</h1>
+        <h1 className="text-2xl font-black text-purple-500 tracking-tighter">RIYO</h1>
         <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Admin Panel</p>
       </div>
 

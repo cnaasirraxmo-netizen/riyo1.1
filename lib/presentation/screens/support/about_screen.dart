@@ -30,7 +30,7 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 30),
             const Text(
-              'RIYOBOX PREMIUM',
+              'RIYO PREMIUM',
               style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -42,14 +42,14 @@ class AboutScreen extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 40),
               child: Text(
-                'RIYOBOX is a production-grade movie streaming application designed to provide the best entertainment experience with offline mode, high-quality playback, and seamless casting.',
+                'RIYO is a production-grade movie streaming application designed to provide the best entertainment experience with offline mode, high-quality playback, and seamless casting.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
               ),
             ),
             const SizedBox(height: 60),
             const Text(
-              '© 2024 RIYOBOX Entertainment Inc.',
+              '© 2024 RIYO Entertainment Inc.',
               style: TextStyle(color: Colors.white24, fontSize: 12),
             ),
           ],

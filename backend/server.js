@@ -82,7 +82,7 @@ const seedLayoutConfig = async () => {
       console.log('Seeding default home sections...');
       await HomeSection.insertMany([
         { title: 'Trending Now', type: 'trending', order: 1 },
-        { title: 'Popular on RIYOBOX', type: 'top_rated', order: 2 },
+        { title: 'Popular on RIYO', type: 'top_rated', order: 2 },
         { title: 'New Releases', type: 'new_releases', order: 3 },
       ]);
     }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:riyobox/models/movie.dart';
 import 'package:riyobox/services/api_service.dart';
 import 'package:riyobox/providers/auth_provider.dart';
+import 'package:riyobox/services/notification_service.dart';
 import 'package:riyobox/presentation/widgets/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -164,6 +165,8 @@ class _ComingSoonScreenState extends State<ComingSoonScreen> {
 
   Widget _buildNotifyButton(Movie movie) {
     final auth = Provider.of<AuthProvider>(context);
+    // In a real app, we would check if the user is already in movie.notifyUsers
+    // For now we'll simulate based on the snackbar feedback
 
     return OutlinedButton.icon(
       onPressed: () async {
@@ -172,14 +175,22 @@ class _ComingSoonScreenState extends State<ComingSoonScreen> {
           context.push('/login');
           return;
         }
+
+        // Request notification permissions again just in case
+        await NotificationService.initialize();
+
         final res = await _apiService.toggleNotifyMe(movie.backendId ?? movie.id.toString(), auth.token!);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res ? 'We will notify you when it is released!' : 'Notifications disabled'))
+          SnackBar(
+            content: Text(res ? 'Push notifications enabled for ${movie.title}!' : 'Notifications disabled'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: res ? Colors.green : Colors.redAccent,
+          )
         );
         _fetchMovies();
       },
-      icon: const Icon(Icons.notifications_outlined, size: 18),
+      icon: const Icon(Icons.notifications_active_outlined, size: 18),
       label: const Text('NOTIFY ME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.white,
