@@ -55,16 +55,6 @@ class CategoriesScreen extends StatelessWidget {
                 icon: const Icon(Icons.settings, color: Colors.white),
                 onPressed: () => context.push('/settings'),
               ),
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: GestureDetector(
-                  onTap: () => context.push('/profile'),
-                  child: const CircleAvatar(
-                    radius: 16,
-                    backgroundImage: NetworkImage('https://picsum.photos/seed/profile/100/100'),
-                  ),
-                ),
-              ),
             ],
             floating: true,
             pinned: true,
@@ -145,7 +135,7 @@ class CategoriesScreen extends StatelessWidget {
                 const Text('ANIME HUB', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => context.push('/genre/Anime'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),

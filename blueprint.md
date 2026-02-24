@@ -85,5 +85,10 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - Verified that movie uploads, user management, and R2 storage library access are functional and correctly mapped to backend routes.
 - **Improved Admin UX**: Implemented transparent auto-login for the Web Admin Panel. When an admin opens the panel, it automatically authenticates using default credentials and redirects straight to the Dashboard, hiding the manual login screen.
 
+### 5. UI Improvements & Profile Removal
+- **Removed Profile Selection**: To streamline the experience, all profile avatars and profile management screens have been removed. The app now focuses on a single-user experience.
+- **Enhanced Movie Info**: Horizontal lists and grids now show the movie's **release year** and **duration** (e.g., "2024 | 2h 15m") directly below the poster, providing more context to users at a glance.
+- **Functional 'View All'**: Category and Genre headers (like "Trending Now", "Popular", etc.) are now interactive. Clicking on a header or its arrow icon navigates to a full list of movies in that category.
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.

@@ -30,16 +30,6 @@ class MyRiyoboxScreen extends StatelessWidget {
             icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () => context.push('/settings'),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: GestureDetector(
-              onTap: () => context.push('/profile'),
-              child: const CircleAvatar(
-                radius: 16,
-                backgroundImage: NetworkImage('https://picsum.photos/seed/profile/100/100'),
-              ),
-            ),
-          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -51,7 +41,7 @@ class MyRiyoboxScreen extends StatelessWidget {
             const SizedBox(height: 32),
             _buildStatsSection(context, auth.token),
             const SizedBox(height: 40),
-            _buildSectionHeader('MY WATCHLIST', onTap: () {}),
+            _buildSectionHeader('MY WATCHLIST', onTap: () => context.push('/genre/Watchlist')),
             const SizedBox(height: 16),
             FutureBuilder<List<Movie>>(
               future: auth.token != null ? apiService.getWatchlist(auth.token!) : Future.value([]),
@@ -75,32 +65,10 @@ class MyRiyoboxScreen extends StatelessWidget {
   Widget _buildProfileHeader(BuildContext context) {
     return Column(
       children: [
-        GestureDetector(
-          onTap: () => context.push('/profile'),
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.bottomRight,
-            children: [
-              const CircleAvatar(
-                radius: 45,
-                backgroundColor: Color(0xFF262626),
-                child: Icon(Icons.person, color: Colors.grey, size: 50),
-              ),
-              Positioned(
-                right: -2,
-                bottom: -2,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurpleAccent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF141414), width: 2),
-                  ),
-                  padding: const EdgeInsets.all(6),
-                  child: const Icon(Icons.edit, color: Colors.white, size: 16),
-                ),
-              ),
-            ],
-          ),
+        const CircleAvatar(
+          radius: 45,
+          backgroundColor: Color(0xFF262626),
+          child: Icon(Icons.person, color: Colors.grey, size: 50),
         ),
         const SizedBox(height: 16),
         const Text('Jules Engineer', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
@@ -204,7 +172,10 @@ class MyRiyoboxScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(movie.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Text('${movie.releaseDate.split('-')[0]} | ${movie.genres?.first ?? "N/A"}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                  Text(
+                    '${movie.releaseDate.split('-')[0]}${movie.runtime != null ? " | ${_formatDuration(movie.runtime!)}" : ""}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
                 ],
               ),
             ),
@@ -227,13 +198,6 @@ class MyRiyoboxScreen extends StatelessWidget {
           ),
         if (auth.role == 'admin')
           const SizedBox(height: 8),
-        _buildSettingsButton(
-          context,
-          icon: Icons.person_outline,
-          text: 'Profile Information',
-          onTap: () => context.push('/profile'),
-        ),
-        const SizedBox(height: 8),
         _buildSettingsButton(
           context,
           icon: Icons.settings_outlined,
@@ -270,6 +234,15 @@ class MyRiyoboxScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDuration(int minutes) {
+    final int h = minutes ~/ 60;
+    final int m = minutes % 60;
+    if (h > 0) {
+      return '${h}h ${m}m';
+    }
+    return '${m}m';
   }
 
   Widget _buildFooter() {

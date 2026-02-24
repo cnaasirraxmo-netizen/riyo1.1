@@ -90,16 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 IconButton(
                     icon: const Icon(Icons.settings, color: Colors.white),
                     onPressed: () => context.push('/settings')),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: GestureDetector(
-                    onTap: () => context.push('/profile'),
-                    child: const CircleAvatar(
-                      backgroundImage: CachedNetworkImageProvider(
-                          'https://picsum.photos/seed/avatar/100/100'),
-                    ),
-                  ),
-                ),
               ],
               pinned: true,
               floating: true,
@@ -417,17 +407,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
-            ],
+        InkWell(
+          onTap: () => context.push('/genre/$title'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+              ],
+            ),
           ),
         ),
         SizedBox(
@@ -464,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            movie.releaseDate.split('-')[0],
+                            '${movie.releaseDate.split('-')[0]}${movie.runtime != null ? " | ${_formatDuration(movie.runtime!)}" : ""}',
                             style: const TextStyle(color: Colors.grey, fontSize: 11),
                           ),
                         ],
@@ -478,6 +471,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
+  }
+
+  String _formatDuration(int minutes) {
+    final int h = minutes ~/ 60;
+    final int m = minutes % 60;
+    if (h > 0) {
+      return '${h}h ${m}m';
+    }
+    return '${m}m';
   }
 
   Widget _buildMovieShimmerList() {
