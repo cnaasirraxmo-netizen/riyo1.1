@@ -27,7 +27,7 @@ const Signup = ({ onLogin }) => {
     <div className="relative min-h-screen w-full flex items-center justify-center bg-black">
       <div className="absolute inset-0 z-0">
         <img
-          src="https://picsum.photos/seed/riyobox-reg/1920/1080"
+          src="https://picsum.photos/seed/riyo-reg/1920/1080"
           className="w-full h-full object-cover opacity-50 grayscale"
           alt="background"
         />
@@ -35,7 +35,7 @@ const Signup = ({ onLogin }) => {
       </div>
 
       <div className="relative z-10 w-full max-w-md p-10 bg-black/75 rounded-lg border border-white/5 backdrop-blur-sm">
-        <h1 className="text-3xl font-black text-purple-600 mb-8 tracking-tighter">RIYOBOX</h1>
+        <h1 className="text-3xl font-black text-purple-600 mb-8 tracking-tighter">RIYO</h1>
         <h2 className="text-2xl font-bold mb-8">Sign Up</h2>
 
         {error && <div className="bg-red-500/20 border border-red-500/50 text-red-500 p-3 rounded mb-6 text-sm">{error}</div>}

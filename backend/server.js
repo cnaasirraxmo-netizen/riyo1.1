@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
   const r2Configured = !!(process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET_NAME);
 
   res.json({
-    message: 'Riyobox API is running...',
+    message: 'Riyo API is running...',
     status: 'Operational',
     database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     storage: r2Configured ? 'R2 Configured' : 'R2 Missing Configuration',
@@ -60,7 +60,7 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/riyobox';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/riyo';
 
 const seedLayoutConfig = async () => {
   try {

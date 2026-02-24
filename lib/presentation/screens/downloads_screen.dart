@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:riyobox/providers/download_provider.dart';
-import 'package:riyobox/models/movie.dart';
-import 'package:riyobox/presentation/widgets/state_widgets.dart';
+import 'package:riyo/providers/download_provider.dart';
+import 'package:riyo/models/movie.dart';
+import 'package:riyo/presentation/widgets/state_widgets.dart';
 
 class DownloadsScreen extends StatefulWidget {
   const DownloadsScreen({super.key});

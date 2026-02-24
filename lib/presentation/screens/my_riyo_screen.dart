@@ -1,14 +1,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:riyobox/presentation/widgets/shimmer_loading.dart';
-import 'package:riyobox/models/movie.dart';
-import 'package:riyobox/services/api_service.dart';
-import 'package:riyobox/providers/auth_provider.dart';
+import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/models/movie.dart';
+import 'package:riyo/services/api_service.dart';
+import 'package:riyo/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
-class MyRiyoboxScreen extends StatelessWidget {
-  const MyRiyoboxScreen({super.key});
+class MyRiyoScreen extends StatelessWidget {
+  const MyRiyoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

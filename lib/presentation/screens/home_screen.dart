@@ -4,14 +4,14 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:riyobox/providers/auth_provider.dart';
-import 'package:riyobox/providers/playback_provider.dart';
-import 'package:riyobox/providers/settings_provider.dart';
-import 'package:riyobox/models/movie.dart';
-import 'package:riyobox/services/api_service.dart';
-import 'package:riyobox/presentation/widgets/movie_card.dart';
-import 'package:riyobox/presentation/widgets/shimmer_loading.dart';
-import 'package:riyobox/presentation/widgets/state_widgets.dart';
+import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/providers/playback_provider.dart';
+import 'package:riyo/providers/settings_provider.dart';
+import 'package:riyo/models/movie.dart';
+import 'package:riyo/services/api_service.dart';
+import 'package:riyo/presentation/widgets/movie_card.dart';
+import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/presentation/widgets/state_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

@@ -38,7 +38,7 @@ The backend is configured for easy deployment on [Render](https://render.com).
 ## 📂 Project Structure
 
 ```text
-riyobox/
+riyo/
 ├── lib/                      # Flutter source code
 │   ├── models/               # Data models
 │   ├── presentation/         # UI Screens and Widgets

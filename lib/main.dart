@@ -2,33 +2,33 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:riyobox/providers/settings_provider.dart';
-import 'package:riyobox/providers/playback_provider.dart';
-import 'package:riyobox/providers/download_provider.dart';
-import 'package:riyobox/providers/auth_provider.dart';
-import 'package:riyobox/services/cast_service.dart';
-import 'package:riyobox/presentation/screens/splash_screen.dart';
-import 'package:riyobox/presentation/screens/onboarding_screen.dart';
-import 'package:riyobox/presentation/screens/auth/login_screen.dart';
-import 'package:riyobox/presentation/screens/auth/signup_screen.dart';
-import 'package:riyobox/presentation/screens/home_screen.dart';
-import 'package:riyobox/presentation/screens/movie_details_screen.dart';
-import 'package:riyobox/presentation/screens/video_player_screen.dart';
-import 'package:riyobox/presentation/screens/settings_screen.dart';
-import 'package:riyobox/presentation/screens/cast_screen.dart';
-import 'package:riyobox/presentation/screens/categories_screen.dart';
-import 'package:riyobox/presentation/screens/downloads_screen.dart';
-import 'package:riyobox/presentation/screens/my_riyobox_screen.dart';
-import 'package:riyobox/presentation/screens/search_screen.dart';
-import 'package:riyobox/presentation/screens/coming_soon_screen.dart';
-import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
-import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
-import 'package:riyobox/presentation/screens/download_settings_screen.dart';
-import 'package:riyobox/presentation/screens/support/contacts_screen.dart';
-import 'package:riyobox/presentation/screens/support/terms_screen.dart';
-import 'package:riyobox/presentation/screens/support/privacy_screen.dart';
-import 'package:riyobox/presentation/screens/support/about_screen.dart';
-import 'package:riyobox/services/notification_service.dart';
+import 'package:riyo/providers/settings_provider.dart';
+import 'package:riyo/providers/playback_provider.dart';
+import 'package:riyo/providers/download_provider.dart';
+import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/services/cast_service.dart';
+import 'package:riyo/presentation/screens/splash_screen.dart';
+import 'package:riyo/presentation/screens/onboarding_screen.dart';
+import 'package:riyo/presentation/screens/auth/login_screen.dart';
+import 'package:riyo/presentation/screens/auth/signup_screen.dart';
+import 'package:riyo/presentation/screens/home_screen.dart';
+import 'package:riyo/presentation/screens/movie_details_screen.dart';
+import 'package:riyo/presentation/screens/video_player_screen.dart';
+import 'package:riyo/presentation/screens/settings_screen.dart';
+import 'package:riyo/presentation/screens/cast_screen.dart';
+import 'package:riyo/presentation/screens/categories_screen.dart';
+import 'package:riyo/presentation/screens/downloads_screen.dart';
+import 'package:riyo/presentation/screens/my_riyo_screen.dart';
+import 'package:riyo/presentation/screens/search_screen.dart';
+import 'package:riyo/presentation/screens/coming_soon_screen.dart';
+import 'package:riyo/presentation/screens/genre_movies_screen.dart';
+import 'package:riyo/presentation/screens/admin/admin_panel_screen.dart';
+import 'package:riyo/presentation/screens/download_settings_screen.dart';
+import 'package:riyo/presentation/screens/support/contacts_screen.dart';
+import 'package:riyo/presentation/screens/support/terms_screen.dart';
+import 'package:riyo/presentation/screens/support/privacy_screen.dart';
+import 'package:riyo/presentation/screens/support/about_screen.dart';
+import 'package:riyo/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
@@ -113,8 +113,8 @@ GoRouter _createRouter(AuthProvider authProvider) {
             builder: (context, state) => const SearchScreen(),
           ),
           GoRoute(
-            path: '/my-riyobox',
-            builder: (context, state) => const MyRiyoboxScreen(),
+            path: '/my-riyo',
+            builder: (context, state) => const MyRiyoScreen(),
           ),
           GoRoute(
             path: '/coming-soon',
@@ -262,7 +262,7 @@ class MainScreen extends StatelessWidget {
     if (location.startsWith('/coming-soon')) return 1;
     if (location.startsWith('/downloads')) return 2;
     if (location.startsWith('/search')) return 3;
-    if (location.startsWith('/my-riyobox')) return 4;
+    if (location.startsWith('/my-riyo')) return 4;
     return 0; // Default
   }
 
@@ -281,7 +281,7 @@ class MainScreen extends StatelessWidget {
         context.go('/search');
         break;
       case 4:
-        context.go('/my-riyobox');
+        context.go('/my-riyo');
         break;
     }
   }

@@ -1,12 +1,12 @@
 # Cloudflare R2 Storage Setup Guide
 
-This guide explains how to configure Cloudflare R2 for use with the RIYOBOX backend.
+This guide explains how to configure Cloudflare R2 for use with the RIYO backend.
 
 ## 1. Create a Bucket
 1. Log in to your Cloudflare Dashboard.
 2. Go to **R2** in the sidebar.
 3. Click **Create bucket**.
-4. Name your bucket (e.g., `riyobox-content`).
+4. Name your bucket (e.g., `riyo-content`).
 
 ## 2. Configure Public Access
 To allow the app to play videos and show posters, you need to enable public access:
@@ -32,7 +32,7 @@ CORS (Cross-Origin Resource Sharing) must be configured to allow the Web Admin a
   }
 ]
 ```
-*Note: In production, replace `"*"` with your actual Web Admin URL (e.g., `https://riyobox-admin.vercel.app`).*
+*Note: In production, replace `"*"` with your actual Web Admin URL (e.g., `https://riyo-admin.vercel.app`).*
 
 ## 4. Get API Credentials
 1. Go to the **R2** overview page.
@@ -58,6 +58,6 @@ For videos to play in the app and browser, you **MUST** enable **Public Access**
 R2_ACCOUNT_ID=c81ae2ecbace64405fb7d62cf5ae8a5f
 R2_ACCESS_KEY_ID=your_access_key
 R2_SECRET_ACCESS_KEY=your_secret_key
-R2_BUCKET_NAME=riyobox-content
+R2_BUCKET_NAME=riyo-content
 R2_PUBLIC_URL=https://your-custom-domain.com
 ```

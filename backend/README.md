@@ -1,6 +1,6 @@
-# RIYOBOX Backend
+# RIYO Backend
 
-Minimal Node.js backend for the RIYOBOX streaming app. It handles authentication, movie storage, and role-based access control.
+Minimal Node.js backend for the RIYO streaming app. It handles authentication, movie storage, and role-based access control.
 
 ## 🛠 Prerequisites
 
@@ -23,7 +23,7 @@ Minimal Node.js backend for the RIYOBOX streaming app. It handles authentication
     Create a `.env` file in the root of the `backend` folder. These variables are **required** for full functionality in deployment:
     ```env
     PORT=5000
-    MONGO_URI=mongodb://localhost:27017/riyobox
+    MONGO_URI=mongodb://localhost:27017/riyo
     JWT_SECRET=your_super_secret_key
 
     # Cloudflare R2 Storage

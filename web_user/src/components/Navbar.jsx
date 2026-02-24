@@ -28,7 +28,7 @@ const Navbar = ({ onLogout }) => {
     <nav className={`fixed top-0 w-full z-50 transition-colors duration-300 ${isScrolled ? 'bg-[#141414]' : 'bg-transparent bg-gradient-to-b from-black/70 to-transparent'}`}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between">
         <div className="flex items-center space-x-8">
-          <Link to="/" className="text-2xl md:text-3xl font-black text-purple-600 tracking-tighter">RIYOBOX</Link>
+          <Link to="/" className="text-2xl md:text-3xl font-black text-purple-600 tracking-tighter">RIYO</Link>
 
           <div className="hidden md:flex space-x-6">
             {navLinks.map((link) => (
@@ -64,7 +64,7 @@ const Navbar = ({ onLogout }) => {
                   </Link>
                   <button onClick={onLogout} className="flex items-center space-x-3 text-sm py-2 w-full text-left hover:underline text-red-500">
                     <LogOut size={16} />
-                    <span>Sign out of RIYOBOX</span>
+                    <span>Sign out of RIYO</span>
                   </button>
                 </div>
               </div>

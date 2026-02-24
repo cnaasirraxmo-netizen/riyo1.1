@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:riyobox/providers/settings_provider.dart';
-import 'package:riyobox/providers/download_provider.dart';
-import 'package:riyobox/providers/auth_provider.dart';
+import 'package:riyo/providers/settings_provider.dart';
+import 'package:riyo/providers/download_provider.dart';
+import 'package:riyo/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class SettingsScreen extends StatelessWidget {

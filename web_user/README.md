@@ -1,6 +1,6 @@
-# RIYOBOX User Web Application
+# RIYO User Web Application
 
-A high-performance web application for users to stream movies and TV shows from the RIYOBOX ecosystem.
+A high-performance web application for users to stream movies and TV shows from the RIYO ecosystem.
 
 ## 🚀 Features
 

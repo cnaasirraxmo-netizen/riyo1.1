@@ -1,10 +1,10 @@
-# Blueprint: RIYOBOX - A Netflix Clone
+# Blueprint: RIYO - A Netflix Clone
 
-This document outlines the plan for creating a Netflix clone application named RIYOBOX using Flutter.
+This document outlines the plan for creating a Netflix clone application named RIYO using Flutter.
 
 ## 1. Project Overview
 
-RIYOBOX will be a feature-rich, high-quality clone of the popular streaming service, Netflix. It will showcase a modern and responsive UI, dynamic data from a movie API, and a seamless video playback experience.
+RIYO will be a feature-rich, high-quality clone of the popular streaming service, Netflix. It will showcase a modern and responsive UI, dynamic data from a movie API, and a seamless video playback experience.
 
 ## 2. Core Features
 
@@ -29,7 +29,7 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 
 1.  **Project Setup**: 
     - Create a new `blueprint.md` file.
-    - Update the project name to "RIYOBOX" in `pubspec.yaml`, `README.md`, and `web/index.html`.
+    - Update the project name to "RIYO" in `pubspec.yaml`, `README.md`, and `web/index.html`.
     - Add necessary dependencies: `http` for API calls.
 2.  **Theming**: 
     - Create a dark theme in `lib/main.dart` to match the Netflix aesthetic.

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:riyobox/models/movie.dart';
-import 'package:riyobox/services/api_service.dart';
-import 'package:riyobox/providers/auth_provider.dart';
-import 'package:riyobox/services/notification_service.dart';
-import 'package:riyobox/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/models/movie.dart';
+import 'package:riyo/services/api_service.dart';
+import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/services/notification_service.dart';
+import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 

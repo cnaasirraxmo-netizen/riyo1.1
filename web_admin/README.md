@@ -1,6 +1,6 @@
-# RIYOBOX Web Admin Panel
+# RIYO Web Admin Panel
 
-A professional web dashboard for managing the RIYOBOX streaming application.
+A professional web dashboard for managing the RIYO streaming application.
 
 ## 🚀 Deployment to Vercel
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:riyobox/services/cast_service.dart';
+import 'package:riyo/services/cast_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 

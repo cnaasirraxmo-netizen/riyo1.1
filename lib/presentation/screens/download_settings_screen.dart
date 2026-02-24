@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:riyobox/providers/download_provider.dart';
+import 'package:riyo/providers/download_provider.dart';
 
 class DownloadSettingsScreen extends StatelessWidget {
   const DownloadSettingsScreen({super.key});

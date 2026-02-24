@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:riyobox/models/movie.dart';
-import 'package:riyobox/core/constants.dart';
+import 'package:riyo/models/movie.dart';
+import 'package:riyo/core/constants.dart';
 
 class ApiService {
   static const String _apiKey = Constants.tmdbApiKey;

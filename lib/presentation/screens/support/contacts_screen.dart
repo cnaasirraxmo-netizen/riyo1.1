@@ -17,9 +17,9 @@ class ContactsScreen extends StatelessWidget {
         children: [
           const Text('Need help? Get in touch with us.', style: TextStyle(color: Colors.white, fontSize: 16)),
           const SizedBox(height: 30),
-          _buildContactItem(Icons.email_outlined, 'Email Support', 'support@riyobox.com'),
+          _buildContactItem(Icons.email_outlined, 'Email Support', 'support@riyo.com'),
           _buildContactItem(Icons.phone_outlined, 'Call Us', '+1 234 567 890'),
-          _buildContactItem(Icons.language_outlined, 'Website', 'www.riyobox.com'),
+          _buildContactItem(Icons.language_outlined, 'Website', 'www.riyo.com'),
           const SizedBox(height: 50),
           const Text(
             'Our support team is available 24/7 to assist you with any questions or issues.',

@@ -76,7 +76,7 @@ const Home = () => {
       <div className="mt-[-80px] md:mt-[-150px] relative z-10 space-y-12 pl-4 md:pl-12 overflow-x-hidden">
         <MovieRow title="Trending Now" movies={movies} />
         <MovieRow title="New Releases" movies={[...movies].reverse()} />
-        <MovieRow title="Popular on RIYOBOX" movies={movies.filter(m => m.isTrending)} />
+        <MovieRow title="Popular on RIYO" movies={movies.filter(m => m.isTrending)} />
       </div>
     </div>
   );

@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:riyobox/providers/auth_provider.dart';
+import 'package:riyo/providers/auth_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart' as dio;
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
-import 'package:riyobox/models/movie.dart';
-import 'package:riyobox/core/constants.dart';
+import 'package:riyo/models/movie.dart';
+import 'package:riyo/core/constants.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});

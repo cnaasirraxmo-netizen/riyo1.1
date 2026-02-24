@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:riyobox/models/movie.dart';
-import 'package:riyobox/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/models/movie.dart';
+import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 
 class MovieCard extends StatelessWidget {
   final Movie movie;

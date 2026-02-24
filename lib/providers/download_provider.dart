@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:riyobox/models/movie.dart';
+import 'package:riyo/models/movie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum DownloadQuality { low, medium, high }
