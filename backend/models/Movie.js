@@ -19,4 +19,12 @@ const movieSchema = new mongoose.Schema({
   contentRating: { type: String },
 }, { timestamps: true });
 
+// Performance Indexes
+movieSchema.index({ genre: 1 });
+movieSchema.index({ isTrending: 1 });
+movieSchema.index({ isFeatured: 1 });
+movieSchema.index({ contentType: 1 });
+movieSchema.index({ isPublished: 1 });
+movieSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Movie', movieSchema);

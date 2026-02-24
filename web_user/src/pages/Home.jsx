@@ -12,10 +12,11 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get('/movies');
-        setMovies(res.data);
-        if (res.data.length > 0) {
-          setFeatured(res.data[Math.floor(Math.random() * res.data.length)]);
+        const res = await api.get('/movies?limit=50');
+        const moviesData = res.data.movies || [];
+        setMovies(moviesData);
+        if (moviesData.length > 0) {
+          setFeatured(moviesData[Math.floor(Math.random() * moviesData.length)]);
         }
       } catch (err) {
         console.error(err);

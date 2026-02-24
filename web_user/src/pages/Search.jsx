@@ -18,12 +18,8 @@ const Search = () => {
     const delayDebounceFn = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await api.get('/movies');
-        const filtered = res.data.filter(m =>
-          m.title.toLowerCase().includes(query.toLowerCase()) ||
-          m.genre?.some(g => g.toLowerCase().includes(query.toLowerCase()))
-        );
-        setResults(filtered);
+        const res = await api.get(`/movies?search=${query}&limit=20`);
+        setResults(res.data.movies || []);
       } catch (err) {
         console.error(err);
       } finally {

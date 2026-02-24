@@ -28,10 +28,10 @@ const Movies = () => {
     setLoading(true);
     try {
       const [movieRes, r2Res] = await Promise.all([
-        api.get('/admin/movies'),
+        api.get('/admin/movies?limit=100'),
         api.get('/upload')
       ]);
-      setMovies(movieRes.data);
+      setMovies(movieRes.data.movies || []);
       setR2Files(r2Res.data);
     } catch (err) {
       console.error(err);

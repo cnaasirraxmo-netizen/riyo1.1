@@ -2,6 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const User = require('./models/User');
 const Category = require('./models/Category');
 const HomeSection = require('./models/HomeSection');
@@ -31,14 +34,29 @@ const validateEnv = () => {
 
 validateEnv();
 const app = express();
-app.use(express.json());
 
-// Enable CORS for all origins
-app.use(cors({
-  origin: '*',
+// Security Middleware
+app.use(helmet());
+app.use(compression());
+app.use(express.json({ limit: '10kb' })); // Limit body size
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use('/auth', limiter); // Apply specifically to auth routes for brute force protection
+
+// Enable CORS with restricted origins in production
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? [process.env.FRONTEND_URL, process.env.ADMIN_URL]
+    : '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+app.use(cors(corsOptions));
 
 app.use('/auth', require('./routes/auth'));
 app.use('/admin', require('./routes/admin'));

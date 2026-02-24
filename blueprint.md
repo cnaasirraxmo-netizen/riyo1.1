@@ -148,5 +148,16 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Dynamic Alerts**: Implemented a notification infrastructure that handles upcoming movie alerts, notifying interested users the moment a "Coming Soon" title is published.
 - **Developer Infrastructure**: Provided `NOTIFICATION_ICON_SETUP.md` with precise instructions for generating density-perfect icons.
 
+### 13. Performance Optimization & Scalability (Audit v1.0)
+- **Database Speed**: Implemented B-Tree indexes on the `Movie` model for high-speed filtering and sorting.
+- **Server-Side Pagination**: Added `page` and `limit` support to all movie endpoints, preventing large payloads and reducing database load.
+- **Enhanced API Security & Speed**:
+    - Integrated `helmet` for production security headers.
+    - Enabled `compression` (Gzip) for significantly smaller API response sizes.
+    - Implemented `express-rate-limit` on authentication routes to prevent resource exhaustion.
+- **Server-Side Search**: Optimized searching by moving logic from the client to the server using MongoDB regex matching.
+- **Frontend Bundle Optimization**: Implemented **Route-based Code Splitting** in React using `React.lazy` and `Suspense`, reducing initial load times by only downloading the necessary code for the current view.
+- **Infrastructure Strategy**: Conducted a full performance audit and provided a comprehensive `OPTIMIZATION.md` guide for scaling to high traffic (Redis caching, PM2 clustering, and Direct S3/R2 uploads).
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.

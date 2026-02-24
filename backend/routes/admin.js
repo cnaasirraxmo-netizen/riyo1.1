@@ -27,8 +27,26 @@ router.post('/movies', protect, adminOnly, async (req, res) => {
 
 router.get('/movies', protect, adminOnly, async (req, res) => {
   try {
-    const movies = await Movie.find({}).sort('-createdAt');
-    res.json(movies);
+    const { page = 1, limit = 20, search } = req.query;
+    let query = {};
+    if (search) {
+      query.title = { $regex: search, $options: 'i' };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const movies = await Movie.find(query)
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Movie.countDocuments(query);
+
+    res.json({
+      movies,
+      page: parseInt(page),
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
