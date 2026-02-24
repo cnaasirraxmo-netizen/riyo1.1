@@ -80,9 +80,10 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
   - Added missing `const` constructors for better performance.
   - Removed unused imports and fixed minor syntax warnings.
 
-### 4. Admin Connectivity
+### 4. Admin Connectivity & User Experience
 - Ensured full integration between the Admin Panel (Web & Mobile) and the Backend.
 - Verified that movie uploads, user management, and R2 storage library access are functional and correctly mapped to backend routes.
+- **Improved Admin UX**: Implemented transparent auto-login for the Web Admin Panel. When an admin opens the panel, it automatically authenticates using default credentials and redirects straight to the Dashboard, hiding the manual login screen.
 
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.
