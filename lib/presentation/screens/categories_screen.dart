@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riyo/services/api_service.dart';
-import 'package:riyo/presentation/widgets/cast_button.dart';
+import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -45,7 +45,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             backgroundColor: const Color(0xFF141414),
             title: const Text('RIYO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
             actions: [
-              const CastButton(),
+              const CastingButton(),
               IconButton(
                 icon: const Icon(Icons.settings, color: Colors.white),
                 onPressed: () => context.push('/settings'),

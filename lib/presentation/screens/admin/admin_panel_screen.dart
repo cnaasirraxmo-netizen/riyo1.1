@@ -95,9 +95,10 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
       );
       if (!mounted) return;
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final dynamic data = jsonDecode(response.body);
+        final List<dynamic> movieData = (data is List) ? data : (data['movies'] ?? []);
         setState(() {
-          _movies = data.map((json) => Movie.fromJson(json)).toList();
+          _movies = movieData.map((json) => Movie.fromJson(json)).toList();
         });
       }
     } catch (e) {

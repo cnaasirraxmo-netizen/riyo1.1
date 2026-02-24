@@ -11,20 +11,22 @@ import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/download_provider.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/models/movie.dart';
-import 'package:riyo/presentation/widgets/cast_button.dart';
-import 'package:riyo/services/cast_service.dart';
+import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
+import 'package:riyo/core/casting/presentation/providers/casting_provider.dart';
+import 'package:riyo/core/casting/domain/entities/cast_media.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
-class VideoPlayerScreen extends StatefulWidget {
+class VideoPlayerScreen extends rp.ConsumerStatefulWidget {
   final String? movieId;
   final String? videoUrl;
 
   const VideoPlayerScreen({super.key, this.movieId, this.videoUrl});
 
   @override
-  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
+  rp.ConsumerState<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   VideoPlayerController? _controller;
   bool _isControlsVisible = true;
   Timer? _hideControlsTimer;
@@ -49,21 +51,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void _initCastListener() {
     // Listen for cast connection
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final castService = Provider.of<CastService>(context, listen: false);
-      castService.addListener(_onCastChanged);
+      ref.listenManual(castingProvider, (previous, next) {
+        if (next.connectedDevice != null && _controller != null && _controller!.value.isPlaying) {
+           _startCasting();
+        }
+      });
     });
   }
 
-  void _onCastChanged() {
-     final castService = Provider.of<CastService>(context, listen: false);
-     if (castService.isConnected && _controller != null && _controller!.value.isPlaying) {
-        // Automatically cast current media
-        _startCasting();
-     }
-  }
-
   Future<void> _startCasting() async {
-    final castService = Provider.of<CastService>(context, listen: false);
+    final castingNotifier = ref.read(castingProvider.notifier);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     String? url = widget.videoUrl;
     String? title = "Video";
@@ -78,10 +75,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     if (url != null) {
       _controller?.pause();
-      await castService.loadMedia(url, title: title, posterUrl: poster);
+      await castingNotifier.castMedia(CastMedia(
+        url: url,
+        title: title,
+        posterUrl: poster,
+      ));
       if (mounted) {
+        final deviceName = ref.read(castingProvider).connectedDevice?.name;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Casting to ${castService.selectedDevice?.friendlyName}'))
+          SnackBar(content: Text('Casting to $deviceName'))
         );
       }
     }
@@ -238,9 +240,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   void dispose() {
-    final castService = Provider.of<CastService>(context, listen: false);
-    castService.removeListener(_onCastChanged);
-
     if (widget.movieId != null && _controller != null) {
       Provider.of<PlaybackProvider>(context, listen: false).updateProgress(widget.movieId!, _controller!.value.position);
     }
@@ -353,7 +352,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const CastButton(),
+          const CastingButton(),
           IconButton(icon: const Icon(Icons.more_vert, color: Colors.white), onPressed: () => _showSettingsMenu()),
         ],
       ),

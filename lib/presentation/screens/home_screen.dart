@@ -13,7 +13,7 @@ import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
-import 'package:riyo/presentation/widgets/cast_button.dart';
+import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                   ),
-                  const CastButton(),
+                  const CastingButton(),
                   IconButton(
                       icon: const Icon(Icons.settings, color: Colors.white),
                       onPressed: () => context.push('/settings')),

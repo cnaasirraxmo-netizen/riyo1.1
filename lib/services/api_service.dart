@@ -163,7 +163,9 @@ class ApiService {
 
   static List<Movie> _parseMovies(String responseBody) {
     final data = json.decode(responseBody);
-    final List<dynamic> results = (data is List) ? data : data['results'];
+    final List<dynamic> results = (data is List)
+        ? data
+        : (data['movies'] ?? data['results'] ?? []);
     return results.map((json) => Movie.fromJson(json)).toList();
   }
 

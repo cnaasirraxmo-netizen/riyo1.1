@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/settings_provider.dart';
@@ -7,7 +8,6 @@ import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/providers/download_provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/home_provider.dart';
-import 'package:riyo/services/cast_service.dart';
 import 'package:riyo/presentation/screens/splash_screen.dart';
 import 'package:riyo/presentation/screens/onboarding_screen.dart';
 import 'package:riyo/presentation/screens/auth/login_screen.dart';
@@ -16,7 +16,6 @@ import 'package:riyo/presentation/screens/home_screen.dart';
 import 'package:riyo/presentation/screens/movie_details_screen.dart';
 import 'package:riyo/presentation/screens/video_player_screen.dart';
 import 'package:riyo/presentation/screens/settings_screen.dart';
-import 'package:riyo/presentation/screens/cast_screen.dart';
 import 'package:riyo/presentation/screens/categories_screen.dart';
 import 'package:riyo/presentation/screens/downloads_screen.dart';
 import 'package:riyo/presentation/screens/my_riyo_screen.dart';
@@ -41,7 +40,7 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase/Notification Init Error: $e');
   }
-  runApp(const MyApp());
+  runApp(const rp.ProviderScope(child: MyApp()));
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -152,11 +151,6 @@ GoRouter _createRouter(AuthProvider authProvider) {
         builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
-        path: '/cast',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const CastScreen(),
-      ),
-      GoRoute(
         path: '/download-settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const DownloadSettingsScreen(),
@@ -200,7 +194,6 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => PlaybackProvider()),
         ChangeNotifierProvider(create: (_) => DownloadProvider()),
-        ChangeNotifierProvider(create: (_) => CastService()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
       ],

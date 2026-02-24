@@ -4,22 +4,25 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/download_provider.dart';
-import 'package:riyo/services/cast_service.dart';
+import 'package:riyo/core/casting/presentation/providers/casting_provider.dart';
+import 'package:riyo/core/casting/domain/entities/cast_media.dart';
+import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
-class MovieDetailsScreen extends StatefulWidget {
+class MovieDetailsScreen extends rp.ConsumerStatefulWidget {
   final String movieId;
 
   const MovieDetailsScreen({super.key, required this.movieId});
 
   @override
-  State<MovieDetailsScreen> createState() => _MovieDetailsScreenState();
+  rp.ConsumerState<MovieDetailsScreen> createState() => _MovieDetailsScreenState();
 }
 
-class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
+class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   final ApiService _apiService = ApiService();
   Season? _selectedSeason;
   bool _isInWatchlist = false;
@@ -121,10 +124,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.cast, color: Colors.white),
-          onPressed: () => context.push('/cast'),
-        ),
+        const CastingButton(),
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
@@ -288,7 +288,6 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
 
   Widget _buildActionsBar(BuildContext context, Movie movie) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final castService = Provider.of<CastService>(context);
     final downloads = Provider.of<DownloadProvider>(context);
     final bool isDownloaded = downloads.isDownloaded(movie.id);
     final bool isDownloading = downloads.isDownloading(movie.id);
@@ -312,15 +311,17 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
              Expanded(
                child: _buildActionIconButton(Icons.share_outlined, 'SHARE'),
              ),
-             if (castService.isConnected && !isComingSoon)
+             if (ref.watch(castingProvider).connectedDevice != null && !isComingSoon)
                Expanded(
                  child: _buildActionIconButton(
                    Icons.cast_connected,
                    'CAST',
-                   onTap: () => castService.loadMedia(
-                     movie.videoUrl ?? '',
-                     title: movie.title,
-                     posterUrl: movie.posterPath
+                   onTap: () => ref.read(castingProvider.notifier).castMedia(
+                     CastMedia(
+                       url: movie.videoUrl ?? '',
+                       title: movie.title,
+                       posterUrl: movie.posterPath,
+                     ),
                    )
                  ),
                ),

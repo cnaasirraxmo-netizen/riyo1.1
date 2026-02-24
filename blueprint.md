@@ -159,5 +159,15 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Frontend Bundle Optimization**: Implemented **Route-based Code Splitting** in React using `React.lazy` and `Suspense`, reducing initial load times by only downloading the necessary code for the current view.
 - **Infrastructure Strategy**: Conducted a full performance audit and provided a comprehensive `OPTIMIZATION.md` guide for scaling to high traffic (Redis caching, PM2 clustering, and Direct S3/R2 uploads).
 
+### 14. Advanced TV Casting & State Management Migration
+- **Unified Casting Architecture**: Replaced the basic casting service with a professional, modular casting system in `lib/core/casting`.
+- **Hybrid Device Discovery**: Implemented simultaneous discovery and control for both **Google Cast (Chromecast)** and **DLNA/UPnP** (Smart TVs, Soundbars, etc.).
+- **Riverpod 3.0 Integration**: Migrated the casting module to use **Riverpod 3.0** with the new `Notifier` and `NotifierProvider` APIs, ensuring the app is future-proof.
+- **Improved UI/UX**:
+    - New `CastingButton` with active connection state indicators.
+    - Centralized `CastDialog` for device selection and playback control.
+    - Seamless integration with `VideoPlayerScreen` for automatic casting handoff.
+- **Cleanup**: Removed the legacy `CastService`, `/cast` route, and associated old widgets to reduce codebase complexity.
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.
