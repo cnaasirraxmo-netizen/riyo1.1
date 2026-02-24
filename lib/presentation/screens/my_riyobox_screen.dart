@@ -37,8 +37,7 @@ class MyRiyoboxScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildProfileHeader(context),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             _buildStatsSection(context, auth.token),
             const SizedBox(height: 40),
             _buildSectionHeader('MY WATCHLIST', onTap: () => context.push('/genre/Watchlist')),
@@ -59,30 +58,6 @@ class MyRiyoboxScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildProfileHeader(BuildContext context) {
-    return Column(
-      children: [
-        const CircleAvatar(
-          radius: 45,
-          backgroundColor: Color(0xFF262626),
-          child: Icon(Icons.person, color: Colors.grey, size: 50),
-        ),
-        const SizedBox(height: 16),
-        const Text('Jules Engineer', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.deepPurpleAccent.withAlpha(40),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: Colors.deepPurpleAccent, width: 1),
-          ),
-          child: const Text('PREMIUM MEMBER', style: TextStyle(color: Colors.deepPurpleAccent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-        ),
-      ],
     );
   }
 

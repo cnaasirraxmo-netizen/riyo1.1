@@ -116,5 +116,14 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Dynamic Home Sections**: Admin can now manage the rows on the Home screen (e.g., "Trending Now", "Popular", or specific genre rows). These sections are fully customizable and reflected instantly in the mobile app.
 - **Backend Infrastructure**: Added `Category` and `HomeSection` database models and corresponding configuration routes to support dynamic layouts.
 
+### 9. Enhanced Support & Policy
+- **Renamed Support Section**: The settings section is now "SUPPORT & POLICY" to better reflect its content.
+- **New Support Screens**: Implemented four dedicated screens for better transparency and user communication:
+  - **Contacts**: Shows email, phone, and website support info.
+  - **Terms of Service**: Displays the legal usage agreement.
+  - **Privacy Policy**: Details how user data is handled.
+  - **About**: Shows the app branding, description, and current version (v2.4.0).
+- **Navigation Integration**: All new screens are fully reachable from the Settings menu.
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.

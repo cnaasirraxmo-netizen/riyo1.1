@@ -23,6 +23,10 @@ import 'package:riyobox/presentation/screens/search_screen.dart';
 import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
 import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyobox/presentation/screens/download_settings_screen.dart';
+import 'package:riyobox/presentation/screens/support/contacts_screen.dart';
+import 'package:riyobox/presentation/screens/support/terms_screen.dart';
+import 'package:riyobox/presentation/screens/support/privacy_screen.dart';
+import 'package:riyobox/presentation/screens/support/about_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -141,6 +145,26 @@ GoRouter _createRouter(AuthProvider authProvider) {
         path: '/download-settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const DownloadSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/contacts',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ContactsScreen(),
+      ),
+      GoRoute(
+        path: '/terms',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const TermsScreen(),
+      ),
+      GoRoute(
+        path: '/privacy',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const PrivacyScreen(),
+      ),
+      GoRoute(
+        path: '/about',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AboutScreen(),
       ),
     GoRoute(
       path: '/admin',
