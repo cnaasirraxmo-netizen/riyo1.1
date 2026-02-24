@@ -8,8 +8,6 @@ class CategoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
-
     final List<Map<String, String>> genres = [
       {'name': 'Action', 'image': 'https://picsum.photos/seed/action/400/200'},
       {'name': 'Comedy', 'image': 'https://picsum.photos/seed/comedy/400/200'},
@@ -27,25 +25,7 @@ class CategoriesScreen extends StatelessWidget {
         slivers: [
           SliverAppBar(
             backgroundColor: const Color(0xFF141414),
-            title: Row(
-              children: [
-                const Text('RIYOBOX', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(width: 12),
-                if (!settings.isOffline) ...[
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Text('Online', style: TextStyle(color: Colors.green, fontSize: 12)),
-                ] else
-                   const Text('Offline', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-              ],
-            ),
+            title: const Text('RIYOBOX', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
             actions: [
               IconButton(
                 icon: const Icon(Icons.cast, color: Colors.white),
@@ -54,16 +34,6 @@ class CategoriesScreen extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.settings, color: Colors.white),
                 onPressed: () => context.push('/settings'),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: GestureDetector(
-                  onTap: () => context.push('/profile'),
-                  child: const CircleAvatar(
-                    radius: 16,
-                    backgroundImage: NetworkImage('https://picsum.photos/seed/profile/100/100'),
-                  ),
-                ),
               ),
             ],
             floating: true,
@@ -145,7 +115,7 @@ class CategoriesScreen extends StatelessWidget {
                 const Text('ANIME HUB', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => context.push('/genre/Anime'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),

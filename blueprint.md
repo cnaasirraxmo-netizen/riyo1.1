@@ -59,6 +59,50 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 1.  **Integrate Video Player**:
     - Connect the "Play" button on the movie details screen to the existing `VideoPlayerScreen`.
 
-## 5. Current Task: Initial Setup
+## 5. Recent Fixes and Improvements
 
-I will now begin by setting up the project, including updating the necessary files and adding the `http` dependency.
+### 1. Unified Backend API URL
+- Centralized the backend API URL to `https://riyobox1-1.onrender.com` across all components:
+  - **Flutter App**: Updated `lib/core/constants.dart`.
+  - **Web Admin**: Updated `web_admin/src/utils/api.js`.
+  - **Web User**: Updated `web_user/src/utils/api.js`.
+- Updated the **Admin Dashboard** UI to dynamically display the active Backend API URL instead of a hardcoded string.
+
+### 2. Backend Bug Fixes
+- Fixed a typo in the default admin email in `backend/server.js` (`admin@exampl.com` -> `admin@example.com`).
+- Improved environment variable validation in `backend/server.js` to provide more descriptive warnings when configuration is missing.
+
+### 3. Flutter Code Quality & Analysis
+- Resolved over 15 linting and analysis issues in the Flutter codebase:
+  - Fixed `use_build_context_synchronously` warnings in `AdminPanelScreen`, `CastScreen`, and `VideoPlayerScreen` by adding proper `mounted` checks.
+  - Replaced deprecated `activeColor` with `activeThumbColor` in `SettingsScreen`.
+  - Replaced deprecated `withOpacity` with `withValues(alpha: ...)` in `SplashScreen`.
+  - Added missing `const` constructors for better performance.
+  - Removed unused imports and fixed minor syntax warnings.
+
+### 4. Admin Connectivity & User Experience
+- Ensured full integration between the Admin Panel (Web & Mobile) and the Backend.
+- Verified that movie uploads, user management, and R2 storage library access are functional and correctly mapped to backend routes.
+- **Improved Admin UX**: Implemented transparent auto-login for the Web Admin Panel. When an admin opens the panel, it automatically authenticates using default credentials and redirects straight to the Dashboard, hiding the manual login screen.
+
+### 5. UI Improvements & Profile Removal
+- **Removed Profile Selection**: To streamline the experience, all profile avatars and profile management screens have been removed. The app now focuses on a single-user experience.
+- **Enhanced Movie Info**: Horizontal lists and grids now show the movie's **release year** and **duration** (e.g., "2024 | 2h 15m") directly below the poster, providing more context to users at a glance.
+- **Functional 'View All'**: Category and Genre headers (like "Trending Now", "Popular", etc.) are now interactive. Clicking on a header or its arrow icon navigates to a full list of movies in that category.
+
+### 6. Advanced Download Management & UI Polish
+- **Redesigned Downloads Screen**:
+  - Movie items now display **Title, Year, Duration, and File Size**.
+  - Tapping a movie item starts playback immediately.
+  - Added a YouTube-style action menu (`more_vert`) for each download with options to Save, Delete, or Add to Playlist.
+  - Added a three-dot header menu with quick access to "Download Settings" and "Help".
+- **New Download Settings Screen**:
+  - Centralized location for managing offline content.
+  - New features: **Delete Oldest Download**, **Delete Largest Download**, and a list to manage downloads by size.
+  - Accessible from both the main Settings and the Downloads screen.
+- **Header Cleanup**:
+  - Completely removed profile icons/avatars from all app headers.
+  - Removed "Online/Offline" status indicators from the Categories header for a cleaner look.
+
+## 6. Project Status
+All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.

@@ -15,7 +15,6 @@ import 'package:riyobox/presentation/screens/home_screen.dart';
 import 'package:riyobox/presentation/screens/movie_details_screen.dart';
 import 'package:riyobox/presentation/screens/video_player_screen.dart';
 import 'package:riyobox/presentation/screens/settings_screen.dart';
-import 'package:riyobox/presentation/screens/profile_screen.dart';
 import 'package:riyobox/presentation/screens/cast_screen.dart';
 import 'package:riyobox/presentation/screens/categories_screen.dart';
 import 'package:riyobox/presentation/screens/downloads_screen.dart';
@@ -23,6 +22,7 @@ import 'package:riyobox/presentation/screens/my_riyobox_screen.dart';
 import 'package:riyobox/presentation/screens/search_screen.dart';
 import 'package:riyobox/presentation/screens/genre_movies_screen.dart';
 import 'package:riyobox/presentation/screens/admin/admin_panel_screen.dart';
+import 'package:riyobox/presentation/screens/download_settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -133,14 +133,14 @@ GoRouter _createRouter(AuthProvider authProvider) {
         builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
-        path: '/profile',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const ProfileScreen(),
-      ),
-      GoRoute(
         path: '/cast',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const CastScreen(),
+      ),
+      GoRoute(
+        path: '/download-settings',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DownloadSettingsScreen(),
       ),
     GoRoute(
       path: '/admin',

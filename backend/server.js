@@ -18,8 +18,10 @@ const requiredEnvVars = [
 const validateEnv = () => {
   const missing = requiredEnvVars.filter(v => !process.env[v]);
   if (missing.length > 0) {
-    console.warn('⚠️ WARNING: Missing recommended environment variables:', missing.join(', '));
-    console.warn('Backend features like Auth or R2 Storage might not work properly.');
+    console.warn('⚠️ WARNING: Missing required environment variables:', missing.join(', '));
+    console.warn('Please ensure you have a .env file or environment variables set for:');
+    missing.forEach(v => console.warn(`   - ${v}`));
+    console.warn('Backend features like Auth or R2 Storage will NOT work properly without these.');
   } else {
     console.log('✅ All environment variables are configured.');
   }
@@ -59,7 +61,7 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/riyobox';
 
 const createDefaultAdmin = async () => {
   try {
-    const adminEmail = 'admin@exampl.com';
+    const adminEmail = 'admin@example.com';
     const adminExists = await User.findOne({ email: adminEmail });
 
     if (!adminExists) {

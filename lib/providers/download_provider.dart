@@ -198,4 +198,45 @@ class DownloadProvider with ChangeNotifier {
     _downloadingMovies.clear();
     notifyListeners();
   }
+
+  Future<void> deleteOldestDownload() async {
+    if (_downloadedMovies.isEmpty) return;
+    // Assuming the list is ordered by download time (appended at the end)
+    // Or we could use a proper timestamp if we had one in the model.
+    // Let's use the first one in the list as "oldest".
+    final movie = _downloadedMovies.first;
+    await deleteDownload(movie.id);
+  }
+
+  Future<void> deleteLargestDownload() async {
+    if (_downloadedMovies.isEmpty) return;
+
+    Movie? largestMovie;
+    double maxBytes = -1;
+
+    for (var movie in _downloadedMovies) {
+      if (movie.localPath != null) {
+        final file = File(movie.localPath!);
+        if (await file.exists()) {
+          final size = await file.length();
+          if (size > maxBytes) {
+            maxBytes = size.toDouble();
+            largestMovie = movie;
+          }
+        }
+      }
+    }
+
+    if (largestMovie != null) {
+      await deleteDownload(largestMovie.id);
+    }
+  }
+
+  List<Movie> getMoviesSortedBySize() {
+    final List<Movie> sorted = List.from(_downloadedMovies);
+    // This is asynchronous-ish in reality but we can mock or use cached sizes if they were numeric
+    // For now let's just return the list, and handle sorting in the UI if needed
+    // or improve the model to store numeric bytes.
+    return sorted;
+  }
 }

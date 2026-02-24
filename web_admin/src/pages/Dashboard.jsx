@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../utils/api';
+import api, { API_URL } from '../utils/api';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -60,7 +60,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between p-4 bg-[#262626] rounded-lg mb-4">
              <div className="flex items-center">
                 <div className="w-3 h-3 bg-green-500 rounded-full mr-4 animate-pulse"></div>
-                <span>Backend API: https://riyobox1-1.onrender.com</span>
+                <span>Backend API: {API_URL}</span>
              </div>
              <span className="text-green-500 text-sm font-bold uppercase">Online</span>
           </div>

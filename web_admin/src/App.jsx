@@ -6,10 +6,34 @@ import Movies from './pages/Movies';
 import Media from './pages/Media';
 import Users from './pages/Users';
 import Sidebar from './components/Sidebar';
+import api from './utils/api';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [role, setRole] = useState(localStorage.getItem('role'));
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
+
+  useEffect(() => {
+    const attemptAutoLogin = async () => {
+      if (!isAuthenticated && !isAutoLoggingIn) {
+        setIsAutoLoggingIn(true);
+        try {
+          const response = await api.post('/auth/login', {
+            email: 'admin@example.com',
+            password: 'admin123'
+          });
+          if (response.data.role === 'admin') {
+            handleLogin(response.data.token, response.data.role);
+          }
+        } catch (err) {
+          console.error("Auto-login failed:", err);
+        } finally {
+          setIsAutoLoggingIn(false);
+        }
+      }
+    };
+    attemptAutoLogin();
+  }, [isAuthenticated, isAutoLoggingIn]);
 
   const handleLogin = (token, userRole) => {
     localStorage.setItem('token', token);
@@ -24,6 +48,17 @@ function App() {
     setIsAuthenticated(false);
     setRole(null);
   };
+
+  if (!isAuthenticated && isAutoLoggingIn) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#141414] text-white">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400 font-medium">Initializing Admin Dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

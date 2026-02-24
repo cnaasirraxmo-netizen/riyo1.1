@@ -14,8 +14,6 @@ class DownloadsScreen extends StatefulWidget {
 }
 
 class _DownloadsScreenState extends State<DownloadsScreen> {
-  bool _isEditing = false;
-
   @override
   Widget build(BuildContext context) {
     final downloadProvider = Provider.of<DownloadProvider>(context);
@@ -26,9 +24,25 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         backgroundColor: const Color(0xFF141414),
         title: const Text('MY DOWNLOADS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
-          TextButton(
-            onPressed: () => setState(() => _isEditing = !_isEditing),
-            child: Text(_isEditing ? 'DONE' : 'EDIT', style: const TextStyle(color: Colors.white)),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              if (value == 'settings') {
+                context.push('/download-settings');
+              } else if (value == 'help') {
+                // Show help dialog
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'settings',
+                child: Text('Download Settings'),
+              ),
+              const PopupMenuItem(
+                value: 'help',
+                child: Text('Help'),
+              ),
+            ],
           ),
         ],
       ),
@@ -138,59 +152,86 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   }
 
   Widget _buildDownloadedCard(Movie movie, DownloadProvider provider) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1C),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: CachedNetworkImage(
-               imageUrl: movie.posterPath.startsWith('http') ? movie.posterPath : 'https://image.tmdb.org/t/p/w500${movie.posterPath}',
-              width: 100,
-              height: 60,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(width: 100, height: 60, color: const Color(0xFF262626)),
-              errorWidget: (context, url, error) => Container(width: 100, height: 60, color: const Color(0xFF262626), child: const Icon(Icons.check_circle, color: Colors.green)),
+    return InkWell(
+      onTap: () {
+        final id = movie.backendId ?? movie.id.toString();
+        context.push('/movie/$id/play');
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1C1C),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: CachedNetworkImage(
+                 imageUrl: movie.posterPath.startsWith('http') ? movie.posterPath : 'https://image.tmdb.org/t/p/w500${movie.posterPath}',
+                width: 120,
+                height: 70,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(width: 120, height: 70, color: const Color(0xFF262626)),
+                errorWidget: (context, url, error) => Container(width: 120, height: 70, color: const Color(0xFF262626), child: const Icon(Icons.check_circle, color: Colors.green)),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(movie.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('${movie.fileSize} | Downloaded', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    movie.title,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${movie.releaseDate.split('-')[0]} | ${movie.runtime != null ? _formatDuration(movie.runtime!) : "N/A"}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    movie.fileSize,
+                    style: const TextStyle(color: Colors.deepPurpleAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white70),
+              onSelected: (value) {
+                if (value == 'delete') {
+                  provider.deleteDownload(movie.id);
+                } else if (value == 'save') {
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to library')));
+                } else if (value == 'playlist') {
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to playlist')));
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'save', child: Text('Save')),
+                const PopupMenuItem(value: 'playlist', child: Text('Add to Playlist')),
+                const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
               ],
             ),
-          ),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.play_arrow, color: Colors.white),
-                onPressed: () {
-                   final id = movie.backendId ?? movie.id.toString();
-                   context.push('/movie/$id/play');
-                }
-              ),
-              if (_isEditing)
-                IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => provider.deleteDownload(movie.id))
-              else
-                IconButton(icon: const Icon(Icons.info_outline, color: Colors.white, size: 20), onPressed: () {
-                   final id = movie.backendId ?? movie.id.toString();
-                   context.push('/movie/$id');
-                }),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  String _formatDuration(int minutes) {
+    final int h = minutes ~/ 60;
+    final int m = minutes % 60;
+    if (h > 0) {
+      return '${h}h ${m}m';
+    }
+    return '${m}m';
   }
 
 
