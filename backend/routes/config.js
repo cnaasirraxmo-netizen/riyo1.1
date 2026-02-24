@@ -43,6 +43,18 @@ router.delete('/categories/:id', async (req, res) => {
   }
 });
 
+router.post('/categories/reorder', async (req, res) => {
+  const { items } = req.body;
+  try {
+    for (const item of items) {
+      await Category.findByIdAndUpdate(item.id, { order: item.order });
+    }
+    res.json({ message: 'Categories reordered' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // --- Home Sections ---
 
 router.get('/home-sections', async (req, res) => {
@@ -78,6 +90,18 @@ router.delete('/home-sections/:id', async (req, res) => {
   try {
     await HomeSection.findByIdAndDelete(req.params.id);
     res.json({ message: 'Home section deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/home-sections/reorder', async (req, res) => {
+  const { items } = req.body;
+  try {
+    for (const item of items) {
+      await HomeSection.findByIdAndUpdate(item.id, { order: item.order });
+    }
+    res.json({ message: 'Sections reordered' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

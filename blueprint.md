@@ -115,6 +115,7 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Dynamic Header Filters**: Admin can now manage the categories (filters) shown in the Home screen header (e.g., "Movies", "TV Shows", "Anime"). These can be added, renamed, or deleted via the new **Home Layout** page in Web Admin.
 - **Dynamic Home Sections**: Admin can now manage the rows on the Home screen (e.g., "Trending Now", "Popular", or specific genre rows). These sections are fully customizable and reflected instantly in the mobile app.
 - **Backend Infrastructure**: Added `Category` and `HomeSection` database models and corresponding configuration routes to support dynamic layouts.
+- **Advanced Layout Control**: Implemented reordering (Move Up/Down) for both header filters and home sections, giving admins full control over the application's information hierarchy and layout flow.
 
 ### 9. Enhanced Support & Policy
 - **Renamed Support Section**: The settings section is now "SUPPORT & POLICY" to better reflect its content.

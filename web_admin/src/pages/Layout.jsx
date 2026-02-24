@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowUp, ArrowDown } from 'lucide-react';
 
 const Layout = () => {
   const [categories, setCategories] = useState([]);
@@ -85,6 +85,26 @@ const Layout = () => {
     } catch (err) { alert('Update failed'); }
   };
 
+  const moveItem = async (index, direction, isSection = false) => {
+    const list = isSection ? [...sections] : [...categories];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= list.length) return;
+
+    // Swap locally
+    const temp = list[index];
+    list[index] = list[newIndex];
+    list[newIndex] = temp;
+
+    // Update orders
+    const updatedItems = list.map((item, i) => ({ id: item._id, order: i + 1 }));
+
+    try {
+      const endpoint = isSection ? '/config/home-sections/reorder' : '/config/categories/reorder';
+      await api.post(endpoint, { items: updatedItems });
+      fetchData();
+    } catch (err) { alert('Reorder failed'); }
+  };
+
   return (
     <div className="space-y-12 pb-20">
       <div>
@@ -133,6 +153,8 @@ const Layout = () => {
                   </>
                 ) : (
                   <>
+                    <button onClick={() => moveItem(categories.indexOf(cat), 'up', false)} className="p-1 text-gray-500 hover:text-white"><ArrowUp size={14}/></button>
+                    <button onClick={() => moveItem(categories.indexOf(cat), 'down', false)} className="p-1 text-gray-500 hover:text-white"><ArrowDown size={14}/></button>
                     <button onClick={() => startEdit(cat)} className="p-2 text-gray-400 hover:text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={16} /></button>
                     <button onClick={() => deleteCategory(cat._id)} className="p-2 text-red-500/50 hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></button>
                   </>
@@ -222,6 +244,8 @@ const Layout = () => {
                   </>
                 ) : (
                   <>
+                    <button onClick={() => moveItem(sections.indexOf(sec), 'up', true)} className="p-1 text-gray-500 hover:text-white"><ArrowUp size={18}/></button>
+                    <button onClick={() => moveItem(sections.indexOf(sec), 'down', true)} className="p-1 text-gray-500 hover:text-white"><ArrowDown size={18}/></button>
                     <button onClick={() => startEdit(sec, true)} className="p-2 text-gray-400 hover:text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={20} /></button>
                     <button onClick={() => deleteSection(sec._id)} className="p-2 text-red-500/50 hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={20} /></button>
                   </>
