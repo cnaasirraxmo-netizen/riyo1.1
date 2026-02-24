@@ -65,8 +65,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               if (mounted) {
                 setState(() {});
                 final progress = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId ?? '');
-                if (progress > Duration.zero) _showResumeDialog(progress);
-                else _controller!.play();
+                if (progress > Duration.zero) {
+                  _showResumeDialog(progress);
+                } else {
+                  _controller!.play();
+                }
                 _startHideControlsTimer();
               }
             });
@@ -77,9 +80,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     }
 
     if (url == null && widget.movieId != null) {
+      if (!mounted) return;
       try {
-        final token = Provider.of<AuthProvider>(context, listen: false).token;
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        final token = auth.token;
         final movie = await ApiService().getMovieDetails(widget.movieId!, token: token);
+        if (!mounted) return;
         url = movie.videoUrl;
       } catch (e) {
         developer.log('Error fetching movie details: $e');
@@ -110,9 +116,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       if (mounted) {
         final isBuffering = _controller!.value.isBuffering;
         if (isBuffering != _isBuffering) {
-           setState(() => _isBuffering = isBuffering);
+          setState(() => _isBuffering = isBuffering);
         } else {
-           setState(() {});
+          setState(() {});
         }
       }
     });

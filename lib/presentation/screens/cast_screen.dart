@@ -19,6 +19,7 @@ class _CastScreenState extends State<CastScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _requestPermissions();
+      if (!mounted) return;
       final service = context.read<CastService>();
       service.startScanning();
     });

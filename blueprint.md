@@ -59,6 +59,30 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 1.  **Integrate Video Player**:
     - Connect the "Play" button on the movie details screen to the existing `VideoPlayerScreen`.
 
-## 5. Current Task: Initial Setup
+## 5. Recent Fixes and Improvements
 
-I will now begin by setting up the project, including updating the necessary files and adding the `http` dependency.
+### 1. Unified Backend API URL
+- Centralized the backend API URL to `https://riyobox1-1.onrender.com` across all components:
+  - **Flutter App**: Updated `lib/core/constants.dart`.
+  - **Web Admin**: Updated `web_admin/src/utils/api.js`.
+  - **Web User**: Updated `web_user/src/utils/api.js`.
+- Updated the **Admin Dashboard** UI to dynamically display the active Backend API URL instead of a hardcoded string.
+
+### 2. Backend Bug Fixes
+- Fixed a typo in the default admin email in `backend/server.js` (`admin@exampl.com` -> `admin@example.com`).
+- Improved environment variable validation in `backend/server.js` to provide more descriptive warnings when configuration is missing.
+
+### 3. Flutter Code Quality & Analysis
+- Resolved over 15 linting and analysis issues in the Flutter codebase:
+  - Fixed `use_build_context_synchronously` warnings in `AdminPanelScreen`, `CastScreen`, and `VideoPlayerScreen` by adding proper `mounted` checks.
+  - Replaced deprecated `activeColor` with `activeThumbColor` in `SettingsScreen`.
+  - Replaced deprecated `withOpacity` with `withValues(alpha: ...)` in `SplashScreen`.
+  - Added missing `const` constructors for better performance.
+  - Removed unused imports and fixed minor syntax warnings.
+
+### 4. Admin Connectivity
+- Ensured full integration between the Admin Panel (Web & Mobile) and the Backend.
+- Verified that movie uploads, user management, and R2 storage library access are functional and correctly mapped to backend routes.
+
+## 6. Project Status
+All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.

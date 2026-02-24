@@ -48,12 +48,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
   Future<void> _fetchR2Files() async {
     setState(() => _isLoadingR2 = true);
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
     try {
       final response = await http.get(
         Uri.parse('$_backendUrl/upload'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         setState(() {
           _r2Files = jsonDecode(response.body);
@@ -67,12 +69,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   }
 
   void _deleteR2File(String key) async {
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
     try {
       final response = await http.delete(
         Uri.parse('$_backendUrl/upload/$key'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File deleted')));
         _fetchR2Files();
@@ -82,12 +86,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
   Future<void> _fetchMovies() async {
     setState(() => _isLoadingMovies = true);
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
     try {
       final response = await http.get(
         Uri.parse('$_backendUrl/admin/movies'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
@@ -108,7 +114,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
     if (result == null) return null;
 
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    if (!mounted) return null;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
     final file = result.files.first;
 
     dio.Dio client = dio.Dio();
@@ -136,9 +144,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         data: formData,
         options: dio.Options(headers: {"Authorization": "Bearer $token"}),
         onSendProgress: (sent, total) {
+          if (!mounted) return;
           setState(() {
-            if (type == 'poster') _posterUploadProgress = sent / total;
-            else _videoUploadProgress = sent / total;
+            if (type == 'poster') {
+              _posterUploadProgress = sent / total;
+            } else {
+              _videoUploadProgress = sent / total;
+            }
           });
         },
       );
@@ -155,7 +167,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   Future<void> _uploadFromUrl(String url) async {
     if (url.isEmpty) return;
     setState(() => _isUploading = true);
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
     try {
        final response = await http.post(
          Uri.parse('$_backendUrl/upload/by-url'),
@@ -165,6 +178,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
          },
          body: jsonEncode({'url': url}),
        );
+       if (!mounted) return;
        if (response.statusCode == 201) {
          final data = jsonDecode(response.body);
          _posterUrlController.text = data['url'];
@@ -185,7 +199,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     }
 
     setState(() => _isUploading = true);
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
     try {
       final response = await http.post(
         Uri.parse('$_backendUrl/admin/movies'),
@@ -206,6 +221,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           'isTrending': true, // New uploads are usually trending
         }),
       );
+      if (!mounted) return;
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Movie added successfully!')));
         _titleController.clear();
@@ -233,12 +249,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
   void _deleteMovie(String? id) async {
     if (id == null) return;
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
      try {
       final response = await http.delete(
         Uri.parse('$_backendUrl/admin/movies/$id'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Movie removed')));
         _fetchMovies();
@@ -293,7 +311,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     itemCount: _r2Files.length,
                     itemBuilder: (context, index) {
                       final file = _r2Files[index];
-                      if (!file['key'].toString().endsWith('.mp4')) return const SizedBox();
+                      if (!file['key'].toString().endsWith('.mp4')) {
+                        return const SizedBox();
+                      }
                       return ListTile(
                         leading: const Icon(Icons.video_file, color: Colors.purpleAccent),
                         title: Text(file['key'], style: const TextStyle(color: Colors.white, fontSize: 14)),

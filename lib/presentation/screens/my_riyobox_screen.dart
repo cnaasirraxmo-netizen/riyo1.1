@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:riyobox/presentation/widgets/shimmer_loading.dart';
 import 'package:riyobox/models/movie.dart';
 import 'package:riyobox/services/api_service.dart';
-import 'package:riyobox/presentation/widgets/state_widgets.dart';
 import 'package:riyobox/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -274,11 +273,11 @@ class MyRiyoboxScreen extends StatelessWidget {
   }
 
   Widget _buildFooter() {
-    return Column(
+    return const Column(
       children: [
-        const Text('RIYOBOX PREMIUM V2.4.0', style: TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-        const SizedBox(height: 4),
-        const Text('CLOUD ID: 9L6K4D38', style: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 1.1)),
+        Text('RIYOBOX PREMIUM V2.4.0', style: TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+        SizedBox(height: 4),
+        Text('CLOUD ID: 9L6K4D38', style: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 1.1)),
       ],
     );
   }
