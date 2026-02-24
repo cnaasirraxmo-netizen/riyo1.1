@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:riyo/models/movie.dart';
@@ -21,39 +22,65 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Movie> _searchResults = [];
   bool _isLoading = false;
   bool _hasSearched = false;
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _onSearchChanged(String query, bool isOffline, {String? token}) async {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      _performSearch(query, isOffline, token: token);
+    });
+  }
+
+  Future<void> _performSearch(String query, bool isOffline,
+      {String? token}) async {
     if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _isLoading = false;
-        _hasSearched = false;
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _isLoading = false;
+          _hasSearched = false;
+        });
+      }
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _hasSearched = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _hasSearched = true;
+      });
+    }
 
     try {
       final movies = await _apiService.getTrendingMovies(token: token);
-      var filteredMovies = movies.where((movie) =>
-        movie.title.toLowerCase().contains(query.toLowerCase())).toList();
+      var filteredMovies = movies
+          .where((movie) =>
+              movie.title.toLowerCase().contains(query.toLowerCase()))
+          .toList();
 
       if (isOffline) {
         filteredMovies = filteredMovies.where((m) => m.isDownloaded).toList();
       }
 
-      setState(() {
-        _searchResults = filteredMovies;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = filteredMovies;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

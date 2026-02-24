@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/providers/home_provider.dart';
 import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/providers/settings_provider.dart';
 import 'package:riyo/models/movie.dart';
@@ -25,50 +26,33 @@ class _HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
   int _currentCarouselIndex = 0;
 
-  List<String> _filters = ["All"];
-  List<Map<String, dynamic>> _sections = [];
-  String _selectedFilter = "All";
-  bool _isLoadingConfig = true;
-
   @override
   void initState() {
     super.initState();
-    _loadConfig();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      Provider.of<HomeProvider>(context, listen: false)
+          .loadConfig(token: auth.token);
+    });
   }
 
-  Future<void> _loadConfig() async {
-    setState(() => _isLoadingConfig = true);
-    try {
-      final filters = await _apiService.getHeaderCategories();
-      final sections = await _apiService.getHomeSections();
-      if (mounted) {
-        setState(() {
-          _filters = filters;
-          _sections = sections;
-          _isLoadingConfig = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingConfig = false);
-    }
-  }
-
-  Future<List<Movie>> _getFilteredMovies(String? token, bool isOffline) async {
+  Future<List<Movie>> _getFilteredMovies(
+      String category, String? token, bool isOffline) async {
     List<Movie> movies;
 
-    if (_selectedFilter == "My List") {
+    if (category == "My List") {
       movies = await _apiService.getWatchlist(token ?? "");
-    } else if (_selectedFilter == "All") {
+    } else if (category == "All") {
       movies = await _apiService.getTrendingMovies(token: token);
-    } else if (_selectedFilter == "Movies") {
+    } else if (category == "Movies") {
       movies = await _apiService.getTrendingMovies(token: token);
       movies = movies.where((m) => !m.isTvShow).toList();
-    } else if (_selectedFilter == "TV Shows") {
+    } else if (category == "TV Shows") {
       movies = await _apiService.getTrendingMovies(token: token);
       movies = movies.where((m) => m.isTvShow).toList();
     } else {
       // Treat as Genre
-      movies = await _apiService.getTrendingMovies(token: token, genre: _selectedFilter);
+      movies = await _apiService.getTrendingMovies(token: token, genre: category);
     }
 
     if (isOffline) {
@@ -80,139 +64,176 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
-    final auth = Provider.of<AuthProvider>(context);
+    final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
 
     return Scaffold(
       backgroundColor: const Color(0xFF141414),
       body: RefreshIndicator(
         onRefresh: () async {
-           setState(() {});
+          homeProvider.refresh();
+          await homeProvider.loadConfig(token: auth.token);
         },
         color: Colors.deepPurpleAccent,
         backgroundColor: const Color(0xFF1C1C1C),
         child: NestedScrollView(
           headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-          return <Widget>[
-            SliverAppBar(
-              backgroundColor: const Color(0xFF141414),
-              title: const Text('RIYO',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
-              actions: [
-                if (settings.isOffline)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Chip(
-                      label: Text('OFFLINE MODE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-                      backgroundColor: Colors.redAccent,
-                    ),
-                  ),
-                const CastButton(),
-                IconButton(
-                    icon: const Icon(Icons.settings, color: Colors.white),
-                    onPressed: () => context.push('/settings')),
-              ],
-              pinned: true,
-              floating: true,
-              forceElevated: innerBoxIsScrolled,
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(50.0),
-                child: SizedBox(
-                  height: 50.0,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _filters.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: ChoiceChip(
-                          label: Text(_filters[index]),
-                          selected: _selectedFilter == _filters[index],
-                          onSelected: (bool selected) {
-                            setState(() {
-                              _selectedFilter = _filters[index];
-                            });
-                          },
-                          backgroundColor: const Color(0xFF262626),
-                          selectedColor: Colors.deepPurpleAccent,
-                          labelStyle: TextStyle(
-                            color: _selectedFilter == _filters[index] ? Colors.white : Colors.grey[400],
-                            fontSize: 12,
-                          ),
+            return <Widget>[
+              SliverAppBar(
+                backgroundColor: const Color(0xFF141414),
+                title: const Text('RIYO',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        color: Colors.white)),
+                actions: [
+                  Selector<SettingsProvider, bool>(
+                    selector: (_, s) => s.isOffline,
+                    builder: (context, isOffline, child) {
+                      if (!isOffline) return const SizedBox.shrink();
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Chip(
+                          label: Text('OFFLINE MODE',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white)),
+                          backgroundColor: Colors.redAccent,
                         ),
                       );
                     },
                   ),
+                  const CastButton(),
+                  IconButton(
+                      icon: const Icon(Icons.settings, color: Colors.white),
+                      onPressed: () => context.push('/settings')),
+                ],
+                pinned: true,
+                floating: true,
+                forceElevated: innerBoxIsScrolled,
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(50.0),
+                  child: SizedBox(
+                    height: 50.0,
+                    child: Selector<HomeProvider, List<String>>(
+                      selector: (_, h) => h.categories,
+                      builder: (context, categories, child) {
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: categories.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: Selector<HomeProvider, String>(
+                                selector: (_, h) => h.selectedCategory,
+                                builder: (context, selectedCategory, child) {
+                                  final category = categories[index];
+                                  return ChoiceChip(
+                                    label: Text(category),
+                                    selected: selectedCategory == category,
+                                    onSelected: (bool selected) {
+                                      homeProvider.setSelectedCategory(category);
+                                    },
+                                    backgroundColor: const Color(0xFF262626),
+                                    selectedColor: Colors.deepPurpleAccent,
+                                    labelStyle: TextStyle(
+                                      color: selectedCategory == category
+                                          ? Colors.white
+                                          : Colors.grey[400],
+                                      fontSize: 12,
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ];
-        },
-        body: _isLoadingConfig
-          ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
-          : FutureBuilder<List<Movie>>(
-          future: _getFilteredMovies(auth.token, settings.isOffline),
-          builder: (context, snapshot) {
-            if (settings.isOffline && snapshot.hasData && snapshot.data!.isEmpty) {
-              return NoInternetState(
-                onRetry: () => settings.setOfflineMode(false),
-                onGoOffline: () => context.push('/downloads'),
-              );
-            }
-
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: settings.isOffline
-                  ? [
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
-                        child: Text('MY DOWNLOADS', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                      ),
-                      _buildMovieCategory("Available Offline", Future.value(snapshot.data ?? [])),
-                      const SizedBox(height: 400),
-                    ]
-                  : [
-                      _buildCarouselSlider(auth.token),
-                      _buildContinueWatchingSection(auth.token),
-                      const SizedBox(height: 20),
-                      ..._sections.map((sec) {
-                        Future<List<Movie>> future;
-                        switch (sec['type']) {
-                          case 'trending':
-                            future = _apiService.getTrendingMovies(token: auth.token);
-                            break;
-                          case 'top_rated':
-                            future = _apiService.getTopRatedMovies(token: auth.token);
-                            break;
-                          case 'new_releases':
-                            future = _apiService.getNowPlayingMovies(token: auth.token);
-                            break;
-                          case 'continue_watching':
-                            // Handle separately or return empty for now as it's a special section
-                            return _buildContinueWatchingSection(auth.token);
-                          case 'genre':
-                            future = _apiService.getTrendingMovies(token: auth.token, genre: sec['genre']);
-                            break;
-                          default:
-                            future = Future.value([]);
-                        }
-                        return _buildMovieCategory(sec['title'], future);
-                      }),
-                      const SizedBox(height: 40),
-                    ],
-              ),
-            );
+            ];
           },
+          body: Selector<HomeProvider, bool>(
+            selector: (_, h) => h.isLoadingConfig,
+            builder: (context, isLoading, child) {
+              if (isLoading) {
+                return const Center(
+                    child: CircularProgressIndicator(
+                        color: Colors.deepPurpleAccent));
+              }
+              return Consumer2<SettingsProvider, HomeProvider>(
+                builder: (context, settings, home, child) {
+                  return FutureBuilder<List<Movie>>(
+                    future: _getFilteredMovies(
+                        home.selectedCategory, auth.token, settings.isOffline),
+                    builder: (context, snapshot) {
+                      if (settings.isOffline &&
+                          snapshot.hasData &&
+                          snapshot.data!.isEmpty) {
+                        return NoInternetState(
+                          onRetry: () => settings.setOfflineMode(false),
+                          onGoOffline: () => context.push('/downloads'),
+                        );
+                      }
+
+                      return SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: settings.isOffline
+                              ? [
+                                  const Padding(
+                                    padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+                                    child: Text('MY DOWNLOADS',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold)),
+                                  ),
+                                  _buildMovieCategory(
+                                      "Available Offline",
+                                      Future.value(snapshot.data ?? [])),
+                                  const SizedBox(height: 400),
+                                ]
+                              : [
+                                  RepaintBoundary(
+                                      child: _buildCarouselSlider(
+                                          auth.token, home)),
+                                  _buildContinueWatchingSection(auth.token),
+                                  const SizedBox(height: 20),
+                                  ...home.sections.map((sec) {
+                                    if (sec['type'] == 'continue_watching') {
+                                      return _buildContinueWatchingSection(
+                                          auth.token);
+                                    }
+                                    final future = home.getSectionFuture(
+                                        sec['title'], sec['type'],
+                                        genre: sec['genre'], token: auth.token);
+                                    return _buildMovieCategory(
+                                        sec['title'], future);
+                                  }),
+                                  const SizedBox(height: 40),
+                                ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  Widget _buildCarouselSlider(String? token) {
+  Widget _buildCarouselSlider(String? token, HomeProvider home) {
     return FutureBuilder<List<Movie>>(
-      future: _apiService.getTrendingMovies(token: token, isFeatured: true),
+      future: home.featuredFuture ??
+          _apiService.getTrendingMovies(token: token, isFeatured: true),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const ShimmerLoading.rectangular(height: 400);
@@ -253,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           CachedNetworkImage(
                             imageUrl: (movie.posterPath).startsWith('http')
                                 ? (movie.posterPath)
-                                : 'https://image.tmdb.org/t/p/original${movie.posterPath}',
+                                : 'https://image.tmdb.org/t/p/w780${movie.posterPath}',
                             fit: BoxFit.cover,
                             height: 450.0,
                             width: double.infinity,
@@ -356,14 +377,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildContinueWatchingSection(String? token) {
-    return Consumer<PlaybackProvider>(
-      builder: (context, playback, child) {
+    return Selector<PlaybackProvider, Map<String, Duration>>(
+      selector: (_, p) => p.allProgress,
+      builder: (context, allProgress, child) {
+        if (allProgress.isEmpty) return const SizedBox.shrink();
+
         return FutureBuilder<List<Movie>>(
           future: _apiService.getTrendingMovies(token: token),
           builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox();
-            final moviesWithProgress = snapshot.data!.where((m) => playback.getProgress(m.id.toString()) > Duration.zero).toList();
-            if (moviesWithProgress.isEmpty) return const SizedBox();
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            final moviesWithProgress = snapshot.data!
+                .where((m) =>
+                    (allProgress[m.id.toString()] ?? Duration.zero) >
+                    Duration.zero)
+                .toList();
+            if (moviesWithProgress.isEmpty) return const SizedBox.shrink();
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,7 +519,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           CachedNetworkImage(
                             imageUrl: (movie.posterPath).startsWith('http')
                                 ? (movie.posterPath)
-                                : 'https://image.tmdb.org/t/p/original${movie.posterPath}',
+                                : 'https://image.tmdb.org/t/p/w780${movie.posterPath}',
                             fit: BoxFit.cover,
                             height: 450.0,
                             width: double.infinity,

@@ -6,38 +6,56 @@ import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 
-class GenreMoviesScreen extends StatelessWidget {
+class GenreMoviesScreen extends StatefulWidget {
   final String genreName;
-  final ApiService _apiService = ApiService();
 
-  GenreMoviesScreen({super.key, required this.genreName});
+  const GenreMoviesScreen({super.key, required this.genreName});
+
+  @override
+  State<GenreMoviesScreen> createState() => _GenreMoviesScreenState();
+}
+
+class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
+  final ApiService _apiService = ApiService();
+  Future<List<Movie>>? _moviesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMovies();
+    });
+  }
+
+  void _loadMovies() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    setState(() {
+      if (widget.genreName == 'Watchlist' || widget.genreName == 'MY WATCHLIST') {
+        _moviesFuture = _apiService.getWatchlist(auth.token ?? "");
+      } else if (widget.genreName == 'Trending Now') {
+        _moviesFuture = _apiService.getTrendingMovies(token: auth.token);
+      } else if (widget.genreName == 'Popular on RIYO') {
+        _moviesFuture = _apiService.getTopRatedMovies(token: auth.token);
+      } else if (widget.genreName == 'New Releases') {
+        _moviesFuture = _apiService.getNowPlayingMovies(token: auth.token);
+      } else {
+        _moviesFuture = _apiService.getTrendingMovies(token: auth.token, genre: widget.genreName);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
-
-    Future<List<Movie>> fetchMovies() {
-      if (genreName == 'Watchlist' || genreName == 'MY WATCHLIST') {
-        return _apiService.getWatchlist(auth.token ?? "");
-      } else if (genreName == 'Trending Now') {
-        return _apiService.getTrendingMovies(token: auth.token); // Trending is default if genre is null in some cases, or handle as needed
-      } else if (genreName == 'Popular on RIYO') {
-        return _apiService.getTopRatedMovies(token: auth.token);
-      } else if (genreName == 'New Releases') {
-        return _apiService.getNowPlayingMovies(token: auth.token);
-      }
-      return _apiService.getTrendingMovies(token: auth.token, genre: genreName);
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFF141414),
       appBar: AppBar(
         backgroundColor: const Color(0xFF141414),
-        title: Text(genreName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(widget.genreName.toUpperCase(),
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: FutureBuilder<List<Movie>>(
-        future: fetchMovies(),
+        future: _moviesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildLoadingGrid();
@@ -47,9 +65,11 @@ class GenreMoviesScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.movie_outlined, size: 80, color: Colors.white10),
+                  const Icon(Icons.movie_outlined,
+                      size: 80, color: Colors.white10),
                   const SizedBox(height: 16),
-                  Text('No movies found in $genreName', style: const TextStyle(color: Colors.white70)),
+                  Text('No movies found in ${widget.genreName}',
+                      style: const TextStyle(color: Colors.white70)),
                 ],
               ),
             );

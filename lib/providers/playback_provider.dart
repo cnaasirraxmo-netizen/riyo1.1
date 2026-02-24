@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 class PlaybackProvider with ChangeNotifier {
   final Map<String, Duration> _progress = {};
 
+  Map<String, Duration> get allProgress => Map.unmodifiable(_progress);
+
   Duration getProgress(String movieId) => _progress[movieId] ?? Duration.zero;
 
   void updateProgress(String movieId, Duration position) {

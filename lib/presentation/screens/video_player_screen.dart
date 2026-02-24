@@ -5,8 +5,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'dart:async';
 import 'dart:io';
-import 'dart:developer' as developer;
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
@@ -103,7 +101,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       if (downloadedMovie.id != 0 && downloadedMovie.localPath != null) {
         final file = File(downloadedMovie.localPath!);
         if (await file.exists()) {
-           developer.log('Playing from local path: ${downloadedMovie.localPath}');
+           debugPrint('Playing from local path: ${downloadedMovie.localPath}');
            _controller = VideoPlayerController.file(file)
             ..initialize().then((_) {
               if (mounted) {
@@ -132,7 +130,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         if (!mounted) return;
         url = movie.videoUrl;
       } catch (e) {
-        developer.log('Error fetching movie details: $e');
+        debugPrint('Error fetching movie details: $e');
       }
     }
 
@@ -179,7 +177,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     try {
       _currentBrightness = await ScreenBrightness().application;
     } catch (e) {
-      developer.log('Failed to get current brightness: $e', name: 'video_player_screen');
+      debugPrint('Failed to get current brightness: $e');
       _currentBrightness = 0.5;
     }
     if (mounted) {

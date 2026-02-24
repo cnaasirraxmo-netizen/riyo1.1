@@ -62,7 +62,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         });
       }
     } catch (e) {
-      print('Error fetching R2 files: $e');
+      debugPrint('Error fetching R2 files: $e');
     } finally {
       setState(() => _isLoadingR2 = false);
     }
@@ -101,7 +101,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         });
       }
     } catch (e) {
-      print('Error fetching movies: $e');
+      debugPrint('Error fetching movies: $e');
     } finally {
       setState(() => _isLoadingMovies = false);
     }
@@ -159,7 +159,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         return response.data['url'];
       }
     } catch (e) {
-      print("Upload error: $e");
+      debugPrint("Upload error: $e");
     }
     return null;
   }

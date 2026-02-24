@@ -12,8 +12,6 @@ class CastScreen extends StatefulWidget {
 }
 
 class _CastScreenState extends State<CastScreen> {
-  final String _sampleVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-
   @override
   void initState() {
     super.initState();
@@ -34,7 +32,7 @@ class _CastScreenState extends State<CastScreen> {
         Permission.bluetoothConnect,
       ].request();
 
-      print('Permission statuses: $statuses');
+      debugPrint('Permission statuses: $statuses');
     }
   }
 

@@ -8,7 +8,6 @@ class CastService extends ChangeNotifier {
   GoogleCastDevice? _selectedDevice;
   bool _isScanning = false;
   bool _isConnected = false;
-  bool _isDiscovered = false;
   String? _currentTitle;
   String? _currentPoster;
   bool _isPlaying = false;
@@ -97,10 +96,10 @@ class CastService extends ChangeNotifier {
     try {
       _selectedDevice = device;
       notifyListeners();
-      print('Connecting to device: ${device.friendlyName}');
+      debugPrint('Connecting to device: ${device.friendlyName}');
       await GoogleCastSessionManager.instance.startSessionWithDevice(device);
     } catch (e) {
-      print('Error connecting to device: $e');
+      debugPrint('Error connecting to device: $e');
       _selectedDevice = null;
       notifyListeners();
     }
@@ -114,7 +113,7 @@ class CastService extends ChangeNotifier {
 
   Future<void> loadMedia(String url, {String? title, String? subtitle, String? posterUrl}) async {
     if (!_isConnected) {
-      print('Not connected to a cast device');
+      debugPrint('Not connected to a cast device');
       return;
     }
 
@@ -123,7 +122,7 @@ class CastService extends ChangeNotifier {
     _isPlaying = true;
     notifyListeners();
 
-    print('Loading media: $url');
+    debugPrint('Loading media: $url');
     final media = GoogleCastMediaInformation(
       contentId: url,
       contentType: 'video/mp4',
@@ -137,9 +136,9 @@ class CastService extends ChangeNotifier {
 
     try {
       await GoogleCastRemoteMediaClient.instance.loadMedia(media);
-      print('Media loaded successfully');
+      debugPrint('Media loaded successfully');
     } catch (e) {
-      print('Error loading media: $e');
+      debugPrint('Error loading media: $e');
       _isPlaying = false;
       notifyListeners();
     }

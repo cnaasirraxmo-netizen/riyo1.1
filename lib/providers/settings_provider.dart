@@ -47,6 +47,7 @@ class SettingsProvider with ChangeNotifier {
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
+    if (_themeMode == mode) return;
     _themeMode = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('themeMode', _themeModeToString(mode));
@@ -54,21 +55,25 @@ class SettingsProvider with ChangeNotifier {
   }
 
   void setLanguage(String lang) {
+    if (_language == lang) return;
     _language = lang;
     notifyListeners();
   }
 
   void toggleNotifications(bool value) {
+    if (_notificationsEnabled == value) return;
     _notificationsEnabled = value;
     notifyListeners();
   }
 
   void setPlaybackQuality(String quality) {
+    if (_playbackQuality == quality) return;
     _playbackQuality = quality;
     notifyListeners();
   }
 
   void setOfflineMode(bool value) {
+    if (_isOffline == value) return;
     _isOffline = value;
     notifyListeners();
   }

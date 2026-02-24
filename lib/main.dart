@@ -6,6 +6,7 @@ import 'package:riyo/providers/settings_provider.dart';
 import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/providers/download_provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/providers/home_provider.dart';
 import 'package:riyo/services/cast_service.dart';
 import 'package:riyo/presentation/screens/splash_screen.dart';
 import 'package:riyo/presentation/screens/onboarding_screen.dart';
@@ -201,17 +202,23 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DownloadProvider()),
         ChangeNotifierProvider(create: (_) => CastService()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => HomeProvider()),
       ],
-      child: Consumer2<SettingsProvider, AuthProvider>(
-        builder: (context, settings, auth, child) {
+      child: Consumer<SettingsProvider>(
+        builder: (context, settings, child) {
+          final auth = Provider.of<AuthProvider>(context, listen: false);
           return MaterialApp.router(
             routerConfig: _createRouter(auth),
             title: 'RIYO',
             themeMode: settings.themeMode,
-            locale: settings.language == 'Arabic' ? const Locale('ar', '') : const Locale('en', ''),
+            locale: settings.language == 'Arabic'
+                ? const Locale('ar', '')
+                : const Locale('en', ''),
             builder: (context, child) {
               return Directionality(
-                textDirection: settings.language == 'Arabic' ? TextDirection.rtl : TextDirection.ltr,
+                textDirection: settings.language == 'Arabic'
+                    ? TextDirection.rtl
+                    : TextDirection.ltr,
                 child: child!,
               );
             },

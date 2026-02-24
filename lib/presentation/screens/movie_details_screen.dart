@@ -23,11 +23,18 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   final ApiService _apiService = ApiService();
   Season? _selectedSeason;
   bool _isInWatchlist = false;
+  Future<Movie>? _movieFuture;
+  Future<List<Movie>>? _recommendationsFuture;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      setState(() {
+        _movieFuture = _apiService.getMovieDetails(widget.movieId, token: auth.token);
+        _recommendationsFuture = _apiService.getTrendingMovies(token: auth.token);
+      });
       _checkWatchlistStatus();
     });
   }
@@ -46,11 +53,10 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFF141414),
       body: FutureBuilder<Movie>(
-        future: _apiService.getMovieDetails(widget.movieId, token: auth.token),
+        future: _movieFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Colors.deepPurple));
@@ -600,14 +606,15 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   }
 
   Widget _buildRecommendationsSection(String title) {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(title,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 16),
         FutureBuilder<List<Movie>>(
-          future: _apiService.getTrendingMovies(token: auth.token),
+          future: _recommendationsFuture,
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const SizedBox(height: 180, child: ShimmerLoading.rectangular(height: 180));
             final movies = snapshot.data!;

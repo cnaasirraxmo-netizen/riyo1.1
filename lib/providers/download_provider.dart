@@ -122,7 +122,7 @@ class DownloadProvider with ChangeNotifier {
       await _saveDownloadedMovies();
       notifyListeners();
     } catch (e) {
-      print('Download error: $e');
+      debugPrint('Download error: $e');
       _downloadingMovies.removeWhere((m) => m.id == movie.id);
       notifyListeners();
     } finally {
