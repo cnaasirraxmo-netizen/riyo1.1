@@ -24,32 +24,54 @@ class _HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
   int _currentCarouselIndex = 0;
 
-  final List<String> _filters = [
-    "All",
-    "Movies",
-    "TV Shows",
-    "Anime",
-    "Kids",
-    "My List"
-  ];
+  List<String> _filters = ["All"];
+  List<Map<String, dynamic>> _sections = [];
   String _selectedFilter = "All";
+  bool _isLoadingConfig = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    setState(() => _isLoadingConfig = true);
+    try {
+      final filters = await _apiService.getHeaderCategories();
+      final sections = await _apiService.getHomeSections();
+      if (mounted) {
+        setState(() {
+          _filters = filters;
+          _sections = sections;
+          _isLoadingConfig = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingConfig = false);
+    }
+  }
 
   Future<List<Movie>> _getFilteredMovies(String? token, bool isOffline) async {
     List<Movie> movies;
+
     if (_selectedFilter == "My List") {
       movies = await _apiService.getWatchlist(token ?? "");
-    } else {
+    } else if (_selectedFilter == "All") {
       movies = await _apiService.getTrendingMovies(token: token);
+    } else if (_selectedFilter == "Movies") {
+      movies = await _apiService.getTrendingMovies(token: token);
+      movies = movies.where((m) => !m.isTvShow).toList();
+    } else if (_selectedFilter == "TV Shows") {
+      movies = await _apiService.getTrendingMovies(token: token);
+      movies = movies.where((m) => m.isTvShow).toList();
+    } else {
+      // Treat as Genre
+      movies = await _apiService.getTrendingMovies(token: token, genre: _selectedFilter);
     }
 
     if (isOffline) {
       movies = movies.where((m) => m.isDownloaded).toList();
-    }
-
-    if (_selectedFilter == "Movies") {
-      movies = movies.where((m) => !m.isTvShow).toList();
-    } else if (_selectedFilter == "TV Shows") {
-      movies = movies.where((m) => m.isTvShow).toList();
     }
 
     return movies;
@@ -127,7 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ];
         },
-        body: FutureBuilder<List<Movie>>(
+        body: _isLoadingConfig
+          ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
+          : FutureBuilder<List<Movie>>(
           future: _getFilteredMovies(auth.token, settings.isOffline),
           builder: (context, snapshot) {
             if (settings.isOffline && snapshot.hasData && snapshot.data!.isEmpty) {
@@ -153,9 +177,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildCarouselSlider(auth.token),
                       _buildContinueWatchingSection(auth.token),
                       const SizedBox(height: 20),
-                      _buildMovieCategory("Trending Now", _apiService.getTrendingMovies(token: auth.token)),
-                      _buildMovieCategory("Popular on RIYOBOX", _apiService.getTopRatedMovies(token: auth.token)),
-                      _buildMovieCategory("New Releases", _apiService.getNowPlayingMovies(token: auth.token)),
+                      ..._sections.map((sec) {
+                        Future<List<Movie>> future;
+                        switch (sec['type']) {
+                          case 'trending':
+                            future = _apiService.getTrendingMovies(token: auth.token);
+                            break;
+                          case 'top_rated':
+                            future = _apiService.getTopRatedMovies(token: auth.token);
+                            break;
+                          case 'new_releases':
+                            future = _apiService.getNowPlayingMovies(token: auth.token);
+                            break;
+                          case 'continue_watching':
+                            // Handle separately or return empty for now as it's a special section
+                            return _buildContinueWatchingSection(auth.token);
+                          case 'genre':
+                            future = _apiService.getTrendingMovies(token: auth.token, genre: sec['genre']);
+                            break;
+                          default:
+                            future = Future.value([]);
+                        }
+                        return _buildMovieCategory(sec['title'], future);
+                      }),
                       const SizedBox(height: 40),
                     ],
               ),

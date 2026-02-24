@@ -110,5 +110,11 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Integrated Storage Stats**: Each download (movie or series) continues to show its total file size.
 - **Model Updates**: Updated the `Movie` data model to support `seasonNumber` and improved the parsing of TV show metadata.
 
+### 8. Dynamic Content Management & Security Bypass
+- **Admin Panel Access**: Completely removed the manual login process for the Admin Panel. The Dashboard is now directly accessible, and backend authentication is automatically bypassed for admin operations.
+- **Dynamic Header Filters**: Admin can now manage the categories (filters) shown in the Home screen header (e.g., "Movies", "TV Shows", "Anime"). These can be added, renamed, or deleted via the new **Home Layout** page in Web Admin.
+- **Dynamic Home Sections**: Admin can now manage the rows on the Home screen (e.g., "Trending Now", "Popular", or specific genre rows). These sections are fully customizable and reflected instantly in the mobile app.
+- **Backend Infrastructure**: Added `Category` and `HomeSection` database models and corresponding configuration routes to support dynamic layouts.
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.

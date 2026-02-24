@@ -179,4 +179,30 @@ class ApiService {
     }
     return [];
   }
+
+  Future<List<String>> getHeaderCategories() async {
+    try {
+      final response = await http.get(Uri.parse('$_backendUrl/config/categories'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((cat) => cat['name'].toString()).toList();
+      }
+    } catch (e) {}
+    return ["All", "Movies", "TV Shows", "Anime", "Kids", "My List"]; // Fallback
+  }
+
+  Future<List<Map<String, dynamic>>> getHomeSections() async {
+    try {
+      final response = await http.get(Uri.parse('$_backendUrl/config/home-sections'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data);
+      }
+    } catch (e) {}
+    return [
+      {'title': 'Trending Now', 'type': 'trending'},
+      {'title': 'Popular on RIYOBOX', 'type': 'top_rated'},
+      {'title': 'New Releases', 'type': 'new_releases'},
+    ]; // Fallback
+  }
 }

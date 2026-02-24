@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const User = require('./models/User');
+const Category = require('./models/Category');
+const HomeSection = require('./models/HomeSection');
 
 dotenv.config();
 
@@ -43,6 +45,7 @@ app.use('/admin', require('./routes/admin'));
 app.use('/movies', require('./routes/movies'));
 app.use('/users', require('./routes/users'));
 app.use('/upload', require('./routes/upload'));
+app.use('/config', require('./routes/config'));
 
 app.get('/', (req, res) => {
   const r2Configured = !!(process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET_NAME);
@@ -58,6 +61,35 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/riyobox';
+
+const seedLayoutConfig = async () => {
+  try {
+    const categoryCount = await Category.countDocuments();
+    if (categoryCount === 0) {
+      console.log('Seeding default categories...');
+      await Category.insertMany([
+        { name: 'All', order: 1 },
+        { name: 'Movies', order: 2 },
+        { name: 'TV Shows', order: 3 },
+        { name: 'Anime', order: 4 },
+        { name: 'Kids', order: 5 },
+        { name: 'My List', order: 6 },
+      ]);
+    }
+
+    const sectionCount = await HomeSection.countDocuments();
+    if (sectionCount === 0) {
+      console.log('Seeding default home sections...');
+      await HomeSection.insertMany([
+        { title: 'Trending Now', type: 'trending', order: 1 },
+        { title: 'Popular on RIYOBOX', type: 'top_rated', order: 2 },
+        { title: 'New Releases', type: 'new_releases', order: 3 },
+      ]);
+    }
+  } catch (error) {
+    console.error('❌ Error seeding layout config:', error.message);
+  }
+};
 
 const createDefaultAdmin = async () => {
   try {
@@ -88,6 +120,7 @@ mongoose.connect(MONGO_URI)
   .then(async () => {
     console.log('MongoDB connected');
     await createDefaultAdmin();
+    await seedLayoutConfig();
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch((err) => {
