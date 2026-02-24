@@ -8,20 +8,32 @@ class CastService extends ChangeNotifier {
   GoogleCastDevice? _selectedDevice;
   bool _isScanning = false;
   bool _isConnected = false;
+  bool _isDiscovered = false;
+  String? _currentTitle;
+  String? _currentPoster;
+  bool _isPlaying = false;
+  double _volume = 0.5;
+
   StreamSubscription? _discoverySubscription;
   StreamSubscription? _sessionSubscription;
+  Timer? _discoveryTimer;
 
   List<GoogleCastDevice> get devices => _devices;
   GoogleCastDevice? get selectedDevice => _selectedDevice;
   bool get isScanning => _isScanning;
   bool get isConnected => _isConnected;
+  bool get hasDevices => _devices.isNotEmpty;
+  String? get currentTitle => _currentTitle;
+  String? get currentPoster => _currentPoster;
+  bool get isPlaying => _isPlaying;
+  double get volume => _volume;
 
   CastService() {
     _init();
-    initContext();
   }
 
-  void _init() {
+  Future<void> _init() async {
+    await initContext();
     _sessionSubscription = GoogleCastSessionManager.instance.currentSessionStream.listen((session) {
       _isConnected = GoogleCastSessionManager.instance.connectionState == GoogleCastConnectState.connected;
       if (!_isConnected) {
@@ -29,6 +41,21 @@ class CastService extends ChangeNotifier {
       }
       notifyListeners();
     });
+
+    // Start passive discovery
+    _startPassiveDiscovery();
+  }
+
+  void _startPassiveDiscovery() {
+    _discoveryTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
+      if (!_isScanning && !_isConnected) {
+        startScanning();
+        Future.delayed(const Duration(seconds: 10), () => stopScanning());
+      }
+    });
+    // Initial scan
+    startScanning();
+    Future.delayed(const Duration(seconds: 15), () => stopScanning());
   }
 
   Future<void> initContext() async {
@@ -91,6 +118,11 @@ class CastService extends ChangeNotifier {
       return;
     }
 
+    _currentTitle = title;
+    _currentPoster = posterUrl;
+    _isPlaying = true;
+    notifyListeners();
+
     print('Loading media: $url');
     final media = GoogleCastMediaInformation(
       contentId: url,
@@ -108,13 +140,42 @@ class CastService extends ChangeNotifier {
       print('Media loaded successfully');
     } catch (e) {
       print('Error loading media: $e');
+      _isPlaying = false;
+      notifyListeners();
     }
+  }
+
+  Future<void> play() async {
+    await GoogleCastRemoteMediaClient.instance.play();
+    _isPlaying = true;
+    notifyListeners();
+  }
+
+  Future<void> pause() async {
+    await GoogleCastRemoteMediaClient.instance.pause();
+    _isPlaying = false;
+    notifyListeners();
+  }
+  Future<void> stop() async {
+    await GoogleCastRemoteMediaClient.instance.stop();
+    _isPlaying = false;
+    _currentTitle = null;
+    notifyListeners();
+  }
+
+  Future<void> seek(Duration position) async => await GoogleCastRemoteMediaClient.instance.seek(GoogleCastMediaSeekOption(position: position));
+
+  Future<void> setVolume(double vol) async {
+    GoogleCastSessionManager.instance.setDeviceVolume(vol);
+    _volume = vol;
+    notifyListeners();
   }
 
   @override
   void dispose() {
     _discoverySubscription?.cancel();
     _sessionSubscription?.cancel();
+    _discoveryTimer?.cancel();
     super.dispose();
   }
 }

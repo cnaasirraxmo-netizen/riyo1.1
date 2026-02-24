@@ -259,7 +259,7 @@ class MainScreen extends StatelessWidget {
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/coming-soon')) return 1;
+    if (location.startsWith('/category')) return 1;
     if (location.startsWith('/downloads')) return 2;
     if (location.startsWith('/search')) return 3;
     if (location.startsWith('/my-riyo')) return 4;
@@ -272,7 +272,7 @@ class MainScreen extends StatelessWidget {
         context.go('/home');
         break;
       case 1:
-        context.go('/coming-soon');
+        context.go('/category');
         break;
       case 2:
         context.go('/downloads');
@@ -298,9 +298,9 @@ class MainScreen extends StatelessWidget {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.video_library_outlined),
-            activeIcon: Icon(Icons.video_library),
-            label: 'Coming Soon',
+            icon: Icon(Icons.grid_view_outlined),
+            activeIcon: Icon(Icons.grid_view),
+            label: 'Categories',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.download_outlined),

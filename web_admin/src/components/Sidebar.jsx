@@ -6,7 +6,7 @@ const Sidebar = ({ onLogout }) => {
   const links = [
     { path: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { path: '/management', label: 'Coming Soon', icon: <ListChecks size={20} /> },
-    { path: '/layout', label: 'Home Layout', icon: <Settings size={20} /> },
+    { path: '/layout', label: 'App Layout', icon: <Settings size={20} /> },
     { path: '/movies', label: 'Movies', icon: <Film size={20} /> },
     { path: '/media', label: 'Media Library', icon: <FolderOpen size={20} /> },
     { path: '/users', label: 'Users', icon: <Users size={20} /> },

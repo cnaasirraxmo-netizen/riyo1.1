@@ -1,4 +1,4 @@
-package com.example.myapp
+package com.riyo.app
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

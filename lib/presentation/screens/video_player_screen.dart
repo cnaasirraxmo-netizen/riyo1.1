@@ -13,6 +13,8 @@ import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/download_provider.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/models/movie.dart';
+import 'package:riyo/presentation/widgets/cast_button.dart';
+import 'package:riyo/services/cast_service.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String? movieId;
@@ -43,6 +45,48 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _initPlayer();
     _initVolume();
     _initBrightness();
+    _initCastListener();
+  }
+
+  void _initCastListener() {
+    // Listen for cast connection
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final castService = Provider.of<CastService>(context, listen: false);
+      castService.addListener(_onCastChanged);
+    });
+  }
+
+  void _onCastChanged() {
+     final castService = Provider.of<CastService>(context, listen: false);
+     if (castService.isConnected && _controller != null && _controller!.value.isPlaying) {
+        // Automatically cast current media
+        _startCasting();
+     }
+  }
+
+  Future<void> _startCasting() async {
+    final castService = Provider.of<CastService>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    String? url = widget.videoUrl;
+    String? title = "Video";
+    String? poster;
+
+    if (widget.movieId != null) {
+      final movie = await ApiService().getMovieDetails(widget.movieId!, token: auth.token);
+      url = movie.videoUrl;
+      title = movie.title;
+      poster = movie.posterPath.startsWith('http') ? movie.posterPath : 'https://image.tmdb.org/t/p/w500${movie.posterPath}';
+    }
+
+    if (url != null) {
+      _controller?.pause();
+      await castService.loadMedia(url, title: title, posterUrl: poster);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Casting to ${castService.selectedDevice?.friendlyName}'))
+        );
+      }
+    }
   }
 
   Future<void> _initPlayer() async {
@@ -196,6 +240,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    final castService = Provider.of<CastService>(context, listen: false);
+    castService.removeListener(_onCastChanged);
+
     if (widget.movieId != null && _controller != null) {
       Provider.of<PlaybackProvider>(context, listen: false).updateProgress(widget.movieId!, _controller!.value.position);
     }
@@ -308,7 +355,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () => context.push('/cast')),
+          const CastButton(),
           IconButton(icon: const Icon(Icons.more_vert, color: Colors.white), onPressed: () => _showSettingsMenu()),
         ],
       ),

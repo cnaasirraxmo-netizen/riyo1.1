@@ -1,34 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:riyo/services/api_service.dart';
+import 'package:riyo/presentation/widgets/cast_button.dart';
 
-class CategoriesScreen extends StatelessWidget {
+class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, String>> genres = [
-      {'name': 'Action', 'image': 'https://picsum.photos/seed/action/400/200'},
-      {'name': 'Comedy', 'image': 'https://picsum.photos/seed/comedy/400/200'},
-      {'name': 'Drama', 'image': 'https://picsum.photos/seed/drama/400/200'},
-      {'name': 'Horror', 'image': 'https://picsum.photos/seed/horror/400/200'},
-      {'name': 'Sci-Fi', 'image': 'https://picsum.photos/seed/scifi/400/200'},
-      {'name': 'Romance', 'image': 'https://picsum.photos/seed/romance/400/200'},
-      {'name': 'Anime', 'image': 'https://picsum.photos/seed/anime/400/200'},
-      {'name': 'Documentary', 'image': 'https://picsum.photos/seed/documentary/400/200'},
-    ];
+  State<CategoriesScreen> createState() => _CategoriesScreenState();
+}
 
+class _CategoriesScreenState extends State<CategoriesScreen> {
+  final ApiService _apiService = ApiService();
+  List<String> _categories = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final cats = await _apiService.getHeaderCategories();
+    if (mounted) {
+      setState(() {
+        _categories = cats;
+        // Ensure "Coming Soon" is prominent or present
+        if (!_categories.contains('Coming Soon')) {
+           _categories.insert(0, 'Coming Soon');
+        }
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF141414),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             backgroundColor: const Color(0xFF141414),
-            title: const Text('RIYO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            title: const Text('RIYO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.cast, color: Colors.white),
-                onPressed: () => context.push('/cast'),
-              ),
+              const CastButton(),
               IconButton(
                 icon: const Icon(Icons.settings, color: Colors.white),
                 onPressed: () => context.push('/settings'),
@@ -46,34 +63,41 @@ class CategoriesScreen extends StatelessWidget {
           const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-              child: Text('BROWSE GENRES', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+              child: Text('EXPLORE CATEGORIES', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.all(16.0),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.6,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final genre = genres[index]['name']!;
-                  return InkWell(
-                    onTap: () {
-                      // Navigate to a screen showing movies of this genre
-                      // For now, we reuse search or a new route
-                      context.push('/genre/$genre');
-                    },
-                    child: _buildGenreCard(genre, genres[index]['image']!),
-                  );
-                },
-                childCount: genres.length,
+          if (_isLoading)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(16.0),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1.6,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final category = _categories[index];
+                    return InkWell(
+                      onTap: () {
+                        if (category == 'Coming Soon') {
+                          context.push('/coming-soon');
+                        } else {
+                          context.push('/genre/$category');
+                        }
+                      },
+                      child: _buildGenreCard(category, 'https://picsum.photos/seed/${category.hashCode}/400/200'),
+                    );
+                  },
+                  childCount: _categories.length,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

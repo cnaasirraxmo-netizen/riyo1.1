@@ -101,37 +101,115 @@ class _CastScreenState extends State<CastScreen> {
               ),
             ),
           if (castService.isConnected)
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: const Color(0xFF1C1C1C),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.cast_connected, color: Colors.deepPurpleAccent),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text('Connected to ${castService.selectedDevice?.friendlyName}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        ),
-                        IconButton(onPressed: () => castService.disconnect(), icon: const Icon(Icons.close, color: Colors.white)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => castService.loadMedia(_sampleVideoUrl, title: 'Big Buck Bunny'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
-                        child: const Text('CAST SAMPLE VIDEO'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildCastController(castService),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCastController(CastService castService) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1C1C1C),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 10)],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurpleAccent.withAlpha(51),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: castService.currentPoster != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(castService.currentPoster!, fit: BoxFit.cover),
+                      )
+                    : const Icon(Icons.movie, color: Colors.deepPurpleAccent),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        castService.currentTitle ?? 'Ready to Cast',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Casting to ${castService.selectedDevice?.friendlyName}',
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => castService.disconnect(),
+                  icon: const Icon(Icons.power_settings_new, color: Colors.redAccent),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
+                  onPressed: () {}, // Implement seek relative in cast service if needed
+                ),
+                const SizedBox(width: 24),
+                GestureDetector(
+                  onTap: () {
+                    if (castService.isPlaying) {
+                      castService.pause();
+                    } else {
+                      castService.play();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: Icon(
+                      castService.isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.black,
+                      size: 32,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                IconButton(
+                  icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Icon(Icons.volume_down, color: Colors.grey, size: 20),
+                Expanded(
+                  child: Slider(
+                    value: castService.volume,
+                    activeColor: Colors.deepPurpleAccent,
+                    onChanged: (val) => castService.setVolume(val),
+                  ),
+                ),
+                const Icon(Icons.volume_up, color: Colors.grey, size: 20),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
