@@ -18,7 +18,8 @@ const Movies = () => {
     year: '',
     duration: '',
     genre: '',
-    contentRating: ''
+    contentRating: '',
+    isFeatured: false
   });
 
   const fetchMovies = async () => {
@@ -100,7 +101,8 @@ const Movies = () => {
       ...formData,
       year: parseInt(formData.year) || new Date().getFullYear(),
       genre: formData.genre.split(',').map(g => g.trim()),
-      isTrending: true
+      isTrending: true,
+      isFeatured: formData.isFeatured
     };
 
     try {
@@ -109,7 +111,8 @@ const Movies = () => {
       setFormData({
         title: '', description: '', posterUrl: '',
         backdropUrl: '', videoUrl: '', year: '',
-        duration: '', genre: '', contentRating: ''
+            duration: '', genre: '', contentRating: '',
+            isFeatured: false
       });
       setUploadProgress({ poster: 0, video: 0 });
       fetchMovies();
@@ -295,6 +298,17 @@ const Movies = () => {
                     onChange={(e) => setFormData({...formData, backdropUrl: e.target.value})}
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2 bg-[#262626] p-4 rounded-xl border border-white/5">
+                <input
+                  type="checkbox"
+                  id="isFeatured"
+                  className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  checked={formData.isFeatured}
+                  onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
+                />
+                <label htmlFor="isFeatured" className="text-sm font-bold text-gray-300">Feature in Home Carousel (Big Poster)</label>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

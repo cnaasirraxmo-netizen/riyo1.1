@@ -10,11 +10,17 @@ class ApiService {
 
   bool get _isMock => _apiKey == 'YOUR_API_KEY';
 
-  Future<List<Movie>> getTrendingMovies({String? token, String? genre}) async {
+  Future<List<Movie>> getTrendingMovies({String? token, String? genre, bool isFeatured = false}) async {
     try {
       if (token != null) {
         String url = '$_backendUrl/movies';
-        if (genre != null) url += '?genre=$genre';
+        final List<String> params = [];
+        if (genre != null) params.add('genre=$genre');
+        if (isFeatured) params.add('isFeatured=true');
+
+        if (params.isNotEmpty) {
+          url += '?${params.join('&')}';
+        }
 
         final response = await http.get(Uri.parse(url), headers: {'Authorization': 'Bearer $token'}).timeout(const Duration(seconds: 15));
         if (response.statusCode == 200) {

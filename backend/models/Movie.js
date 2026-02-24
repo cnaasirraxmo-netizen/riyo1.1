@@ -11,6 +11,7 @@ const movieSchema = new mongoose.Schema({
   genre: { type: [String] },
   rating: { type: Number, default: 0 },
   isTrending: { type: Boolean, default: false },
+  isFeatured: { type: Boolean, default: false },
   contentRating: { type: String },
 }, { timestamps: true });
 

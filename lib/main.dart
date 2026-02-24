@@ -193,6 +193,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp.router(
             routerConfig: _createRouter(auth),
             title: 'RIYOBOX',
+            themeMode: settings.themeMode,
             locale: settings.language == 'Arabic' ? const Locale('ar', '') : const Locale('en', ''),
             builder: (context, child) {
               return Directionality(
@@ -200,7 +201,19 @@ class MyApp extends StatelessWidget {
                 child: child!,
               );
             },
-            theme: ThemeData.dark().copyWith(
+            theme: ThemeData(
+              useMaterial3: true,
+              brightness: Brightness.light,
+              primaryColor: Colors.deepPurple,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.deepPurple,
+                brightness: Brightness.light,
+                secondary: Colors.deepPurpleAccent,
+              ),
+            ),
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              brightness: Brightness.dark,
               primaryColor: Colors.deepPurple,
               scaffoldBackgroundColor: const Color(0xFF1C1B1F),
               colorScheme: const ColorScheme.dark(

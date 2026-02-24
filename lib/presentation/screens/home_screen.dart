@@ -213,16 +213,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCarouselSlider(String? token) {
     return FutureBuilder<List<Movie>>(
-      future: _apiService.getTrendingMovies(token: token),
+      future: _apiService.getTrendingMovies(token: token, isFeatured: true),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const ShimmerLoading.rectangular(height: 250);
+          return const ShimmerLoading.rectangular(height: 400);
         }
         if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox(
-            height: 250,
-            child: Center(child: Text('Lama soo rari karin filimada la soo bandhigay.', style: TextStyle(color: Colors.white))),
-          );
+          // Fallback to trending if no featured movies
+          return _buildTrendingCarousel(token);
         }
 
         final movies = snapshot.data!;
@@ -231,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             CarouselSlider(
               options: CarouselOptions(
-                height: 280.0, // Slightly taller for more impact
+                height: 450.0, // Large poster height
                 autoPlay: true,
                 autoPlayInterval: const Duration(seconds: 5),
                 autoPlayAnimationDuration: const Duration(milliseconds: 1000),
@@ -254,17 +252,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Stack(
                         children: [
                           CachedNetworkImage(
-                            imageUrl: (movie.backdropPath ?? movie.posterPath).startsWith('http')
-                                ? (movie.backdropPath ?? movie.posterPath)
-                                : 'https://image.tmdb.org/t/p/original${movie.backdropPath ?? movie.posterPath}',
+                            imageUrl: (movie.posterPath).startsWith('http')
+                                ? (movie.posterPath)
+                                : 'https://image.tmdb.org/t/p/original${movie.posterPath}',
                             fit: BoxFit.cover,
-                            height: 280.0,
+                            height: 450.0,
                             width: double.infinity,
-                            placeholder: (context, url) => const ShimmerLoading.rectangular(height: 280),
+                            placeholder: (context, url) => const ShimmerLoading.rectangular(height: 450),
                             errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
                           ),
                         Container(
-                          height: 280.0,
+                          height: 450.0,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.bottomCenter,
@@ -442,6 +440,121 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget _buildTrendingCarousel(String? token) {
+    return FutureBuilder<List<Movie>>(
+      future: _apiService.getTrendingMovies(token: token),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const ShimmerLoading.rectangular(height: 400);
+        }
+        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox(
+            height: 200,
+            child: Center(child: Text('Cilad ayaa dhacday.', style: TextStyle(color: Colors.white))),
+          );
+        }
+
+        final movies = snapshot.data!;
+
+        return Column(
+          children: [
+            CarouselSlider(
+              options: CarouselOptions(
+                height: 450.0,
+                autoPlay: true,
+                autoPlayInterval: const Duration(seconds: 5),
+                autoPlayAnimationDuration: const Duration(milliseconds: 1000),
+                autoPlayCurve: Curves.fastOutSlowIn,
+                viewportFraction: 1.0,
+                onPageChanged: (index, reason) {
+                  setState(() {
+                    _currentCarouselIndex = index;
+                  });
+                },
+              ),
+              items: movies.take(5).map((movie) {
+                return Builder(
+                  builder: (BuildContext context) {
+                    return GestureDetector(
+                      onTap: () {
+                        final id = movie.backendId ?? movie.id.toString();
+                        context.push('/movie/$id');
+                      },
+                      child: Stack(
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: (movie.posterPath).startsWith('http')
+                                ? (movie.posterPath)
+                                : 'https://image.tmdb.org/t/p/original${movie.posterPath}',
+                            fit: BoxFit.cover,
+                            height: 450.0,
+                            width: double.infinity,
+                            placeholder: (context, url) => const ShimmerLoading.rectangular(height: 450),
+                            errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+                          ),
+                        Container(
+                          height: 450.0,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [Colors.black.withAlpha(204), Colors.transparent],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 30,
+                          left: 20,
+                          right: 20,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                movie.title.toUpperCase(),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                  shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      final id = movie.backendId ?? movie.id.toString();
+                                      context.push('/movie/$id/play');
+                                    },
+                                    icon: const Icon(Icons.play_arrow, color: Colors.black),
+                                    label: const Text('PLAY', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                  },
+                );
+              }).toList(),
+            ),
+          ],
         );
       },
     );

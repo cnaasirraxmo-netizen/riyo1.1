@@ -6,10 +6,11 @@ const router = express.Router();
 
 router.get('/', protect, async (req, res) => {
   try {
-    const { genre, isTrending } = req.query;
+    const { genre, isTrending, isFeatured } = req.query;
     let query = {};
     if (genre) query.genre = genre;
     if (isTrending) query.isTrending = isTrending === 'true';
+    if (isFeatured) query.isFeatured = isFeatured === 'true';
 
     const movies = await Movie.find(query);
     res.json(movies);

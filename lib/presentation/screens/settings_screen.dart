@@ -22,6 +22,9 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          _buildSectionHeader('APPEARANCE'),
+          _buildAppearanceSection(context, settings),
+          _buildDivider(),
           _buildSectionHeader('NETWORK'),
           SwitchListTile(
             secondary: const Icon(Icons.signal_wifi_off_outlined, color: Colors.white),
@@ -172,6 +175,75 @@ class SettingsScreen extends StatelessWidget {
 
   Widget _buildDivider() {
     return const Divider(color: Colors.white10, thickness: 1, indent: 16, endIndent: 16);
+  }
+
+  Widget _buildAppearanceSection(BuildContext context, SettingsProvider settings) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildThemeCard(
+            context,
+            'Device',
+            Icons.phonelink_setup,
+            settings.themeMode == ThemeMode.system,
+            () => settings.setThemeMode(ThemeMode.system),
+          ),
+          _buildThemeCard(
+            context,
+            'Dark',
+            Icons.dark_mode,
+            settings.themeMode == ThemeMode.dark,
+            () => settings.setThemeMode(ThemeMode.dark),
+          ),
+          _buildThemeCard(
+            context,
+            'Light',
+            Icons.light_mode,
+            settings.themeMode == ThemeMode.light,
+            () => settings.setThemeMode(ThemeMode.light),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeCard(BuildContext context, String label, IconData icon, bool isSelected, VoidCallback onTap) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 100,
+            height: 80,
+            decoration: BoxDecoration(
+              color: isSelected ? colorScheme.primary.withAlpha(40) : const Color(0xFF1C1C1C),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? colorScheme.primary : Colors.white10,
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: isSelected ? colorScheme.primary : Colors.grey,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey,
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _getQualityText(DownloadQuality quality) {

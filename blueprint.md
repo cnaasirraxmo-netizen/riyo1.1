@@ -125,5 +125,10 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
   - **About**: Shows the app branding, description, and current version (v2.4.0).
 - **Navigation Integration**: All new screens are fully reachable from the Settings menu.
 
+### 10. Appearance Settings & Featured Content
+- **Theme Selection**: Added a new "APPEARANCE" section to the app settings. Users can now choose between **Device Theme**, **Dark Theme**, and **Light Theme**. The selection is persisted and applies globally.
+- **Featured Carousel**: The Home screen carousel now prioritizes "Featured" movies (marked by admin) with **extra-large posters** for a more immersive experience.
+- **Admin Content Control**: Added the ability for administrators to mark specific movies as "Featured" via the Web Admin Panel, giving them direct control over the home screen's main highlights.
+
 ## 6. Project Status
 All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.
