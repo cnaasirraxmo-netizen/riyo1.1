@@ -81,11 +81,11 @@ class _HomeScreenState extends State<HomeScreen> {
             return <Widget>[
               SliverAppBar(
                 backgroundColor: const Color(0xFF141414),
-                title: const Text('RIYO',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        color: Colors.white)),
+                title: Image.asset(
+                  'assets/images/full_logo.jpg',
+                  height: 40,
+                  fit: BoxFit.contain,
+                ),
                 actions: [
                   Selector<SettingsProvider, bool>(
                     selector: (_, s) => s.isOffline,

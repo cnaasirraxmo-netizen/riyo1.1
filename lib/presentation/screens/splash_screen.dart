@@ -70,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1C1B1F),
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
           // Ray Sweep Effect
@@ -90,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ],
                       colors: [
                         Colors.transparent,
-                        Colors.deepPurpleAccent.withValues(alpha: 0.1),
+                        Colors.white.withValues(alpha: 0.05),
                         Colors.transparent,
                       ],
                     ),
@@ -109,33 +109,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     scale: _scaleAnimation,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.deepPurpleAccent.withValues(alpha: 0.3),
-                            blurRadius: 50,
-                            spreadRadius: 10,
-                          ),
-                        ],
-                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'RIYO',
-                            style: TextStyle(
-                              fontSize: 64,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 12,
-                            ),
-                          ),
-                          Container(
-                            height: 2,
-                            width: 120,
-                            margin: const EdgeInsets.only(top: 8),
-                            color: Colors.yellow,
+                          Image.asset(
+                            'assets/images/full_logo.jpg',
+                            width: 300,
+                            fit: BoxFit.contain,
                           ),
                         ],
                       ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riyo/main.dart';
 
@@ -13,7 +14,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
 
     // Splash Screen should be visible initially
-    expect(find.text('RIYO'), findsAtLeast(1));
+    expect(find.byType(Image), findsAtLeast(1));
     expect(find.text('PREMIUM STREAMING EXPERIENCE'), findsOneWidget);
 
     // Wait for splash animation to finish (2.5s in code)
