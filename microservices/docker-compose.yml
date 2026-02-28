@@ -1,4 +1,5 @@
 services:
+  # Infrastructure
   postgres:
     image: postgres:15-alpine
     environment:
@@ -15,6 +16,40 @@ services:
     ports:
       - "6379:6379"
 
+  kafka:
+    image: bitnami/kafka:3.5.1
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    ports:
+      - "9092:9092"
+
+  # Core Services
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      - PORT=8080
+      - USER_SERVICE_URL=http://user-service:8081
+      - METADATA_SERVICE_URL=http://metadata-service:5002
+      - STREAMING_AUTH_URL=http://streaming-auth:5003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5004
+      - NODE_JS_SERVICE_URL=http://backend:5000
+      - FIREBASE_CREDS_FILE=/app/firebase-creds.json
+      - INTERNAL_SECRET=super-secret-key
+    depends_on:
+      - user-service
+      - metadata-service
+      - streaming-auth
+      - notification-service
+    ports:
+      - "8080:8080"
+
   user-service:
     build:
       context: .
@@ -28,21 +63,60 @@ services:
       - DB_NAME=riyo_users
     depends_on:
       - postgres
-    ports:
-      - "8081:8081"
 
-  api-gateway:
+  metadata-service:
     build:
       context: .
-      dockerfile: api-gateway/Dockerfile
+      dockerfile: metadata-service/Dockerfile
     environment:
-      - PORT=8080
-      - USER_SERVICE_URL=http://user-service:8081
-      - FIREBASE_CREDS_FILE=/app/firebase-creds.json
+      - PORT=5002
+      - POSTGRES_HOST=postgres
+      - INTERNAL_SECRET=super-secret-key
     depends_on:
-      - user-service
-    ports:
-      - "8080:8080"
+      - postgres
+
+  streaming-auth:
+    build:
+      context: .
+      dockerfile: streaming-auth/Dockerfile
+    environment:
+      - PORT=5003
+      - REDIS_HOST=redis
+      - INTERNAL_SECRET=super-secret-key
+      - S3_SECRET_KEY=s3-secret
+    depends_on:
+      - redis
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    environment:
+      - PORT=5004
+      - KAFKA_BROKERS=kafka:9092
+      - FIREBASE_CREDS_FILE=/app/firebase-creds.json
+
+  video-processing:
+    build:
+      context: .
+      dockerfile: video-processing/Dockerfile
+    environment:
+      - PORT=5001
+      - KAFKA_BROKERS=kafka:9092
+      - R2_ACCESS_KEY_ID=r2-key
+      - R2_SECRET_ACCESS_KEY=r2-secret
+      - R2_BUCKET_NAME=riyo-videos
+
+  # Legacy & Management
+  backend:
+    build: ../backend
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/riyo
+      - KAFKA_BROKERS=kafka:9092
+      - VIDEO_PROCESSING_SERVICE_URL=http://video-processing:5001
+    depends_on:
+      - kafka
 
 volumes:
   postgres_data:

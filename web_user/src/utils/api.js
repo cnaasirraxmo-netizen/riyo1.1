@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Centralized Backend API URL
-const API_URL = 'https://riyo-nmw6.onrender.com';
+// Unified Global API Gateway URL
+const API_URL = 'https://api.riyo.com/v1';
 
 const api = axios.create({
   baseURL: API_URL,
