@@ -1,6 +1,7 @@
 const express = require('express');
 const Movie = require('../models/Movie');
 const User = require('../models/User');
+const jobProducer = require('../utils/jobProducer');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -19,6 +20,12 @@ router.post('/movies', protect, adminOnly, async (req, res) => {
       isPublished: contentType !== 'coming_soon'
     });
     const createdMovie = await movie.save();
+
+    // Trigger video processing job if it's not coming soon
+    if (createdMovie.contentType !== 'coming_soon' && createdMovie.videoUrl) {
+      await jobProducer.emitVideoUploaded(createdMovie);
+    }
+
     res.status(201).json(createdMovie);
   } catch (error) {
     res.status(500).json({ message: error.message });
