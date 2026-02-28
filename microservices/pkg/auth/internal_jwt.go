@@ -6,7 +6,7 @@ import (
 )
 
 type InternalClaims struct {
-	UserID string `json:"user_id"`
+	UserID string `json:"id"`   // Node.js middleware often expects 'id'
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }

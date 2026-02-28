@@ -12,6 +12,14 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Prepend /cms to legacy routes if not already present
+  if (!config.url.startsWith('/cms') &&
+      !config.url.startsWith('/users') &&
+      !config.url.startsWith('/metadata')) {
+    config.url = `/cms${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+  }
+
   return config;
 });
 

@@ -25,6 +25,7 @@ Minimal Node.js backend for the RIYO streaming app. It handles authentication, m
     PORT=5000
     MONGO_URI=mongodb://localhost:27017/riyo
     JWT_SECRET=your_super_secret_key
+    INTERNAL_SECRET=your_internal_gateway_secret
 
     # Cloudflare R2 Storage
     R2_ACCESS_KEY_ID=your_access_key
@@ -43,6 +44,11 @@ Minimal Node.js backend for the RIYO streaming app. It handles authentication, m
     ```
 
 ## 🛡 Authentication & Roles
+
+### API Gateway Integration
+In a microservices setup, this backend is intended to sit behind the **Go API Gateway**.
+- It validates the `X-Internal-Token` header using the `INTERNAL_SECRET`.
+- Ensure `INTERNAL_SECRET` matches the one configured in the API Gateway.
 
 The system automatically creates a Super Admin on the first run.
 

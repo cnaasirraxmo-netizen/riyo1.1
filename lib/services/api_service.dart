@@ -8,6 +8,7 @@ class ApiService {
   static const String _apiKey = Constants.tmdbApiKey;
   static const String _baseUrl = Constants.tmdbBaseUrl;
   static const String _backendUrl = Constants.apiBaseUrl;
+  static const String _cmsUrl = Constants.cmsBaseUrl;
 
   // Simple In-memory cache
   static final Map<String, dynamic> _cache = {};
@@ -25,7 +26,7 @@ class ApiService {
 
     try {
       if (token != null) {
-        String url = '$_backendUrl/movies';
+        String url = '$_cmsUrl/movies';
         final List<String> params = [];
         if (genre != null) params.add('genre=$genre');
         if (isFeatured) params.add('isFeatured=true');
@@ -78,7 +79,7 @@ class ApiService {
   Future<Movie> getMovieDetails(String movieId, {String? token}) async {
     try {
       if (token != null) {
-        final response = await http.get(Uri.parse('$_backendUrl/movies/$movieId'), headers: {'Authorization': 'Bearer $token'});
+        final response = await http.get(Uri.parse('$_cmsUrl/movies/$movieId'), headers: {'Authorization': 'Bearer $token'});
         if (response.statusCode == 200) return Movie.fromJson(json.decode(response.body));
       }
     } catch (e) { debugPrint('Error fetching movie details from backend: $e'); }
@@ -204,7 +205,7 @@ class ApiService {
   Future<bool> toggleWatchlist(String movieId, String token) async {
     try {
       final response = await http.post(
-        Uri.parse('$_backendUrl/users/watchlist/$movieId'),
+        Uri.parse('$_cmsUrl/users/watchlist/$movieId'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {
@@ -220,7 +221,7 @@ class ApiService {
   Future<List<Movie>> getWatchlist(String token) async {
     try {
       final response = await http.get(
-        Uri.parse('$_backendUrl/users/profile'),
+        Uri.parse('$_cmsUrl/users/profile'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {
@@ -236,7 +237,7 @@ class ApiService {
 
   Future<List<String>> getHeaderCategories() async {
     try {
-      final response = await http.get(Uri.parse('$_backendUrl/config/categories'));
+      final response = await http.get(Uri.parse('$_cmsUrl/config/categories'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((cat) => cat['name'].toString()).toList();
@@ -247,7 +248,7 @@ class ApiService {
 
   Future<List<Map<String, dynamic>>> getHomeSections() async {
     try {
-      final response = await http.get(Uri.parse('$_backendUrl/config/home-sections'));
+      final response = await http.get(Uri.parse('$_cmsUrl/config/home-sections'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data);
@@ -262,7 +263,7 @@ class ApiService {
 
   Future<List<Movie>> getComingSoonMovies({String? token}) async {
     try {
-      final url = '$_backendUrl/movies/coming-soon';
+      final url = '$_cmsUrl/movies/coming-soon';
       final response = await http.get(
         Uri.parse(url),
         headers: token != null ? {'Authorization': 'Bearer $token'} : {},
@@ -281,7 +282,7 @@ class ApiService {
   Future<bool> toggleNotifyMe(String movieId, String token) async {
     try {
       final response = await http.post(
-        Uri.parse('$_backendUrl/users/notify-me/$movieId'),
+        Uri.parse('$_cmsUrl/users/notify-me/$movieId'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {

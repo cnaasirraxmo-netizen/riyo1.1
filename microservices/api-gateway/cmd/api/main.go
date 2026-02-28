@@ -27,20 +27,31 @@ func main() {
 		c.JSON(200, gin.H{"status": "UP", "service": "api-gateway"})
 	})
 
-	// Protected routes
+	// V1 Group
 	v1 := r.Group("/v1")
+
+	// Legacy Node.js CMS Proxy (Public parts)
+	cms := v1.Group("/cms")
+	// Allow public access to legacy auth
+	cms.Any("/auth/*proxyPath", handler.ProxyHandler(cfg.NodeJsServiceURL))
+
+	// Protected routes
+	protected := v1.Group("/")
 	if fbClient != nil {
-		v1.Use(middleware.AuthMiddleware(fbClient, cfg.InternalSecret))
+		protected.Use(middleware.AuthMiddleware(fbClient, cfg.InternalSecret))
+	} else {
+		// Fallback/Warning if Firebase not available
+		log.Println("WARNING: Protected routes running without Firebase Auth!")
 	}
 
-	// Microservices Proxies
-	v1.Any("/users/*proxyPath", handler.ProxyHandler(cfg.UserServiceURL))
-	v1.Any("/metadata/*proxyPath", handler.ProxyHandler(cfg.MetadataServiceURL))
-	v1.Any("/auth-stream/*proxyPath", handler.ProxyHandler(cfg.StreamingAuthURL))
-	v1.Any("/notifications/*proxyPath", handler.ProxyHandler(cfg.NotificationServiceURL))
+	// Microservices Proxies (Protected)
+	protected.Any("/users/*proxyPath", handler.ProxyHandler(cfg.UserServiceURL))
+	protected.Any("/metadata/*proxyPath", handler.ProxyHandler(cfg.MetadataServiceURL))
+	protected.Any("/auth-stream/*proxyPath", handler.ProxyHandler(cfg.StreamingAuthURL))
+	protected.Any("/notifications/*proxyPath", handler.ProxyHandler(cfg.NotificationServiceURL))
 
-	// Legacy Node.js CMS Proxy
-	v1.Any("/cms/*proxyPath", handler.ProxyHandler(cfg.NodeJsServiceURL))
+	// Legacy Node.js CMS Proxy (Protected)
+	protected.Any("/cms/*proxyPath", handler.ProxyHandler(cfg.NodeJsServiceURL))
 
 	log.Printf("API Gateway starting on port %s", cfg.Port)
 	r.Run(":" + cfg.Port)

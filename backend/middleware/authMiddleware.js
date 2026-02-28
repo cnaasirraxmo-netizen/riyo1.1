@@ -2,6 +2,26 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const protect = async (req, res, next) => {
+  // 1. Check for Internal Token from API Gateway
+  const internalToken = req.headers['x-internal-token'];
+  const internalSecret = process.env.INTERNAL_SECRET || 'default_internal_secret';
+
+  if (internalToken) {
+    try {
+      const decodedInternal = jwt.verify(internalToken, internalSecret);
+      // Trust the Gateway's verification
+      const uid = req.headers['x-user-id'] || decodedInternal.id;
+      const role = req.headers['x-user-role'] || decodedInternal.role;
+
+      // Attach user info to request
+      req.user = { id: uid, role: role };
+      return next();
+    } catch (error) {
+      console.error('Invalid Internal Token:', error.message);
+      // Fall through to standard auth or bypass
+    }
+  }
+
   // AUTO-PASS for Admin Bypassing (User Request: Remove admin login at all)
   let token;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {

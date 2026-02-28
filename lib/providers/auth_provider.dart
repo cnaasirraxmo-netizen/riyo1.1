@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:riyo/core/constants.dart';
 
 class AuthProvider with ChangeNotifier {
-  static const String _backendUrl = Constants.apiBaseUrl;
+  static const String _backendUrl = Constants.cmsBaseUrl;
   bool _isAuthenticated = false;
   bool _isOnboardingComplete = false;
   String? _token;
