@@ -5,4 +5,7 @@ use (
 	./pkg
 	./user-service
 	./video-processing
+	./metadata-service
+	./streaming-auth
+	./notification-service
 )

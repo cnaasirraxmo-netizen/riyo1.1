@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-typedef void (*RiyoEventCallback)(int event_type, const char* data);
+typedef void (*RiyoEventCallback)(void* player_handle, int event_type, const char* data);
 
 void* riyo_create_player(const char* url, RiyoEventCallback callback);
 void riyo_play(void* player);

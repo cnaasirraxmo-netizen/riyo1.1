@@ -36,6 +36,15 @@ func main() {
 	// User Service Proxy
 	v1.Any("/users/*proxyPath", handler.ProxyHandler(cfg.UserServiceURL))
 
+	// Metadata Service Proxy
+	v1.Any("/metadata/*proxyPath", handler.ProxyHandler("http://localhost:5002"))
+
+	// Streaming Auth Proxy
+	v1.Any("/auth-stream/*proxyPath", handler.ProxyHandler("http://localhost:5003"))
+
+	// Notification Service Proxy
+	v1.Any("/notifications/*proxyPath", handler.ProxyHandler("http://localhost:5004"))
+
 	log.Printf("API Gateway starting on port %s", cfg.Port)
 	r.Run(":" + cfg.Port)
 }

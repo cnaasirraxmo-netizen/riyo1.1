@@ -2,7 +2,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'package:ffi/ffi.dart';
 
-typedef RiyoEventCallbackNative = Void Function(Int32 eventType, Pointer<Utf8> data);
+typedef RiyoEventCallbackNative = Void Function(Pointer<Void> playerHandle, Int32 eventType, Pointer<Utf8> data);
 typedef RiyoEventCallback = void Function(int eventType, String data);
 
 class RiyoPlayerFFI {
@@ -17,6 +17,8 @@ class RiyoPlayerFFI {
   late int Function(Pointer<Void>) _getDuration;
   late void Function(Pointer<Void>) _destroyPlayer;
 
+  static final Map<int, RiyoEventCallback> _playerCallbacks = {};
+
   RiyoPlayerFFI() {
     _lib = _loadLibrary();
     _initFunctions();
@@ -25,7 +27,6 @@ class RiyoPlayerFFI {
   DynamicLibrary _loadLibrary() {
     if (Platform.isAndroid) return DynamicLibrary.open('libriyo_player.so');
     if (Platform.isIOS || Platform.isMacOS) return DynamicLibrary.process();
-    if (Platform.isWindows) return DynamicLibrary.open('riyo_player.dll');
     return DynamicLibrary.open('libriyo_player.so');
   }
 
@@ -45,21 +46,16 @@ class RiyoPlayerFFI {
 
   Pointer<Void> createPlayer(String url, RiyoEventCallback callback) {
     final urlPtr = url.toNativeUtf8();
-    // In a real implementation, we'd need to handle the static/global nature of FFI callbacks
-    // Often using a registry or a central dispatcher.
     final player = _createPlayer(urlPtr, Pointer.fromFunction(_onEventStatic));
-    // For prototype, we'll store the callback globally or in a map
-    _callbacks[player.address] = callback;
+    _playerCallbacks[player.address] = callback;
     return player;
   }
 
-  static final Map<int, RiyoEventCallback> _callbacks = {};
-
-  static void _onEventStatic(int eventType, Pointer<Utf8> data) {
-    // In reality, we need to know WHICH player this event is for.
-    // The native C++ should pass back the player handle in the callback.
-    final dataStr = data.toDartString();
-    _callbacks.values.forEach((cb) => cb(eventType, dataStr));
+  static void _onEventStatic(Pointer<Void> playerHandle, int eventType, Pointer<Utf8> data) {
+    final callback = _playerCallbacks[playerHandle.address];
+    if (callback != null) {
+      callback(eventType, data.toDartString());
+    }
   }
 
   void play(Pointer<Void> player) => _play(player);
@@ -69,6 +65,6 @@ class RiyoPlayerFFI {
   int getDuration(Pointer<Void> player) => _getDuration(player);
   void destroy(Pointer<Void> player) {
     _destroyPlayer(player);
-    _callbacks.remove(player.address);
+    _playerCallbacks.remove(player.address);
   }
 }

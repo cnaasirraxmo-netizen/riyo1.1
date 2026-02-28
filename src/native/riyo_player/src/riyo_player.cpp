@@ -17,26 +17,20 @@ public:
     RiyoPlayerInstance(const char* u, RiyoEventCallback cb)
         : url(u), event_callback(cb), is_playing(false), position(0), duration(120000), surface(nullptr) {
         std::cout << "RiyoPlayer created for URL: " << url << std::endl;
-        // In real implementation, this would initialize FFmpeg demuxer, decoders, etc.
     }
 
     void play() {
         if (!is_playing) {
             is_playing = true;
-            if (event_callback) {
-                event_callback(RIYO_EVENT_PLAYING, "{\"status\": \"playing\"}");
-            }
+            notify(RIYO_EVENT_PLAYING, "{\"status\": \"playing\"}");
             std::cout << "RiyoPlayer playing..." << std::endl;
-            // Spawn internal playback/decode threads here
         }
     }
 
     void pause() {
         if (is_playing) {
             is_playing = false;
-            if (event_callback) {
-                event_callback(RIYO_EVENT_PAUSED, "{\"status\": \"paused\"}");
-            }
+            notify(RIYO_EVENT_PAUSED, "{\"status\": \"paused\"}");
             std::cout << "RiyoPlayer paused." << std::endl;
         }
     }
@@ -44,6 +38,12 @@ public:
     void seek(long ms) {
         position = ms;
         std::cout << "RiyoPlayer seeking to " << ms << "ms" << std::endl;
+    }
+
+    void notify(int type, const char* data) {
+        if (event_callback) {
+            event_callback(this, type, data);
+        }
     }
 
     ~RiyoPlayerInstance() {
