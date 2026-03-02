@@ -2,8 +2,9 @@ name: Flutter Build APK
 
 on:
   push:
+    branches: [ "main" ]
   pull_request:
-  
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -22,14 +23,10 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.16.7'
           channel: 'stable'
 
       - name: Disable Flutter Analytics
         run: flutter config --no-analytics
-
-      - name: Upgrade Flutter (force correct Dart)
-        run: flutter upgrade
 
       - name: Install dependencies
         run: flutter pub get
