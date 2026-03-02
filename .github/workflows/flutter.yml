@@ -1,15 +1,46 @@
-name: Flutter Build APK
+name: RIYO CI/CD Suite
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/**" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  build:
+  backend-and-web:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            web_admin/package-lock.json
+            web_user/package-lock.json
+
+      - name: Verify Backend
+        run: |
+          cd backend
+          npm install
+
+      - name: Build Web Admin
+        run: |
+          cd web_admin
+          npm install
+          npm run build
+
+      - name: Build Web User
+        run: |
+          cd web_user
+          npm install
+          npm run build
+
+  flutter-build:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,19 +54,19 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.16.7'
           channel: 'stable'
+          cache: true
 
       - name: Disable Flutter Analytics
         run: flutter config --no-analytics
 
-      - name: Upgrade Flutter (force correct Dart)
-        run: flutter upgrade
-
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Run tests
+      - name: Run Analyze
+        run: flutter analyze
+
+      - name: Run Tests
         run: flutter test
 
       - name: Build APK
@@ -44,5 +75,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
+          name: riyo-app-release
           path: build/app/outputs/flutter-apk/app-release.apk

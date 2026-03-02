@@ -8,3 +8,6 @@
 -dontwarn org.osgi.**
 -dontwarn org.jupnp.**
 -keep class org.jupnp.** { *; }
+
+# General fallback for missing optional dependencies
+-ignorewarnings
