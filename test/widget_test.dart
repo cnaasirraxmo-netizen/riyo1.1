@@ -64,9 +64,6 @@ class _MockHttpClientRequest implements HttpClientRequest {
   HttpHeaders get headers => _MockHttpHeaders();
 
   @override
-  Future<HttpClientRequest> openUrl(String method, Uri url) async => this;
-
-  @override
   Future<HttpClientResponse> close() async => _MockHttpClientResponse();
 
   @override
@@ -94,8 +91,8 @@ class _MockHttpClientResponse implements HttpClientResponse {
   HttpClientResponseCompressionState get compressionState => HttpClientResponseCompressionState.notCompressed;
 
   @override
-  StreamSubscription<List<int>> listen(void onData(List<int> event)?,
-      {Function? onError, void onDone()?, bool? cancelOnError}) {
+  StreamSubscription<List<int>> listen(void Function(List<int> event)? onData,
+      {Function? onError, void Function()? onDone, bool? cancelOnError}) {
     return Stream.fromIterable([_data]).listen(onData,
         onError: onError, onDone: onDone, cancelOnError: cancelOnError);
   }

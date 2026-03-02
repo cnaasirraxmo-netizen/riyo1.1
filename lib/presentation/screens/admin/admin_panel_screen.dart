@@ -81,7 +81,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File deleted')));
         _fetchR2Files();
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error: $e');
+    }
   }
 
   Future<void> _fetchMovies() async {
@@ -262,7 +264,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Movie removed')));
         _fetchMovies();
       }
-    } catch (e) {}
+    } catch (e) {
+       debugPrint('Error: $e');
+    }
   }
 
   @override

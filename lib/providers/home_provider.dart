@@ -8,7 +8,7 @@ class HomeProvider extends ChangeNotifier {
 
   List<String> _categories = ["All"];
   List<Map<String, dynamic>> _sections = [];
-  Map<String, Future<List<Movie>>> _sectionFutures = {};
+  final Map<String, Future<List<Movie>>> _sectionFutures = {};
   Future<List<Movie>>? _featuredFuture;
 
   bool _isLoadingConfig = true;

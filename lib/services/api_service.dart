@@ -241,7 +241,9 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         return data.map((cat) => cat['name'].toString()).toList();
       }
-    } catch (e) {}
+    } catch (e) {
+       debugPrint('Error: $e');
+    }
     return ["All", "Movies", "TV Shows", "Anime", "Kids", "My List"]; // Fallback
   }
 
@@ -252,7 +254,9 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data);
       }
-    } catch (e) {}
+    } catch (e) {
+       debugPrint('Error: $e');
+    }
     return [
       {'title': 'Trending Now', 'type': 'trending'},
       {'title': 'Popular on RIYO', 'type': 'top_rated'},
@@ -262,7 +266,7 @@ class ApiService {
 
   Future<List<Movie>> getComingSoonMovies({String? token}) async {
     try {
-      final url = '$_backendUrl/movies/coming-soon';
+      const url = '$_backendUrl/movies/coming-soon';
       final response = await http.get(
         Uri.parse(url),
         headers: token != null ? {'Authorization': 'Bearer $token'} : {},

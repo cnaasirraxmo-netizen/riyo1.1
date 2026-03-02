@@ -123,8 +123,8 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: [
-        const CastingButton(),
+      actions: const [
+        CastingButton(),
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
@@ -363,11 +363,10 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                     return;
                   }
                   final res = await _apiService.toggleNotifyMe(movie.backendId ?? movie.id.toString(), auth.token!);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(res ? 'We will notify you when it is released!' : 'Notifications disabled'))
-                    );
-                  }
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(res ? 'We will notify you when it is released!' : 'Notifications disabled'))
+                  );
                 },
                 icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                 label: const Text('NOTIFY ME', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
