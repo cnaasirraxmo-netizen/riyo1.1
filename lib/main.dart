@@ -30,6 +30,7 @@ import 'package:riyo/presentation/screens/support/privacy_screen.dart';
 import 'package:riyo/presentation/screens/support/about_screen.dart';
 import 'package:riyo/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -251,11 +252,16 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   final Widget child;
 
   const MainScreen({super.key, required this.child});
 
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/home')) return 0;
@@ -287,9 +293,38 @@ class MainScreen extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _checkAndShowWelcomeNotification();
+    }
+  }
+
+  Future<void> _checkAndShowWelcomeNotification() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasShownWelcome = prefs.getBool('has_shown_welcome_notification') ?? false;
+
+    if (!hasShownWelcome) {
+      await NotificationService.showWelcomeNotification();
+      await prefs.setBool('has_shown_welcome_notification', true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(

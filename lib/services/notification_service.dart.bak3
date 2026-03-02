@@ -29,7 +29,7 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.initialize(
-      settings: initializationSettings,
+      initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         // Handle notification tap
       },
@@ -58,9 +58,9 @@ class NotificationService {
 
   static Future<void> showWelcomeNotification() async {
     await _localNotificationsPlugin.show(
-      id: 0,
-      title: 'Welcome to RIYO',
-      body: 'Enjoy your premium streaming experience!',
+      0,
+      'Welcome to RIYO',
+      'Enjoy your premium streaming experience!',
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           _channel.id,
@@ -79,9 +79,9 @@ class NotificationService {
 
     if (notification != null) {
       await _localNotificationsPlugin.show(
-        id: notification.hashCode,
-        title: notification.title,
-        body: notification.body,
+        notification.hashCode,
+        notification.title,
+        notification.body,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channel.id,
