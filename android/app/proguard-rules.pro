@@ -8,6 +8,8 @@
 -dontwarn org.osgi.**
 -dontwarn org.jupnp.**
 -keep class org.jupnp.** { *; }
+-keep interface org.jupnp.** { *; }
+-keep enum org.jupnp.** { *; }
 
 # General fallback for missing optional dependencies
 -ignorewarnings

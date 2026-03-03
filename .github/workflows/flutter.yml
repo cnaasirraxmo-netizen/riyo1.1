@@ -69,6 +69,10 @@ jobs:
       - name: Run Tests
         run: flutter test
 
+      - name: Fix Android Resource Names (Cleanup)
+        run: |
+          find android/app/src/main/res -name "*[A-Z]*" -exec bash -c 'mv "$1" "${1,,}"' -- {} \; || true
+
       - name: Build APK
         run: flutter build apk --release
 
