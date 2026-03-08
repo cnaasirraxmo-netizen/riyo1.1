@@ -7,12 +7,14 @@ set(CMAKE_CXX_STANDARD 17)
 add_library(riyo_video_engine SHARED
     src/video_engine.cpp
     src/native_bridge.cpp
+    src/jni_bridge.cpp
     modules/demuxer.cpp
     modules/decoder.cpp
     modules/renderer.cpp
     modules/buffer_manager.cpp
     modules/network_loader.cpp
     modules/av_sync.cpp
+    modules/texture_renderer.cpp
 )
 
 target_include_directories(riyo_video_engine PRIVATE
@@ -24,10 +26,14 @@ find_library(log-lib log)
 find_library(android-lib android)
 find_library(mediandk-lib mediandk)
 find_library(jnigraphics-lib jnigraphics)
+find_library(egl-lib EGL)
+find_library(gles-lib GLESv3)
 
 target_link_libraries(riyo_video_engine
     ${log-lib}
     ${android-lib}
     ${mediandk-lib}
     ${jnigraphics-lib}
+    ${egl-lib}
+    ${gles-lib}
 )

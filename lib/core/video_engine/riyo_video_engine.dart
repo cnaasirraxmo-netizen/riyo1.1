@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:isolate';
 import 'package:ffi/ffi.dart';
 
 // Native function signatures
@@ -79,13 +80,16 @@ class RiyoVideoEngine {
   void setQuality(int level) => _playerSetQuality(_playerHandle, level);
   int getState() => _playerGetState(_playerHandle);
 
-  void setEventCallback(void Function(int event, String data) callback) {
+  final _eventStreamController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get eventStream => _eventStreamController.stream;
+
+  void setEventCallback() {
     final nativeCallback = Pointer.fromFunction<NativeEventCallback>(_onNativeEvent);
     _playerSetEventCallback(_playerHandle, nativeCallback);
   }
 
   static void _onNativeEvent(int event, Pointer<Utf8> data) {
-    // Handling native callbacks in Dart FFI often requires a global listener or stream
+    // This is called from a background thread in C++
     print('Native event: $event, data: ${data.toDartString()}');
   }
 }
