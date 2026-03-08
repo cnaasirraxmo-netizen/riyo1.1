@@ -16,8 +16,8 @@ RIYO is a production-grade movie streaming application prototype built with Flut
 ## 🛠 Tech Stack
 
 *   **Frontend:** Flutter (State management via Provider, Navigation via GoRouter).
-*   **Backend:** Node.js, Express.js.
-*   **Database:** MongoDB (via Mongoose).
+*   **Backend:** Go, Gin framework.
+*   **Database:** MongoDB (via official Go driver).
 *   **Auth:** JWT (JSON Web Tokens).
 
 ## 🌍 Cloud Deployment (Render)
@@ -33,22 +33,47 @@ The backend is configured for easy deployment on [Render](https://render.com).
     *   `R2_BUCKET_NAME`: Cloudflare R2 Bucket Name.
     *   `R2_S3_ENDPOINT`: Cloudflare R2 S3 Endpoint.
     *   `PORT`: `5000` (Render will set this automatically).
-3.  **Update Frontend:** The frontend is currently pointing to `https://riyobox1-1.onrender.com`. You can change this in `lib/core/constants.dart`.
+3.  **Update Frontend:** The frontend is currently pointing to `https://riyo-1.onrender.com`. You can change this in `lib/core/constants.dart`.
 
 ## 📂 Project Structure
 
-```text
-riyo/
-├── lib/                      # Flutter source code
-│   ├── models/               # Data models
-│   ├── presentation/         # UI Screens and Widgets
-│   ├── providers/            # State management
-│   └── services/             # API and Casting services
-├── backend/                  # Go source code
-├── web_admin/                # React-based Admin Dashboard
-├── web_user/                 # React-based User Streaming Website
-└── test/                     # Widget and Unit tests
-```
+The RIYO platform is a comprehensive streaming ecosystem composed of a mobile application, a performant Go backend, and two web-based management and consumption portals.
+
+### 1. Flutter Mobile App (`/lib`)
+The mobile app is built with Flutter and follows a feature-driven MVVM architecture.
+- **`/core`**: Global configurations, constants, theme definitions, and core logic (e.g., casting, constants).
+- **`/models`**: Type-safe Dart classes representing backend data (Movie, Category, Notification, User).
+- **`/presentation`**: The heart of the UI.
+  - **`/screens`**: Main application views like Home, Movie Details, Video Player, Search, and Admin Panel.
+  - **`/widgets`**: Reusable UI components like Movie Cards, Category Carousels, and Custom Buttons.
+- **`/providers`**: State management using the Provider package (Auth, Movies, Settings, SettingsProvider).
+- **`/services`**: Business logic layer for interacting with the Backend API and Google Cast/DLNA systems.
+
+### 2. Go Backend (`/backend`)
+The backend is written in Go using the high-performance Gin framework.
+- **`/cmd/api`**: Entry point of the application (`main.go`).
+- **`/internal`**: Contains private application logic.
+  - **`/db`**: MongoDB connection setup and database seeding logic.
+  - **`/handlers`**: REST API request handlers (Auth, Movies, Admin, Config, Users, Upload).
+  - **`/middleware`**: Security logic (JWT Authentication, Admin RBAC, CORS).
+  - **`/models`**: Go structs representing MongoDB documents.
+  - **`/utils`**: Helper functions for JWT generation and Cloudflare R2 integration.
+- **`Dockerfile`**: Multi-stage build configuration for containerized deployment.
+
+### 3. Web Admin Dashboard (`/web_admin`)
+A React + Vite + Tailwind CSS dashboard for content managers.
+- **`/src/components`**: Modular UI elements like Sidebars, Stat Cards, and Form components.
+- **`/src/pages`**: Main views including Dashboard, Movie Management, User List, and Home Layout configuration.
+- **`/src/utils`**: API communication layer using Axios.
+
+### 4. Web User Portal (`/web_user`)
+A React-based streaming portal for web users.
+- **`/src/components`**: Netflix-style UI components optimized for the browser.
+- **`/src/pages`**: Home, Playback, and User Profile management.
+- **`/src/utils`**: Backend API integration and Firebase Cloud Messaging setup.
+
+### 5. Shared Assets & Config (`/assets`)
+- Centralized storage for images, fonts, and application icons.
 
 ## ⚙️ Setup & Installation
 
