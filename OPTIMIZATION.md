@@ -44,7 +44,7 @@ mongoose.connect(process.env.MONGO_URI, {
 
 ### Image Optimization
 1. **CDN**: Serve all posters via a CDN (Cloudflare).
-2. **Resizing**: Use tools like `sharp` on the backend or a dynamic image resizer to serve correct dimensions based on the device (Mobile vs Desktop).
+2. **Resizing**: Use tools like `github.com/disintegration/imaging` on the backend or a dynamic image resizer to serve correct dimensions based on the device (Mobile vs Desktop).
 3. **WebP**: Prefer WebP format over JPEG for 30% smaller file sizes.
 
 ### Debouncing Search

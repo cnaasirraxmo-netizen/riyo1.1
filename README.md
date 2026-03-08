@@ -44,7 +44,7 @@ riyo/
 │   ├── presentation/         # UI Screens and Widgets
 │   ├── providers/            # State management
 │   └── services/             # API and Casting services
-├── backend/                  # Node.js source code
+├── backend/                  # Go source code
 ├── web_admin/                # React-based Admin Dashboard
 ├── web_user/                 # React-based User Streaming Website
 └── test/                     # Widget and Unit tests
@@ -53,7 +53,7 @@ riyo/
 ## ⚙️ Setup & Installation
 
 ### 1. Backend Setup
-For detailed instructions on running the Node.js backend and MongoDB, please refer to the [Backend Setup Guide](./backend/README.md).
+For detailed instructions on running the Go backend and MongoDB, please refer to the [Backend Setup Guide](./backend/README.md).
 
 ### 2. Frontend Setup
 1.  Ensure you have Flutter installed (`flutter --version`).

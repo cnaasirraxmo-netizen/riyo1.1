@@ -1,18 +1,20 @@
 # Performance Audit: RIYO Platform
 
-This document outlines the findings of the performance audit conducted on the RIYO platform (Node.js, MongoDB, React, Flutter).
+This document outlines the findings of the performance audit conducted on the RIYO platform (Go, MongoDB, React, Flutter).
 
-## 1. Backend (Node.js) Findings
+## 1. Backend (Go) Findings
 
-### Critical: Event Loop Blocking
-- **Issue**: Large file uploads (up to 1GB) were handled using `multer.memoryStorage()`.
-- **Impact**: Loading a 1GB file into RAM blocks the Node.js event loop during the buffer allocation and processing. Multiple concurrent uploads would lead to Out-Of-Memory (OOM) crashes and high latency for all users.
-- **Status**: Identified. Switching to Signed URLs for direct client-to-storage uploads is recommended.
+### Migration from Node.js
+- **Outcome**: Successfully migrated the backend to Go to resolve performance bottlenecks inherent in the previous Node.js implementation.
 
-### Missing Optimization Middleware
-- **Issue**: No response compression or security headers.
-- **Impact**: Large JSON payloads for movie lists were sent uncompressed, increasing bandwidth usage and load times. Lack of security headers (Helmet) exposes the app to common web vulnerabilities.
-- **Status**: **FIXED**. Added `compression` and `helmet` middleware.
+### Concurrency and Memory
+- **Issue**: Large file uploads previously threatened to block the event loop in Node.js.
+- **Impact**: Go's goroutines and efficient stream handling allow for better concurrent processing of uploads without blocking the entire server.
+- **Status**: **IMPROVED**. Implemented streaming uploads to R2 using Go.
+
+### Security and Middleware
+- **Issue**: Need for robust security headers and authentication.
+- **Status**: **FIXED**. Implemented JWT authentication and CORS middleware in Gin.
 
 ### Lack of Rate Limiting
 - **Issue**: Auth routes had no protection against brute-force attacks.

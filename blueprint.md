@@ -1,10 +1,10 @@
 # Blueprint: RIYO - A Netflix Clone
 
-This document outlines the plan for creating a Netflix clone application named RIYO using Flutter.
+This document outlines the plan for creating a Netflix clone application named RIYO using Flutter and Go.
 
 ## 1. Project Overview
 
-RIYO will be a feature-rich, high-quality clone of the popular streaming service, Netflix. It will showcase a modern and responsive UI, dynamic data from a movie API, and a seamless video playback experience.
+RIYO is a feature-rich, high-quality clone of the popular streaming service, Netflix. It showcases a modern and responsive UI, dynamic data from a Go-based backend API, and a seamless video playback experience.
 
 ## 2. Core Features
 
@@ -149,12 +149,12 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Developer Infrastructure**: Provided `NOTIFICATION_ICON_SETUP.md` with precise instructions for generating density-perfect icons.
 
 ### 13. Performance Optimization & Scalability (Audit v1.0)
+- **Go Backend Migration**: Successfully migrated the entire backend from Node.js to Go (Gin framework) for superior performance, concurrency handling, and type safety.
 - **Database Speed**: Implemented B-Tree indexes on the `Movie` model for high-speed filtering and sorting.
 - **Server-Side Pagination**: Added `page` and `limit` support to all movie endpoints, preventing large payloads and reducing database load.
 - **Enhanced API Security & Speed**:
-    - Integrated `helmet` for production security headers.
-    - Enabled `compression` (Gzip) for significantly smaller API response sizes.
-    - Implemented `express-rate-limit` on authentication routes to prevent resource exhaustion.
+    - Integrated standard security middleware (CORS, JWT) in Go.
+    - Implemented efficient request handling with Gin's high-performance router.
 - **Server-Side Search**: Optimized searching by moving logic from the client to the server using MongoDB regex matching.
 - **Frontend Bundle Optimization**: Implemented **Route-based Code Splitting** in React using `React.lazy` and `Suspense`, reducing initial load times by only downloading the necessary code for the current view.
 - **Infrastructure Strategy**: Conducted a full performance audit and provided a comprehensive `OPTIMIZATION.md` guide for scaling to high traffic (Redis caching, PM2 clustering, and Direct S3/R2 uploads).
@@ -170,4 +170,4 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 - **Cleanup**: Removed the legacy `CastService`, `/cast` route, and associated old widgets to reduce codebase complexity.
 
 ## 6. Project Status
-All components (Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better Flutter practices, and is ready for further feature development.
+All components (Go Backend, Mobile App, Web Admin, Web User) are now synchronized and pointing to the same production backend. The codebase is cleaner, follows better practices, and is ready for further feature development.
