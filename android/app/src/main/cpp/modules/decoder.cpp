@@ -1,5 +1,6 @@
 #include "decoder.h"
 #include <android/log.h>
+#include <cstring>
 
 namespace riyo {
 

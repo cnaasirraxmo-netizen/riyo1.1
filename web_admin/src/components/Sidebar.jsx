@@ -10,6 +10,7 @@ const Sidebar = ({ onLogout }) => {
     { path: '/movies', label: 'Movies', icon: <Film size={20} /> },
     { path: '/media', label: 'Media Library', icon: <FolderOpen size={20} /> },
     { path: '/users', label: 'Users', icon: <Users size={20} /> },
+    { path: '/settings', label: 'System Settings', icon: <Settings size={20} /> },
   ];
 
   return (

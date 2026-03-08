@@ -8,6 +8,7 @@ import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/providers/download_provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/home_provider.dart';
+import 'package:riyo/providers/system_config_provider.dart';
 import 'package:riyo/presentation/screens/splash_screen.dart';
 import 'package:riyo/presentation/screens/onboarding_screen.dart';
 import 'package:riyo/presentation/screens/auth/login_screen.dart';
@@ -28,6 +29,19 @@ import 'package:riyo/presentation/screens/support/contacts_screen.dart';
 import 'package:riyo/presentation/screens/support/terms_screen.dart';
 import 'package:riyo/presentation/screens/support/privacy_screen.dart';
 import 'package:riyo/presentation/screens/support/about_screen.dart';
+import 'package:riyo/presentation/screens/settings/appearance_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/account_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/notification_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/playback_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/download_settings_screen.dart' as ds;
+import 'package:riyo/presentation/screens/settings/data_saver_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/language_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/privacy_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/preferences_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/storage_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/support_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/about_settings_screen.dart' as about;
+import 'package:riyo/presentation/screens/settings/developer_settings_screen.dart';
 import 'package:riyo/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -150,6 +164,21 @@ GoRouter _createRouter(AuthProvider authProvider) {
         path: '/settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
+        routes: [
+          GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
+          GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
+          GoRoute(path: 'notifications', builder: (context, state) => const NotificationSettingsScreen()),
+          GoRoute(path: 'playback', builder: (context, state) => const PlaybackSettingsScreen()),
+          GoRoute(path: 'downloads', builder: (context, state) => const ds.DownloadSettingsScreen()),
+          GoRoute(path: 'data-saver', builder: (context, state) => const DataSaverSettingsScreen()),
+          GoRoute(path: 'language', builder: (context, state) => const LanguageSettingsScreen()),
+          GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
+          GoRoute(path: 'preferences', builder: (context, state) => const PreferencesSettingsScreen()),
+          GoRoute(path: 'storage', builder: (context, state) => const StorageSettingsScreen()),
+          GoRoute(path: 'support', builder: (context, state) => const SupportSettingsScreen()),
+          GoRoute(path: 'about', builder: (context, state) => const about.AboutSettingsScreen()),
+          GoRoute(path: 'developer', builder: (context, state) => const DeveloperSettingsScreen()),
+        ],
       ),
       GoRoute(
         path: '/download-settings',
@@ -197,6 +226,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DownloadProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
+        ChangeNotifierProvider(create: (_) => SystemConfigProvider()),
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settings, child) {

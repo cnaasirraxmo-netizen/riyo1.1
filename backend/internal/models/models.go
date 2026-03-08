@@ -6,6 +6,17 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+type UserSettings struct {
+	ThemeMode                string   `bson:"themeMode" json:"themeMode"`
+	AmoledMode               bool     `bson:"amoledMode" json:"amoledMode"`
+	AppLanguage              string   `bson:"appLanguage" json:"appLanguage"`
+	DefaultVideoQuality      string   `bson:"defaultVideoQuality" json:"defaultVideoQuality"`
+	DownloadQuality          string   `bson:"downloadQuality" json:"downloadQuality"`
+	FavoriteGenres           []string `bson:"favoriteGenres" json:"favoriteGenres"`
+	NotificationsEnabled     bool     `bson:"notificationsEnabled" json:"notificationsEnabled"`
+	AutoplayNextEpisode      bool     `bson:"autoplayNextEpisode" json:"autoplayNextEpisode"`
+}
+
 type User struct {
 	ID        bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
 	Name      string          `bson:"name" json:"name"`
@@ -13,8 +24,19 @@ type User struct {
 	Password  string          `bson:"password" json:"-"`
 	Role      string          `bson:"role" json:"role"`
 	Watchlist []bson.ObjectID `bson:"watchlist" json:"watchlist"`
+	Settings  UserSettings    `bson:"settings" json:"settings"`
 	CreatedAt time.Time       `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time       `bson:"updatedAt" json:"updatedAt"`
+}
+
+type SystemConfig struct {
+	ID              bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	DownloadsEnabled bool          `bson:"downloadsEnabled" json:"downloadsEnabled"`
+	CastingEnabled   bool          `bson:"castingEnabled" json:"castingEnabled"`
+	NotificationsOn  bool          `bson:"notificationsOn" json:"notificationsOn"`
+	TrailerAutoplay  bool          `bson:"trailerAutoplay" json:"trailerAutoplay"`
+	CommentsEnabled  bool          `bson:"commentsEnabled" json:"commentsEnabled"`
+	UpdatedAt       time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
 
 type Movie struct {

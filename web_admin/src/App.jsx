@@ -9,6 +9,7 @@ const Media = lazy(() => import('./pages/Media'));
 const Users = lazy(() => import('./pages/Users'));
 const Layout = lazy(() => import('./pages/Layout'));
 const Management = lazy(() => import('./pages/Management'));
+const SystemSettings = lazy(() => import('./pages/SystemSettings'));
 
 // Loader
 const PageLoader = () => (
@@ -37,6 +38,7 @@ function App() {
               <Route path="/users" element={<Users />} />
               <Route path="/layout" element={<Layout />} />
               <Route path="/management" element={<Management />} />
+              <Route path="/settings" element={<SystemSettings />} />
               <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
           </Suspense>

@@ -82,14 +82,15 @@ class RiyoVideoEngine {
 
   final _eventStreamController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get eventStream => _eventStreamController.stream;
+  NativeCallable<NativeEventCallback>? _nativeCallable;
 
   void setEventCallback() {
-    final nativeCallback = Pointer.fromFunction<NativeEventCallback>(_onNativeEvent);
-    _playerSetEventCallback(_playerHandle, nativeCallback);
+    _nativeCallable = NativeCallable<NativeEventCallback>.listener(_onNativeEvent);
+    _playerSetEventCallback(_playerHandle, _nativeCallable!.nativeFunction);
   }
 
   static void _onNativeEvent(int event, Pointer<Utf8> data) {
-    // This is called from a background thread in C++
+    // This is now safe to be called from any C++ thread
     print('Native event: $event, data: ${data.toDartString()}');
   }
 }

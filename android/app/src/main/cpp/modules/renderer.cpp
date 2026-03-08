@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include <android/log.h>
+#include <cstring>
 
 namespace riyo {
 
