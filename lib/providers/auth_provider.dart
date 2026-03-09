@@ -29,6 +29,12 @@ class AuthProvider with ChangeNotifier {
     _isOnboardingComplete = prefs.getBool('isOnboardingComplete') ?? false;
     _token = prefs.getString('token');
     _role = prefs.getString('role');
+
+    final userJson = prefs.getString('user');
+    if (userJson != null) {
+      _user = User.fromJson(jsonDecode(userJson));
+    }
+
     notifyListeners();
   }
 
@@ -49,6 +55,7 @@ class AuthProvider with ChangeNotifier {
         await prefs.setBool('isAuthenticated', true);
         await prefs.setString('token', _token!);
         await prefs.setString('role', _role!);
+        await prefs.setString('user', jsonEncode(_user!.toJson()));
         notifyListeners();
       } else {
         final errorMsg = _parseErrorMessage(response);
@@ -79,6 +86,7 @@ class AuthProvider with ChangeNotifier {
         await prefs.setBool('isAuthenticated', true);
         await prefs.setString('token', _token!);
         await prefs.setString('role', _role!);
+        await prefs.setString('user', jsonEncode(_user!.toJson()));
         notifyListeners();
       } else {
         final errorMsg = _parseErrorMessage(response);
@@ -101,6 +109,7 @@ class AuthProvider with ChangeNotifier {
     await prefs.setBool('isAuthenticated', false);
     await prefs.remove('token');
     await prefs.remove('role');
+    await prefs.remove('user');
     notifyListeners();
   }
 

@@ -55,9 +55,7 @@ class _MockHttpClient implements HttpClient {
   String? userAgent;
 
   @override
-  dynamic noSuchMethod(Invocation invocation) {
-    return null;
-  }
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _MockHttpClientRequest implements HttpClientRequest {
@@ -71,9 +69,7 @@ class _MockHttpClientRequest implements HttpClientRequest {
   Future<HttpClientResponse> close() async => _MockHttpClientResponse();
 
   @override
-  dynamic noSuchMethod(Invocation invocation) {
-    return null;
-  }
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _MockHttpClientResponse implements HttpClientResponse {
@@ -102,14 +98,10 @@ class _MockHttpClientResponse implements HttpClientResponse {
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) {
-    return null;
-  }
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _MockHttpHeaders implements HttpHeaders {
   @override
-  dynamic noSuchMethod(Invocation invocation) {
-    return null;
-  }
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
