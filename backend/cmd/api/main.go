@@ -12,6 +12,7 @@ import (
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/handlers"
 	"github.com/riyobox/backend/internal/middleware"
+	"github.com/riyobox/backend/internal/services"
 	"github.com/riyobox/backend/internal/utils"
 )
 
@@ -20,6 +21,12 @@ func main() {
 
 	db.ConnectDB()
 	utils.InitR2()
+
+	// Initialize Video Pipeline
+	videoOrchestrator := services.NewVideoOrchestrator()
+	handlers.VideoOrchestrator = videoOrchestrator
+	videoWorker := services.NewVideoWorker(videoOrchestrator, utils.R2Client, os.Getenv("R2_BUCKET_NAME"))
+	videoWorker.Start()
 
 	r := gin.Default()
 

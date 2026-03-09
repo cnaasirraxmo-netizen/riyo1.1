@@ -12,7 +12,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/riyobox/backend/internal/utils"
+	"github.com/riyobox/backend/internal/services"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
+
+var VideoOrchestrator *services.VideoOrchestrator
 
 func UploadFile(c *gin.Context) {
 	file, header, err := c.Request.FormFile("file")
@@ -24,12 +28,13 @@ func UploadFile(c *gin.Context) {
 
 	fileName := fmt.Sprintf("%d-%s", time.Now().Unix(), strings.ReplaceAll(header.Filename, " ", "_"))
 	bucketName := os.Getenv("R2_BUCKET_NAME")
+	contentType := header.Header.Get("Content-Type")
 
 	_, err = utils.R2Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(fileName),
 		Body:        file,
-		ContentType: aws.String(header.Header.Get("Content-Type")),
+		ContentType: aws.String(contentType),
 	})
 
 	if err != nil {
@@ -38,6 +43,25 @@ func UploadFile(c *gin.Context) {
 	}
 
 	publicURL := fmt.Sprintf("%s/%s", utils.GetBaseURL(), fileName)
+
+	// If it's a video, trigger a transcoding job
+	if strings.HasPrefix(contentType, "video/") {
+		movieIDStr := c.Query("movieId")
+		if movieIDStr != "" {
+			movieID, _ := bson.ObjectIDFromHex(movieIDStr)
+			if VideoOrchestrator != nil {
+				job, err := VideoOrchestrator.CreateJob(movieID, publicURL)
+				if err == nil {
+					c.JSON(http.StatusCreated, gin.H{
+						"message": "Video uploaded and transcoding started",
+						"url":     publicURL,
+						"jobId":   job.ID,
+					})
+					return
+				}
+			}
+		}
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "File uploaded successfully",
@@ -48,7 +72,8 @@ func UploadFile(c *gin.Context) {
 
 func UploadByURL(c *gin.Context) {
 	var req struct {
-		URL string `json:"url" binding:"required"`
+		URL     string `json:"url" binding:"required"`
+		MovieID string `json:"movieId"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "URL is required"})
@@ -83,6 +108,22 @@ func UploadByURL(c *gin.Context) {
 	}
 
 	publicURL := fmt.Sprintf("%s/%s", utils.GetBaseURL(), fileName)
+
+	// If it's a video, trigger a transcoding job
+	if strings.HasPrefix(contentType, "video/") && req.MovieID != "" {
+		movieID, _ := bson.ObjectIDFromHex(req.MovieID)
+		if VideoOrchestrator != nil {
+			job, err := VideoOrchestrator.CreateJob(movieID, publicURL)
+			if err == nil {
+				c.JSON(http.StatusCreated, gin.H{
+					"message": "Video uploaded from URL and transcoding started",
+					"url":     publicURL,
+					"jobId":   job.ID,
+				})
+				return
+			}
+		}
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "File uploaded from URL successfully",

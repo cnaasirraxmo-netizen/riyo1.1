@@ -11,6 +11,9 @@ RUN go build -o main ./cmd/api
 
 FROM alpine:latest
 
+# Install FFmpeg and dependencies
+RUN apk add --no-cache ffmpeg ca-certificates
+
 WORKDIR /app
 
 COPY --from=builder /app/main .

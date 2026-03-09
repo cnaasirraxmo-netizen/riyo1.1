@@ -75,7 +75,7 @@ func AdminUpdateSystemConfig(c *gin.Context) {
 	config.UpdatedAt = time.Now()
 
 	collection := db.DB.Collection("system_config")
-	opts := options.Update().SetUpsert(true)
+	opts := options.UpdateOne().SetUpsert(true)
 	_, err := collection.UpdateOne(
 		context.TODO(),
 		bson.M{},
