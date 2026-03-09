@@ -1,6 +1,6 @@
 class Constants {
   // Cloud Backend URL
-  static const String apiBaseUrl = 'https://riyo-1.onrender.com';
+  static const String apiBaseUrl = 'https://riyo-2.onrender.com';
 
   // Local Backend URL (for reference)
   // static const String apiBaseUrl = 'http://10.0.2.2:5000'; // Android Emulator

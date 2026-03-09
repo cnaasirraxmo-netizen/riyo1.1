@@ -6,9 +6,12 @@ extern "C" {
 
 JNIEXPORT void JNICALL
 Java_com_riyo_app_NativeBridge_setSurface(JNIEnv *env, jobject thiz, jlong player_ptr, jobject surface) {
+    if (player_ptr == 0) return;
+    auto player = reinterpret_cast<riyo::VideoEngine*>(player_ptr);
+
     if (surface != nullptr) {
         ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
-        // Set window to C++ engine
+        // player->setWindow(window); // Implement in engine
     }
 }
 

@@ -69,7 +69,6 @@ func (vo *VideoOrchestrator) ProcessJob(jobID bson.ObjectID) {
 
 	outputDir := filepath.Join(vo.workingDir, job.ID.Hex())
 	os.MkdirAll(outputDir, 0755)
-	defer os.RemoveAll(outputDir)
 
 	// FFmpeg multi-resolution command
 	// This is a simplified version of the complex ABR command

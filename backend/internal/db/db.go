@@ -33,10 +33,10 @@ func ConnectDB() {
 
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("⚠️ MongoDB Ping failed, but continuing: %v", err)
+	} else {
+		fmt.Println("✅ Connected to MongoDB")
 	}
-
-	fmt.Println("✅ Connected to MongoDB")
 	Client = client
 	DB = client.Database("riyo")
 

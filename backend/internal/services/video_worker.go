@@ -64,6 +64,17 @@ func (vw *VideoWorker) pollAndProcess() {
 
 func (vw *VideoWorker) uploadToR2(job models.VideoJob) {
 	outputDir := filepath.Join(vw.orchestrator.workingDir, job.ID.Hex())
+	defer os.RemoveAll(outputDir)
+
+	if vw.r2Client == nil {
+		log.Printf("R2 client not initialized, skipping upload for job %s", job.ID.Hex())
+		db.DB.Collection("video_jobs").UpdateOne(
+			context.TODO(),
+			bson.M{"_id": job.ID},
+			bson.M{"$set": bson.M{"status": "FAILED", "error": "R2 Client not initialized"}},
+		)
+		return
+	}
 
 	err := filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

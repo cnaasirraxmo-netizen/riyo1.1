@@ -19,6 +19,10 @@ import (
 func main() {
 	godotenv.Load()
 
+	if os.Getenv("NODE_ENV") == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	db.ConnectDB()
 	utils.InitR2()
 
