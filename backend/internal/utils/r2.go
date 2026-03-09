@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -15,6 +16,8 @@ import (
 var R2Client *s3.Client
 
 func InitR2() {
+	// Re-load environment to be absolutely sure
+	// godotenv.Load() is already called in main
 	// Support common aliases for credentials
 	accessKey := os.Getenv("R2_ACCESS_KEY_ID")
 	if accessKey == "" {
@@ -53,10 +56,10 @@ func InitR2() {
 
 	R2Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(endpoint)
-		o.UsePathStyle = true // Often required for R2 to avoid DNS resolution issues with buckets
+		o.UsePathStyle = true
 	})
 
-	log.Println("📡 R2 Client initialized with endpoint:", endpoint)
+	log.Printf("📡 R2 Client initialized with endpoint: %s (Bucket: %s)", endpoint, GetBucketName())
 }
 
 func GetBucketName() string {
@@ -70,15 +73,12 @@ func GetBucketName() string {
 func GetBaseURL() string {
 	publicURL := os.Getenv("R2_PUBLIC_URL")
 	if publicURL != "" {
-		return publicURL
+		// Ensure no trailing slash
+		return strings.TrimSuffix(publicURL, "/")
 	}
+
+	// Fallback to endpoint/bucket
 	endpoint := os.Getenv("R2_S3_ENDPOINT")
-	if endpoint == "" {
-		accountID := os.Getenv("R2_ACCOUNT_ID")
-		if accountID != "" {
-			endpoint = "https://" + accountID + ".r2.cloudflarestorage.com"
-		}
-	}
 	bucketName := GetBucketName()
-	return endpoint + "/" + bucketName
+	return fmt.Sprintf("%s/%s", strings.TrimSuffix(endpoint, "/"), bucketName)
 }

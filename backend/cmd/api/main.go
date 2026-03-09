@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -41,8 +42,12 @@ func main() {
 	corsConfig := cors.DefaultConfig()
 	if os.Getenv("NODE_ENV") == "production" {
 		origins := []string{}
-		if front := os.Getenv("FRONTEND_URL"); front != "" { origins = append(origins, front) }
-		if admin := os.Getenv("ADMIN_URL"); admin != "" { origins = append(origins, admin) }
+		if front := os.Getenv("FRONTEND_URL"); front != "" {
+			origins = append(origins, strings.TrimSuffix(front, "/"))
+		}
+		if admin := os.Getenv("ADMIN_URL"); admin != "" {
+			origins = append(origins, strings.TrimSuffix(admin, "/"))
+		}
 
 		if len(origins) > 0 {
 			corsConfig.AllowOrigins = origins
@@ -138,5 +143,14 @@ func main() {
 	}
 
 	log.Printf("Server running on port %s", port)
-	r.Run(":" + port)
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  20 * time.Minute, // High timeout for large video uploads
+		WriteTimeout: 20 * time.Minute,
+		IdleTimeout:  20 * time.Minute,
+	}
+
+	log.Printf("Server running on port %s", port)
+	server.ListenAndServe()
 }
