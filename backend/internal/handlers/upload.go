@@ -30,6 +30,11 @@ func UploadFile(c *gin.Context) {
 	bucketName := utils.GetBucketName()
 	contentType := header.Header.Get("Content-Type")
 
+	if utils.R2Client == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "Storage service not initialized. Check server configuration."})
+		return
+	}
+
 	uploader := manager.NewUploader(utils.R2Client)
 	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
@@ -96,6 +101,11 @@ func UploadByURL(c *gin.Context) {
 	fileName := fmt.Sprintf("url-%d.%s", time.Now().Unix(), ext)
 	bucketName := utils.GetBucketName()
 
+	if utils.R2Client == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "Storage service not initialized. Check server configuration."})
+		return
+	}
+
 	uploader := manager.NewUploader(utils.R2Client)
 	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
@@ -135,6 +145,10 @@ func UploadByURL(c *gin.Context) {
 }
 
 func ListFiles(c *gin.Context) {
+	if utils.R2Client == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "Storage service not initialized"})
+		return
+	}
 	bucketName := utils.GetBucketName()
 	output, err := utils.R2Client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucketName),

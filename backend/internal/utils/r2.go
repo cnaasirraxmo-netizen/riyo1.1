@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -30,6 +31,10 @@ func InitR2() {
 
 	if endpoint == "" && accountID != "" {
 		endpoint = "https://" + accountID + ".r2.cloudflarestorage.com"
+	}
+
+	if endpoint != "" && !strings.HasPrefix(endpoint, "http") {
+		endpoint = "https://" + endpoint
 	}
 
 	if accessKey == "" || secretKey == "" || endpoint == "" {
