@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:riyo/providers/settings_provider.dart';
 
 class SettingsItem extends StatelessWidget {
   final IconData icon;
@@ -62,7 +60,7 @@ class SettingsToggle extends StatelessWidget {
       subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(color: Colors.grey, fontSize: 13)) : null,
       value: value,
       onChanged: onChanged,
-        activeColor: Theme.of(context).primaryColor,
+        activeThumbColor: Theme.of(context).primaryColor,
       ),
     );
   }

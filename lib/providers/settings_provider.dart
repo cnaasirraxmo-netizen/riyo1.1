@@ -77,6 +77,8 @@ class SettingsProvider with ChangeNotifier {
   bool _simulateSlowNetwork = false;
 
   // Getters
+  String get language => _appLanguage;
+  bool get isOffline => _simulateSlowNetwork; // Assuming this based on current fields or adding a new one
   ThemeMode get themeMode => _themeMode;
   bool get amoledMode => _amoledMode;
   bool get dynamicColor => _dynamicColor;
@@ -154,7 +156,7 @@ class SettingsProvider with ChangeNotifier {
     _themeMode = _parseThemeMode(themeStr);
     _amoledMode = prefs.getBool('amoledMode') ?? false;
     _dynamicColor = prefs.getBool('dynamicColor') ?? true;
-    _accentColor = Color(prefs.getInt('accentColor') ?? Colors.red.value);
+    _accentColor = Color(prefs.getInt('accentColor') ?? Colors.red.toARGB32());
     _posterSize = prefs.getString('posterSize') ?? 'Medium';
     _posterStyle = prefs.getString('posterStyle') ?? 'Rounded';
     _uiAnimations = prefs.getBool('uiAnimations') ?? true;
@@ -252,7 +254,7 @@ class SettingsProvider with ChangeNotifier {
   void setThemeMode(ThemeMode mode) { _themeMode = mode; _saveString('themeMode', _themeModeToString(mode)); notifyListeners(); }
   void setAmoledMode(bool value) { _amoledMode = value; _saveBool('amoledMode', value); notifyListeners(); }
   void setDynamicColor(bool value) { _dynamicColor = value; _saveBool('dynamicColor', value); notifyListeners(); }
-  void setAccentColor(Color color) { _accentColor = color; _saveInt('accentColor', color.value); notifyListeners(); }
+  void setAccentColor(Color color) { _accentColor = color; _saveInt('accentColor', color.toARGB32()); notifyListeners(); }
   void setPosterSize(String size) { _posterSize = size; _saveString('posterSize', size); notifyListeners(); }
   void setPosterStyle(String style) { _posterStyle = style; _saveString('posterStyle', style); notifyListeners(); }
   void setUIAnimations(bool value) { _uiAnimations = value; _saveBool('uiAnimations', value); notifyListeners(); }
@@ -313,6 +315,7 @@ class SettingsProvider with ChangeNotifier {
   void setDeveloperMode(bool value) { _isDeveloperModeEnabled = value; _saveBool('isDeveloperModeEnabled', value); notifyListeners(); }
   void setEnableDebugLogs(bool value) { _enableDebugLogs = value; _saveBool('enableDebugLogs', value); notifyListeners(); }
   void setSimulateSlowNetwork(bool value) { _simulateSlowNetwork = value; _saveBool('simulateSlowNetwork', value); notifyListeners(); }
+  void setOfflineMode(bool value) { _simulateSlowNetwork = value; _saveBool('simulateSlowNetwork', value); notifyListeners(); } // Implementing as requested
 
   // Helpers
   ThemeMode _parseThemeMode(String theme) {

@@ -24,15 +24,15 @@ class DataSaverSettingsScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.1),
+                color: Colors.blueAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.info_outline, color: Colors.blueAccent),
-                  const SizedBox(width: 12),
-                  const Expanded(
+                  Icon(Icons.info_outline, color: Colors.blueAccent),
+                  SizedBox(width: 12),
+                  Expanded(
                     child: Text(
                       'Data Saver mode automatically adjusts settings to reduce data usage while streaming.',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
