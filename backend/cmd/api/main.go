@@ -34,10 +34,21 @@ func main() {
 
 	r := gin.Default()
 
+	// Support large file uploads (up to 1 GiB)
+	r.MaxMultipartMemory = 1 << 30
+
 	// CORS
 	corsConfig := cors.DefaultConfig()
 	if os.Getenv("NODE_ENV") == "production" {
-		corsConfig.AllowOrigins = []string{os.Getenv("FRONTEND_URL"), os.Getenv("ADMIN_URL")}
+		origins := []string{}
+		if front := os.Getenv("FRONTEND_URL"); front != "" { origins = append(origins, front) }
+		if admin := os.Getenv("ADMIN_URL"); admin != "" { origins = append(origins, admin) }
+
+		if len(origins) > 0 {
+			corsConfig.AllowOrigins = origins
+		} else {
+			corsConfig.AllowAllOrigins = true
+		}
 	} else {
 		corsConfig.AllowAllOrigins = true
 	}

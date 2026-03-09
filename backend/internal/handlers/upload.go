@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/riyobox/backend/internal/utils"
@@ -29,7 +30,8 @@ func UploadFile(c *gin.Context) {
 	bucketName := utils.GetBucketName()
 	contentType := header.Header.Get("Content-Type")
 
-	_, err = utils.R2Client.PutObject(context.TODO(), &s3.PutObjectInput{
+	uploader := manager.NewUploader(utils.R2Client)
+	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(fileName),
 		Body:        file,
@@ -37,7 +39,7 @@ func UploadFile(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Upload failed: " + err.Error()})
 		return
 	}
 
@@ -94,7 +96,8 @@ func UploadByURL(c *gin.Context) {
 	fileName := fmt.Sprintf("url-%d.%s", time.Now().Unix(), ext)
 	bucketName := utils.GetBucketName()
 
-	_, err = utils.R2Client.PutObject(context.TODO(), &s3.PutObjectInput{
+	uploader := manager.NewUploader(utils.R2Client)
+	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(fileName),
 		Body:        resp.Body,
@@ -102,7 +105,7 @@ func UploadByURL(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "URL upload failed: " + err.Error()})
 		return
 	}
 
