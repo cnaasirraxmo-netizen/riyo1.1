@@ -29,7 +29,7 @@ func main() {
 	// Initialize Video Pipeline
 	videoOrchestrator := services.NewVideoOrchestrator()
 	handlers.VideoOrchestrator = videoOrchestrator
-	videoWorker := services.NewVideoWorker(videoOrchestrator, utils.R2Client, os.Getenv("R2_BUCKET_NAME"))
+	videoWorker := services.NewVideoWorker(videoOrchestrator, utils.R2Client, utils.GetBucketName())
 	videoWorker.Start()
 
 	r := gin.Default()

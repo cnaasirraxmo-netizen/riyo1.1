@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -27,7 +26,7 @@ func UploadFile(c *gin.Context) {
 	defer file.Close()
 
 	fileName := fmt.Sprintf("%d-%s", time.Now().Unix(), strings.ReplaceAll(header.Filename, " ", "_"))
-	bucketName := os.Getenv("R2_BUCKET_NAME")
+	bucketName := utils.GetBucketName()
 	contentType := header.Header.Get("Content-Type")
 
 	_, err = utils.R2Client.PutObject(context.TODO(), &s3.PutObjectInput{
@@ -93,7 +92,7 @@ func UploadByURL(c *gin.Context) {
 		ext = parts[1]
 	}
 	fileName := fmt.Sprintf("url-%d.%s", time.Now().Unix(), ext)
-	bucketName := os.Getenv("R2_BUCKET_NAME")
+	bucketName := utils.GetBucketName()
 
 	_, err = utils.R2Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
@@ -133,7 +132,7 @@ func UploadByURL(c *gin.Context) {
 }
 
 func ListFiles(c *gin.Context) {
-	bucketName := os.Getenv("R2_BUCKET_NAME")
+	bucketName := utils.GetBucketName()
 	output, err := utils.R2Client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucketName),
 	})
@@ -159,7 +158,7 @@ func ListFiles(c *gin.Context) {
 
 func DeleteFile(c *gin.Context) {
 	key := c.Param("key")
-	bucketName := os.Getenv("R2_BUCKET_NAME")
+	bucketName := utils.GetBucketName()
 
 	_, err := utils.R2Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
 		Bucket: aws.String(bucketName),
@@ -176,7 +175,7 @@ func DeleteFile(c *gin.Context) {
 
 func GetSignedURL(c *gin.Context) {
 	key := c.Param("key")
-	bucketName := os.Getenv("R2_BUCKET_NAME")
+	bucketName := utils.GetBucketName()
 
 	// AWS SDK v2 presign client
 	presignClient := s3.NewPresignClient(utils.R2Client)
