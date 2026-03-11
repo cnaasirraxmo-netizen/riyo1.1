@@ -9,12 +9,16 @@ const MovieDetails = () => {
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState(0);
 
   useEffect(() => {
     const fetchMovie = async () => {
       try {
         const res = await api.get(`/movies/${id}`);
         setMovie(res.data);
+        if (res.data.isTvShow && res.data.seasons?.length > 0) {
+          setSelectedSeason(0);
+        }
 
         // Check watchlist
         const profileRes = await api.get('/users/profile');
@@ -91,6 +95,42 @@ const MovieDetails = () => {
             <p className="text-lg text-gray-200 leading-relaxed mb-10 font-medium">
               {movie.description}
             </p>
+
+            {movie.isTvShow && movie.seasons && (
+              <div className="mb-12">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Episodes</h2>
+                  <select
+                    className="bg-[#262626] border border-white/10 rounded px-4 py-2 text-sm focus:outline-none"
+                    value={selectedSeason}
+                    onChange={(e) => setSelectedSeason(parseInt(e.target.value))}
+                  >
+                    {movie.seasons.map((season, idx) => (
+                      <option key={idx} value={idx}>{season.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-4">
+                  {movie.seasons[selectedSeason]?.episodes.map((episode, idx) => (
+                    <div
+                      key={idx}
+                      className="group bg-white/5 hover:bg-white/10 rounded-lg p-4 flex items-center cursor-pointer transition-colors"
+                      onClick={() => episode.videoUrl && navigate(`/watch/${movie._id}?url=${encodeURIComponent(episode.videoUrl)}`)}
+                    >
+                      <div className="w-10 text-gray-500 font-bold text-xl">{episode.number}</div>
+                      <div className="flex-1">
+                        <h4 className="font-bold group-hover:text-purple-400 transition-colors">{episode.title}</h4>
+                        <p className="text-xs text-gray-500">{episode.duration}</p>
+                      </div>
+                      <div className="p-2 rounded-full bg-white/10 group-hover:bg-purple-600 transition-all opacity-0 group-hover:opacity-100">
+                        <Play size={16} fill="white" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/10">
               <div>

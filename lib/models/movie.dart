@@ -96,8 +96,9 @@ class Movie {
       runtime: json['runtime'] ?? (json['duration'] != null ? _parseDuration(json['duration']) : null),
       genres: json['genre'] != null ? List<String>.from(json['genre']) : null,
       contentRating: json['contentRating'],
-      isTvShow: json['is_tv_show'] ?? false,
+      isTvShow: json['isTvShow'] ?? json['is_tv_show'] ?? false,
       seasonNumber: json['season_number'] ?? (json['seasons'] != null && (json['seasons'] as List).isNotEmpty ? json['seasons'][0]['number'] : null),
+      seasons: json['seasons'] != null ? (json['seasons'] as List).map((s) => Season.fromJson(s)).toList() : null,
       videoUrl: json['videoUrl'],
       trailerUrl: json['trailerUrl'] ?? json['trailer_url'],
       contentType: json['contentType'] ?? json['content_type'] ?? 'free',
@@ -179,6 +180,14 @@ class Season {
   final List<Episode> episodes;
 
   Season({required this.number, required this.title, required this.episodes});
+
+  factory Season.fromJson(Map<String, dynamic> json) {
+    return Season(
+      number: json['number'] ?? 0,
+      title: json['title'] ?? '',
+      episodes: json['episodes'] != null ? (json['episodes'] as List).map((e) => Episode.fromJson(e)).toList() : [],
+    );
+  }
 }
 
 class Episode {
@@ -188,4 +197,13 @@ class Episode {
   final String? videoUrl;
 
   Episode({required this.number, required this.title, required this.duration, this.videoUrl});
+
+  factory Episode.fromJson(Map<String, dynamic> json) {
+    return Episode(
+      number: json['number'] ?? 0,
+      title: json['title'] ?? '',
+      duration: json['duration'] ?? '',
+      videoUrl: json['videoUrl'],
+    );
+  }
 }

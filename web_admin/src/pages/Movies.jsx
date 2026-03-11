@@ -21,7 +21,9 @@ const Movies = () => {
     genre: '',
     contentRating: '',
     isFeatured: false,
-    contentType: 'free'
+    contentType: 'free',
+    isTvShow: false,
+    seasons: []
   });
 
   const fetchMovies = async () => {
@@ -115,7 +117,8 @@ const Movies = () => {
         title: '', description: '', posterUrl: '',
             backdropUrl: '', videoUrl: '', trailerUrl: '', year: '',
             duration: '', genre: '', contentRating: '',
-            isFeatured: false, contentType: 'free'
+            isFeatured: false, contentType: 'free',
+            isTvShow: false, seasons: []
       });
       setUploadProgress({ poster: 0, video: 0 });
       fetchMovies();
@@ -326,16 +329,107 @@ const Movies = () => {
                 </select>
               </div>
 
-              <div className="flex items-center space-x-2 bg-[#262626] p-4 rounded-xl border border-white/5">
-                <input
-                  type="checkbox"
-                  id="isFeatured"
-                  className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                  checked={formData.isFeatured}
-                  onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
-                />
-                <label htmlFor="isFeatured" className="text-sm font-bold text-gray-300">Feature in Home Carousel (Big Poster)</label>
+              <div className="flex flex-col space-y-2 bg-[#262626] p-4 rounded-xl border border-white/5">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isFeatured"
+                    className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    checked={formData.isFeatured}
+                    onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
+                  />
+                  <label htmlFor="isFeatured" className="text-sm font-bold text-gray-300">Feature in Home Carousel (Big Poster)</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isTvShow"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    checked={formData.isTvShow}
+                    onChange={(e) => setFormData({...formData, isTvShow: e.target.checked})}
+                  />
+                  <label htmlFor="isTvShow" className="text-sm font-bold text-gray-300">This is a TV Series</label>
+                </div>
               </div>
+
+              {formData.isTvShow && (
+                <div className="bg-[#262626] p-4 rounded-xl border border-white/5 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Seasons & Episodes</label>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, seasons: [...formData.seasons, { number: formData.seasons.length + 1, title: `Season ${formData.seasons.length + 1}`, episodes: [] }]})}
+                      className="text-[10px] bg-blue-600/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-600/30"
+                    >
+                      + ADD SEASON
+                    </button>
+                  </div>
+
+                  {formData.seasons.map((season, sIdx) => (
+                    <div key={sIdx} className="border-l-2 border-blue-600 pl-4 py-2 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <input
+                          className="bg-transparent font-bold text-sm outline-none w-1/2"
+                          value={season.title}
+                          onChange={(e) => {
+                            const newSeasons = [...formData.seasons];
+                            newSeasons[sIdx].title = e.target.value;
+                            setFormData({...formData, seasons: newSeasons});
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSeasons = [...formData.seasons];
+                            newSeasons[sIdx].episodes.push({ number: season.episodes.length + 1, title: 'New Episode', duration: '45m', videoUrl: '' });
+                            setFormData({...formData, seasons: newSeasons});
+                          }}
+                          className="text-[10px] text-gray-400 hover:text-white"
+                        >
+                          + Add Episode
+                        </button>
+                      </div>
+
+                      {season.episodes.map((ep, eIdx) => (
+                        <div key={eIdx} className="bg-[#141414] p-3 rounded text-xs space-y-2 border border-white/5">
+                          <div className="flex space-x-2">
+                            <input
+                              placeholder="Title"
+                              className="flex-1 bg-transparent border-b border-white/10 py-1"
+                              value={ep.title}
+                              onChange={(e) => {
+                                const newSeasons = [...formData.seasons];
+                                newSeasons[sIdx].episodes[eIdx].title = e.target.value;
+                                setFormData({...formData, seasons: newSeasons});
+                              }}
+                            />
+                            <input
+                              placeholder="Dur"
+                              className="w-12 bg-transparent border-b border-white/10 py-1"
+                              value={ep.duration}
+                              onChange={(e) => {
+                                const newSeasons = [...formData.seasons];
+                                newSeasons[sIdx].episodes[eIdx].duration = e.target.value;
+                                setFormData({...formData, seasons: newSeasons});
+                              }}
+                            />
+                          </div>
+                          <input
+                            placeholder="Video URL"
+                            className="w-full bg-transparent border-b border-white/10 py-1 italic"
+                            value={ep.videoUrl}
+                            onChange={(e) => {
+                              const newSeasons = [...formData.seasons];
+                              newSeasons[sIdx].episodes[eIdx].videoUrl = e.target.value;
+                              setFormData({...formData, seasons: newSeasons});
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-1">Year</label>

@@ -50,6 +50,19 @@ type VideoJob struct {
 	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
 
+type Episode struct {
+	Number   int    `bson:"number" json:"number"`
+	Title    string `bson:"title" json:"title"`
+	Duration string `bson:"duration" json:"duration"`
+	VideoURL string `bson:"videoUrl" json:"videoUrl"`
+}
+
+type Season struct {
+	Number   int       `bson:"number" json:"number"`
+	Title    string    `bson:"title" json:"title"`
+	Episodes []Episode `bson:"episodes" json:"episodes"`
+}
+
 type Movie struct {
 	ID            bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
 	Title         string          `bson:"title" json:"title"`
@@ -68,6 +81,8 @@ type Movie struct {
 	IsPublished   bool            `bson:"isPublished" json:"isPublished"`
 	NotifyUsers   []bson.ObjectID `bson:"notifyUsers" json:"notifyUsers"`
 	ContentRating string          `bson:"contentRating" json:"contentRating"`
+	IsTvShow      bool            `bson:"isTvShow" json:"isTvShow"`
+	Seasons       []Season        `bson:"seasons" json:"seasons"`
 	CreatedAt     time.Time       `bson:"createdAt" json:"createdAt"`
 	UpdatedAt     time.Time       `bson:"updatedAt" json:"updatedAt"`
 }

@@ -7,6 +7,7 @@ import 'package:riyo/providers/download_provider.dart';
 import 'package:riyo/core/casting/presentation/providers/casting_provider.dart';
 import 'package:riyo/core/casting/domain/entities/cast_media.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
+import 'package:riyo/core/design_system.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
@@ -481,6 +482,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   Widget _buildSeasonSelector(Movie movie) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
@@ -488,15 +490,17 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF262626),
-            borderRadius: BorderRadius.circular(4),
+            color: colorScheme.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_selectedSeason?.title ?? 'Select Season', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(_selectedSeason?.title ?? 'Select Season',
+                  style: AppTypography.labelLarge
+                      .copyWith(color: colorScheme.onSurface)),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_drop_down, color: Colors.white),
+              Icon(Icons.arrow_drop_down, color: colorScheme.onSurface),
             ],
           ),
         ),
@@ -505,23 +509,32 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   void _showSeasonPicker(Movie movie) {
+    final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1C1C1C),
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: movie.seasons?.length ?? 0,
-          itemBuilder: (context, index) {
-            final season = movie.seasons![index];
-            return ListTile(
-              title: Text(season.title, style: const TextStyle(color: Colors.white)),
-              onTap: () {
-                setState(() => _selectedSeason = season);
-                Navigator.pop(context);
-              },
-            );
-          },
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: movie.seasons?.length ?? 0,
+            itemBuilder: (context, index) {
+              final season = movie.seasons![index];
+              return ListTile(
+                title: Text(season.title,
+                    style: AppTypography.bodyLarge
+                        .copyWith(color: colorScheme.onSurface)),
+                onTap: () {
+                  setState(() => _selectedSeason = season);
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -530,49 +543,74 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   Widget _buildEpisodeList() {
     if (_selectedSeason == null) return const SizedBox();
     return Column(
-      children: _selectedSeason!.episodes.map((episode) => _buildEpisodeItem(episode)).toList(),
+      children: _selectedSeason!.episodes
+          .map((episode) => _buildEpisodeItem(episode))
+          .toList(),
     );
   }
 
   Widget _buildEpisodeItem(Episode episode) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: Container(
-                  width: 130,
-                  height: 75,
-                  color: const Color(0xFF262626),
-                  child: const Center(child: Icon(Icons.play_arrow, color: Colors.white, size: 32)),
+      child: InkWell(
+        onTap: () {
+          if (episode.videoUrl != null) {
+            context.push(
+                '/movie/${widget.movieId}/play?url=${Uri.encodeComponent(episode.videoUrl!)}');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Episode video not available')));
+          }
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 130,
+                    height: 75,
+                    color: colorScheme.surfaceVariant.withOpacity(0.3),
+                    child: const Center(
+                        child: Icon(Icons.play_arrow,
+                            color: Colors.white, size: 32)),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${episode.number}. ${episode.title}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    const SizedBox(height: 4),
-                    Text(episode.duration, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${episode.number}. ${episode.title}',
+                          style: AppTypography.bodyLarge.copyWith(
+                              color: colorScheme.onSurface,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(episode.duration,
+                          style: AppTypography.labelSmall
+                              .copyWith(color: colorScheme.onSurfaceVariant)),
+                    ],
+                  ),
                 ),
-              ),
-              IconButton(icon: const Icon(Icons.download_for_offline_outlined, color: Colors.white), onPressed: () {}),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'In this episode, the story continues as our heroes face new challenges and unexpected turns.',
-            style: TextStyle(color: Colors.grey, fontSize: 13),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+                IconButton(
+                    icon: Icon(Icons.download_for_offline_outlined,
+                        color: colorScheme.onSurface),
+                    onPressed: () {}),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'In this episode, the story continues as our heroes face new challenges and unexpected turns.',
+              style: AppTypography.bodyMedium
+                  .copyWith(color: colorScheme.onSurfaceVariant),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
