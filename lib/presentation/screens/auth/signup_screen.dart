@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:riyo/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
 
-class SignUpScreen extends StatefulWidget {
+class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
 
   void _handleSignUp() async {
-    setState(() => _isLoading = true);
     try {
-      await Provider.of<AuthProvider>(context, listen: false).signup(
+      await ref.read(authProvider.notifier).signup(
         _nameController.text,
         _emailController.text,
         _passwordController.text,
@@ -31,13 +29,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           SnackBar(content: Text('Sign up failed: ${e.toString().replaceAll('Exception: ', '')}')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -82,12 +80,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _isLoading ? null : _handleSignUp,
+              onPressed: authState.isLoading ? null : _handleSignUp,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurpleAccent,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: _isLoading
+              child: authState.isLoading
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('CREATE ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold)),
             ),

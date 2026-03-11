@@ -2,13 +2,17 @@ package handlers
 
 import (
 	"context"
-	"math"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"encoding/json"
+	"fmt"
+	"time"
+
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
+	"github.com/riyobox/backend/internal/utils"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -20,8 +24,19 @@ func GetMovies(c *gin.Context) {
 	isFeatured := c.Query("isFeatured")
 	contentType := c.Query("contentType")
 	search := c.Query("search")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	lastID := c.Query("lastId") // For cursor pagination
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	// Try Cache first (only for non-search queries)
+	cacheKey := fmt.Sprintf("movies:%s:%s:%s:%s:%s:%d", genre, isTrending, isFeatured, contentType, lastID, limit)
+	if search == "" {
+		if cached, _ := utils.GetCache(context.TODO(), cacheKey); cached != "" {
+			var result gin.H
+			json.Unmarshal([]byte(cached), &result)
+			c.JSON(http.StatusOK, result)
+			return
+		}
+	}
 
 	query := bson.M{"isPublished": true}
 	if genre != "" {
@@ -43,10 +58,15 @@ func GetMovies(c *gin.Context) {
 		}
 	}
 
-	skip := int64((page - 1) * limit)
+	if lastID != "" {
+		oid, err := bson.ObjectIDFromHex(lastID)
+		if err == nil {
+			query["_id"] = bson.M{"$lt": oid} // Assuming sorted by _id or createdAt desc
+		}
+	}
+
 	opts := options.Find().
-		SetSort(bson.M{"createdAt": -1}).
-		SetSkip(skip).
+		SetSort(bson.M{"_id": -1}). // Use _id for efficient cursor pagination
 		SetLimit(int64(limit))
 
 	collection := db.DB.Collection("movies")
@@ -65,12 +85,24 @@ func GetMovies(c *gin.Context) {
 
 	total, _ := collection.CountDocuments(context.TODO(), query)
 
-	c.JSON(http.StatusOK, gin.H{
-		"movies": movies,
-		"page":   page,
-		"pages":  math.Ceil(float64(total) / float64(limit)),
-		"total":  total,
-	})
+	var nextCursor string
+	if len(movies) > 0 && int64(len(movies)) == int64(limit) {
+		nextCursor = movies[len(movies)-1].ID.Hex()
+	}
+
+	result := gin.H{
+		"movies":     movies,
+		"nextCursor": nextCursor,
+		"total":      total,
+	}
+
+	// Cache result
+	if search == "" {
+		jsonResult, _ := json.Marshal(result)
+		utils.SetCache(context.TODO(), cacheKey, string(jsonResult), 5*time.Minute)
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 func GetComingSoonMovies(c *gin.Context) {

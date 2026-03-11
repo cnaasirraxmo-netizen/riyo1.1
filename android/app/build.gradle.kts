@@ -49,6 +49,8 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = if (System.getenv("KEYSTORE_PASSWORD") != null) {
                 signingConfigs.getByName("release")
             } else {

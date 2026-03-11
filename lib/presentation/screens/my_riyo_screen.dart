@@ -1,18 +1,17 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
-import 'package:riyo/providers/auth_provider.dart';
-import 'package:provider/provider.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
 
-class MyRiyoScreen extends StatelessWidget {
+class MyRiyoScreen extends ConsumerWidget {
   const MyRiyoScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
     final apiService = ApiService();
 
     return Scaffold(
@@ -22,10 +21,6 @@ class MyRiyoScreen extends StatelessWidget {
         elevation: 0,
         title: const Text('MY RIYO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.cast, color: Colors.white),
-            onPressed: () => context.push('/cast'),
-          ),
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () => context.push('/settings'),
@@ -52,7 +47,7 @@ class MyRiyoScreen extends StatelessWidget {
             const SizedBox(height: 40),
             _buildSectionHeader('ACCOUNT SETTINGS', showArrow: false),
             const SizedBox(height: 16),
-            _buildAccountSettings(context),
+            _buildAccountSettings(context, auth),
             const SizedBox(height: 48),
             _buildFooter(),
           ],
@@ -148,7 +143,7 @@ class MyRiyoScreen extends StatelessWidget {
                   Text(movie.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
                   Text(
-                    '${movie.releaseDate.split('-')[0]}${movie.runtime != null ? " | ${_formatDuration(movie.runtime!)}" : ""}',
+                    '${movie.releaseDate.split('-')[0]}',
                     style: const TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ],
@@ -160,8 +155,7 @@ class MyRiyoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAccountSettings(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+  Widget _buildAccountSettings(BuildContext context, AuthState auth) {
     return Column(
       children: [
         if (auth.role == 'admin')
@@ -178,13 +172,6 @@ class MyRiyoScreen extends StatelessWidget {
           icon: Icons.settings_outlined,
           text: 'App Settings',
           onTap: () => context.push('/settings'),
-        ),
-        const SizedBox(height: 8),
-         _buildSettingsButton(
-          context,
-          icon: Icons.subscriptions_outlined,
-          text: 'Subscription Plans',
-          onTap: () {},
         ),
       ],
     );
@@ -211,21 +198,10 @@ class MyRiyoScreen extends StatelessWidget {
     );
   }
 
-  String _formatDuration(int minutes) {
-    final int h = minutes ~/ 60;
-    final int m = minutes % 60;
-    if (h > 0) {
-      return '${h}h ${m}m';
-    }
-    return '${m}m';
-  }
-
   Widget _buildFooter() {
     return const Column(
       children: [
-        Text('RIYO PREMIUM V2.4.0', style: TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-        SizedBox(height: 4),
-        Text('CLOUD ID: 9L6K4D38', style: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 1.1)),
+        Text('RIYO PREMIUM V3.0.0', style: TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
       ],
     );
   }

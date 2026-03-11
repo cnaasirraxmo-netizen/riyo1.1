@@ -1,34 +1,53 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
-import 'package:riyo/providers/auth_provider.dart';
-import 'package:riyo/providers/settings_provider.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
+import 'package:riyo/presentation/providers/settings_provider.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
 
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
+
   List<Movie> _searchResults = [];
+  String? _nextCursor;
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   bool _hasSearched = false;
   Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && !_isLoadingMore && _nextCursor != null) {
+        _performSearch(_searchController.text, false, loadMore: true);
+      }
+    }
   }
 
   void _onSearchChanged(String query, bool isOffline, {String? token}) async {
@@ -39,13 +58,15 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _performSearch(String query, bool isOffline,
-      {String? token}) async {
+      {String? token, bool loadMore = false}) async {
     if (query.isEmpty) {
       if (mounted) {
         setState(() {
           _searchResults = [];
           _isLoading = false;
+          _isLoadingMore = false;
           _hasSearched = false;
+          _nextCursor = null;
         });
       }
       return;
@@ -53,32 +74,44 @@ class _SearchScreenState extends State<SearchScreen> {
 
     if (mounted) {
       setState(() {
-        _isLoading = true;
-        _hasSearched = true;
+        if (loadMore) {
+          _isLoadingMore = true;
+        } else {
+          _isLoading = true;
+          _hasSearched = true;
+          _nextCursor = null;
+        }
       });
     }
 
     try {
-      final movies = await _apiService.getTrendingMovies(token: token);
+      final res = await _apiService.getTrendingMovies(token: token, cursor: _nextCursor);
+      final List<Movie> movies = List<Movie>.from(res['movies']);
+
+      // Since backend doesn't have a real search endpoint yet, we simulate it
+      // but keep the pagination logic for when it's added.
       var filteredMovies = movies
           .where((movie) =>
               movie.title.toLowerCase().contains(query.toLowerCase()))
           .toList();
 
-      if (isOffline) {
-        filteredMovies = filteredMovies.where((m) => m.isDownloaded).toList();
-      }
-
       if (mounted) {
         setState(() {
-          _searchResults = filteredMovies;
+          if (loadMore) {
+            _searchResults.addAll(filteredMovies);
+          } else {
+            _searchResults = filteredMovies;
+          }
+          _nextCursor = res['nextCursor'];
           _isLoading = false;
+          _isLoadingMore = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isLoadingMore = false;
         });
       }
     }
@@ -86,8 +119,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
-    final auth = Provider.of<AuthProvider>(context);
+    final settings = ref.watch(settingsProvider);
+    final auth = ref.watch(authProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF141414),
@@ -215,6 +248,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return GridView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
@@ -222,8 +256,11 @@ class _SearchScreenState extends State<SearchScreen> {
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: _searchResults.length,
+      itemCount: _searchResults.length + (_isLoadingMore ? 3 : 0),
       itemBuilder: (context, index) {
+        if (index >= _searchResults.length) {
+          return const ShimmerLoading.rectangular(height: 150);
+        }
         return MovieCard(movie: _searchResults[index]);
       },
     );
@@ -250,7 +287,6 @@ class _SearchScreenState extends State<SearchScreen> {
       trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14.0),
       onTap: () {
         _searchController.text = title;
-        // Logic to trigger search
       },
     );
   }

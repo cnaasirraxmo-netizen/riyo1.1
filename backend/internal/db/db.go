@@ -41,6 +41,28 @@ func ConnectDB() {
 	DB = client.Database("riyo")
 
 	SeedDB()
+	CreateIndexes()
+}
+
+func CreateIndexes() {
+	fmt.Println("Creating MongoDB indexes...")
+
+	// Movies indexes
+	movieColl := DB.Collection("movies")
+	movieColl.Indexes().CreateMany(context.TODO(), []mongo.IndexModel{
+		{Keys: bson.M{"title": 1}},
+		{Keys: bson.M{"genre": 1}},
+		{Keys: bson.M{"isPublished": 1}},
+		{Keys: bson.M{"isTrending": 1}},
+		{Keys: bson.M{"isFeatured": 1}},
+		{Keys: bson.M{"createdAt": -1}},
+	})
+
+	// Users indexes
+	userColl := DB.Collection("users")
+	userColl.Indexes().CreateMany(context.TODO(), []mongo.IndexModel{
+		{Keys: bson.M{"email": 1}, Options: options.Index().SetUnique(true)},
+	})
 }
 
 func SeedDB() {

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riyo/presentation/providers/settings_provider.dart' as fr;
+import 'package:riyo/presentation/providers/auth_provider.dart' as fr;
 import 'package:riyo/presentation/screens/settings/settings_widgets.dart';
+import 'package:go_router/go_router.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
@@ -45,48 +48,6 @@ class SettingsScreen extends StatelessWidget {
             title: 'Downloads',
             subtitle: 'Smart downloads, quality, storage',
             onTap: () => context.push('/settings/downloads'),
-          ),
-          SettingsItem(
-            icon: Icons.data_usage,
-            title: 'Data Saver',
-            subtitle: 'Reduce image quality, limit data',
-            onTap: () => context.push('/settings/data-saver'),
-          ),
-          SettingsItem(
-            icon: Icons.language_outlined,
-            title: 'Language',
-            subtitle: 'App language, subtitles, audio',
-            onTap: () => context.push('/settings/language'),
-          ),
-          SettingsItem(
-            icon: Icons.security_outlined,
-            title: 'Privacy & Security',
-            subtitle: 'Watch history, 2FA, permissions',
-            onTap: () => context.push('/settings/privacy'),
-          ),
-          SettingsItem(
-            icon: Icons.tune_outlined,
-            title: 'Preferences',
-            subtitle: 'Favorite genres, hide content',
-            onTap: () => context.push('/settings/preferences'),
-          ),
-          SettingsItem(
-            icon: Icons.storage_outlined,
-            title: 'Storage Management',
-            subtitle: 'Clear cache, manage downloads',
-            onTap: () => context.push('/settings/storage'),
-          ),
-          SettingsItem(
-            icon: Icons.help_outline,
-            title: 'Support & Policy',
-            subtitle: 'Contact, terms, privacy policy',
-            onTap: () => context.push('/settings/support'),
-          ),
-          SettingsItem(
-            icon: Icons.info_outline,
-            title: 'About',
-            subtitle: 'App version, license, updates',
-            onTap: () => context.push('/settings/about'),
           ),
         ],
       ),

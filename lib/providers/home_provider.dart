@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
@@ -28,16 +27,16 @@ class HomeProvider extends ChangeNotifier {
     Future<List<Movie>> future;
     switch (type) {
       case 'trending':
-        future = _apiService.getTrendingMovies(token: token);
+        future = _apiService.getTrendingMovies(token: token).then((res) => List<Movie>.from(res['movies']));
         break;
       case 'top_rated':
-        future = _apiService.getTopRatedMovies(token: token);
+        future = _apiService.getTopRatedMovies(token: token).then((res) => List<Movie>.from(res['movies']));
         break;
       case 'new_releases':
-        future = _apiService.getNowPlayingMovies(token: token);
+        future = _apiService.getNowPlayingMovies(token: token).then((res) => List<Movie>.from(res['movies']));
         break;
       case 'genre':
-        future = _apiService.getTrendingMovies(token: token, genre: genre);
+        future = _apiService.getTrendingMovies(token: token, genre: genre).then((res) => List<Movie>.from(res['movies']));
         break;
       default:
         future = Future.value([]);
@@ -62,7 +61,7 @@ class HomeProvider extends ChangeNotifier {
       _categories = await _apiService.getHeaderCategories();
       _sections = await _apiService.getHomeSections();
       _sectionFutures.clear();
-      _featuredFuture = _apiService.getTrendingMovies(token: token, isFeatured: true);
+      _featuredFuture = _apiService.getTrendingMovies(token: token, isFeatured: true).then((res) => List<Movie>.from(res['movies']));
     } catch (e) {
       debugPrint('Error loading home config: $e');
     } finally {
@@ -73,7 +72,7 @@ class HomeProvider extends ChangeNotifier {
 
   void refresh() {
     _sectionFutures.clear();
-    _featuredFuture = null; // Will be recreated on next demand or loadConfig
+    _featuredFuture = null;
     notifyListeners();
   }
 }

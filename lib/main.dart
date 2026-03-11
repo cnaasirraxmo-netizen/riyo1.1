@@ -1,14 +1,10 @@
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
+import 'package:flutter_riverpod/flutter_riverpod.dart' as fr;
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:riyo/providers/settings_provider.dart';
-import 'package:riyo/providers/playback_provider.dart';
-import 'package:riyo/providers/download_provider.dart';
-import 'package:riyo/providers/auth_provider.dart';
-import 'package:riyo/providers/home_provider.dart';
-import 'package:riyo/providers/system_config_provider.dart';
+import 'package:riyo/presentation/providers/settings_provider.dart' as fr_settings;
+import 'package:riyo/presentation/providers/auth_provider.dart' as fr_auth;
+import 'package:riyo/presentation/providers/home_provider.dart';
 import 'package:riyo/presentation/screens/splash_screen.dart';
 import 'package:riyo/presentation/screens/onboarding_screen.dart';
 import 'package:riyo/presentation/screens/auth/login_screen.dart';
@@ -43,29 +39,35 @@ import 'package:riyo/presentation/screens/settings/support_settings_screen.dart'
 import 'package:riyo/presentation/screens/settings/about_settings_screen.dart' as about;
 import 'package:riyo/presentation/screens/settings/developer_settings_screen.dart';
 import 'package:riyo/services/notification_service.dart';
+import 'package:riyo/data/cache/cache_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+final cacheServiceProvider = fr.Provider<CacheService>((ref) => CacheService());
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase initialization (requires google-services.json in real apps)
+
+  final cacheService = CacheService();
+  await cacheService.init();
+
+  // Firebase initialization
   try {
     await Firebase.initializeApp();
     await NotificationService.initialize();
   } catch (e) {
     debugPrint('Firebase/Notification Init Error: $e');
   }
-  runApp(const rp.ProviderScope(child: MyApp()));
+  runApp(const fr.ProviderScope(child: MyApp()));
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
-GoRouter _createRouter(AuthProvider authProvider) {
+GoRouter _createRouter(fr_auth.AuthState auth) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
-    refreshListenable: authProvider,
     redirect: (context, state) {
       final bool loggingIn = state.uri.path == '/login';
       final bool signingUp = state.uri.path == '/signup';
@@ -74,11 +76,11 @@ GoRouter _createRouter(AuthProvider authProvider) {
 
       if (splash) return null;
 
-      if (!authProvider.isOnboardingComplete) {
+      if (!auth.isOnboardingComplete) {
         return welcome ? null : '/welcome';
       }
 
-      if (!authProvider.isAuthenticated) {
+      if (!auth.isAuthenticated) {
         return (loggingIn || signingUp || welcome) ? null : '/login';
       }
 
@@ -214,69 +216,57 @@ GoRouter _createRouter(AuthProvider authProvider) {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends fr.ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
-        ChangeNotifierProvider(create: (_) => PlaybackProvider()),
-        ChangeNotifierProvider(create: (_) => DownloadProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => HomeProvider()),
-        ChangeNotifierProvider(create: (_) => SystemConfigProvider()),
-      ],
-      child: Consumer<SettingsProvider>(
-        builder: (context, settings, child) {
-          final auth = Provider.of<AuthProvider>(context, listen: false);
-          return MaterialApp.router(
-            routerConfig: _createRouter(auth),
-            title: 'RIYO',
-            themeMode: settings.themeMode,
-            locale: settings.language == 'Arabic'
-                ? const Locale('ar', '')
-                : const Locale('en', ''),
-            builder: (context, child) {
-              return Directionality(
-                textDirection: settings.language == 'Arabic'
-                    ? TextDirection.rtl
-                    : TextDirection.ltr,
-                child: child!,
-              );
-            },
-            theme: ThemeData(
-              useMaterial3: true,
-              brightness: Brightness.light,
-              primaryColor: Colors.deepPurple,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.light,
-                secondary: Colors.deepPurpleAccent,
-              ),
-            ),
-            darkTheme: ThemeData(
-              useMaterial3: true,
-              brightness: Brightness.dark,
-              primaryColor: Colors.deepPurple,
-              scaffoldBackgroundColor: const Color(0xFF1C1B1F),
-              colorScheme: const ColorScheme.dark(
-                primary: Colors.deepPurple,
-                secondary: Colors.yellow,
-                onPrimary: Colors.white,
-                onSecondary: Colors.black,
-              ),
-              bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-                backgroundColor: Color(0xFF1C1B1F),
-                selectedItemColor: Colors.yellow,
-                unselectedItemColor: Colors.grey,
-                type: BottomNavigationBarType.fixed,
-                showUnselectedLabels: true,
-              ),
-            ),
-          );
-        },
+  Widget build(BuildContext context, fr.WidgetRef ref) {
+    final settings = ref.watch(fr_settings.settingsProvider);
+    final authState = ref.watch(fr_auth.authProvider);
+
+    return MaterialApp.router(
+      routerConfig: _createRouter(authState),
+      title: 'RIYO',
+      themeMode: settings.themeMode,
+      locale: settings.language == 'Arabic'
+          ? const Locale('ar', '')
+          : const Locale('en', ''),
+      builder: (context, child) {
+        return Directionality(
+          textDirection: settings.language == 'Arabic'
+              ? TextDirection.rtl
+              : TextDirection.ltr,
+          child: child!,
+        );
+      },
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        primaryColor: Colors.deepPurple,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.light,
+          secondary: Colors.deepPurpleAccent,
+        ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        primaryColor: Colors.deepPurple,
+        scaffoldBackgroundColor: const Color(0xFF1C1B1F),
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.deepPurple,
+          secondary: Colors.yellow,
+          onPrimary: Colors.white,
+          onSecondary: Colors.black,
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Color(0xFF1C1B1F),
+          selectedItemColor: Colors.yellow,
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          showUnselectedLabels: true,
+        ),
       ),
     );
   }

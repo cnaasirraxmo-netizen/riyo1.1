@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:riyo/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
@@ -50,11 +50,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   void _navigateToNext() {
     if (!mounted) return;
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authState = ref.read(authProvider);
 
-    if (!authProvider.isOnboardingComplete) {
+    if (!authState.isOnboardingComplete) {
       context.go('/welcome');
-    } else if (!authProvider.isAuthenticated) {
+    } else if (!authState.isAuthenticated) {
       context.go('/login');
     } else {
       context.go('/home');
@@ -90,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ],
                       colors: [
                         Colors.transparent,
-                        Colors.white.withValues(alpha: 0.05),
+                        Colors.white.withAlpha(13),
                         Colors.transparent,
                       ],
                     ),

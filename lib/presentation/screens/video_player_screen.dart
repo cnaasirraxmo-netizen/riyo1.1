@@ -6,10 +6,9 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:provider/provider.dart';
-import 'package:riyo/providers/playback_provider.dart';
-import 'package:riyo/providers/auth_provider.dart';
-import 'package:riyo/providers/download_provider.dart';
+import 'package:riyo/presentation/providers/playback_provider.dart' as rp_playback;
+import 'package:riyo/presentation/providers/auth_provider.dart' as rp_auth;
+import 'package:riyo/presentation/providers/download_provider.dart' as rp_download;
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
@@ -63,7 +62,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   Future<void> _startCasting() async {
     final castingNotifier = ref.read(castingProvider.notifier);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(rp_auth.authProvider);
     String? url = widget.videoUrl;
     String? title = "Video";
     String? poster;
@@ -97,7 +96,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     if (url == null && widget.movieId != null) {
       if (!mounted) return;
       try {
-        final auth = Provider.of<AuthProvider>(context, listen: false);
+        final auth = ref.read(rp_auth.authProvider);
         final token = auth.token;
         final movie = await ApiService().getMovieDetails(widget.movieId!, token: token);
         if (!mounted) return;
@@ -163,7 +162,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Provider.of<PlaybackProvider>(context, listen: false).resetProgress(widget.movieId ?? '');
+              ref.read(rp_playback.playbackProvider.notifier).resetProgress(widget.movieId ?? '');
               _engine?.play();
               Navigator.pop(dialogContext);
             },
@@ -197,7 +196,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   @override
   void dispose() {
     if (widget.movieId != null && _engine != null) {
-      // Provider.of<PlaybackProvider>(context, listen: false).updateProgress(widget.movieId!, _engine!.getPosition());
+      ref.read(rp_playback.playbackProvider.notifier).updateProgress(widget.movieId!, _engine!.getPosition());
     }
     WakelockPlus.disable();
     _engine?.dispose();

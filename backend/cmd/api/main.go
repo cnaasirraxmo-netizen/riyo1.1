@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/riyobox/backend/internal/db"
@@ -26,6 +27,7 @@ func main() {
 
 	db.ConnectDB()
 	utils.InitR2()
+	utils.InitRedis()
 
 	// Initialize Video Pipeline
 	videoOrchestrator := services.NewVideoOrchestrator()
@@ -34,6 +36,7 @@ func main() {
 	videoWorker.Start()
 
 	r := gin.Default()
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	// Support large file uploads (up to 1 GiB)
 	r.MaxMultipartMemory = 1 << 30

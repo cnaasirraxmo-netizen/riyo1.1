@@ -28,6 +28,9 @@ typedef PlayerSetQuality = void Function(Pointer<Void>, int);
 typedef PlayerGetStateNative = Int32 Function(Pointer<Void>);
 typedef PlayerGetState = int Function(Pointer<Void>);
 
+typedef PlayerGetPositionNative = Double Function(Pointer<Void>);
+typedef PlayerGetPosition = double Function(Pointer<Void>);
+
 typedef NativeEventCallback = Void Function(Int32, Pointer<Utf8>);
 typedef PlayerSetEventCallbackNative = Void Function(Pointer<Void>, Pointer<NativeFunction<NativeEventCallback>>);
 typedef PlayerSetEventCallback = void Function(Pointer<Void>, Pointer<NativeFunction<NativeEventCallback>>);
@@ -44,6 +47,7 @@ class RiyoVideoEngine {
   late PlayerSeek _playerSeek;
   late PlayerSetQuality _playerSetQuality;
   late PlayerGetState _playerGetState;
+  late PlayerGetPosition _playerGetPosition;
   late PlayerSetEventCallback _playerSetEventCallback;
 
   RiyoVideoEngine() {
@@ -59,6 +63,7 @@ class RiyoVideoEngine {
     _playerSeek = _lib.lookupFunction<PlayerSeekNative, PlayerSeek>('player_seek');
     _playerSetQuality = _lib.lookupFunction<PlayerSetQualityNative, PlayerSetQuality>('player_set_quality');
     _playerGetState = _lib.lookupFunction<PlayerGetStateNative, PlayerGetState>('player_get_state');
+    _playerGetPosition = _lib.lookupFunction<PlayerGetPositionNative, PlayerGetPosition>('player_get_position');
     _playerSetEventCallback = _lib.lookupFunction<PlayerSetEventCallbackNative, PlayerSetEventCallback>('player_set_event_callback');
 
     _playerHandle = _playerCreate();
@@ -79,6 +84,15 @@ class RiyoVideoEngine {
   void seek(double seconds) => _playerSeek(_playerHandle, seconds);
   void setQuality(int level) => _playerSetQuality(_playerHandle, level);
   int getState() => _playerGetState(_playerHandle);
+
+  Duration getPosition() {
+    try {
+      final pos = _playerGetPosition(_playerHandle);
+      return Duration(milliseconds: (pos * 1000).toInt());
+    } catch (e) {
+      return Duration.zero;
+    }
+  }
 
   final _eventStreamController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get eventStream => _eventStreamController.stream;

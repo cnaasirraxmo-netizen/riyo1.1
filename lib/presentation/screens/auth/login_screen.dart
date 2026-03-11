@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:riyo/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
 
   void _handleLogin() async {
-    setState(() => _isLoading = true);
     try {
-      await Provider.of<AuthProvider>(context, listen: false).login(
+      await ref.read(authProvider.notifier).login(
         _emailController.text,
         _passwordController.text,
       );
@@ -29,13 +27,13 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(content: Text('Login failed: ${e.toString().replaceAll('Exception: ', '')}')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -70,12 +68,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _isLoading ? null : _handleLogin,
+              onPressed: authState.isLoading ? null : _handleLogin,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurpleAccent,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: _isLoading
+              child: authState.isLoading
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('SIGN IN', style: TextStyle(fontWeight: FontWeight.bold)),
             ),

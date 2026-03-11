@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:riyo/providers/auth_provider.dart';
-import 'package:riyo/providers/download_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
+import 'package:riyo/presentation/providers/download_provider.dart';
 import 'package:riyo/core/casting/presentation/providers/casting_provider.dart';
 import 'package:riyo/core/casting/domain/entities/cast_media.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
@@ -12,18 +12,17 @@ import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
-class MovieDetailsScreen extends rp.ConsumerStatefulWidget {
+class MovieDetailsScreen extends ConsumerStatefulWidget {
   final String movieId;
 
   const MovieDetailsScreen({super.key, required this.movieId});
 
   @override
-  rp.ConsumerState<MovieDetailsScreen> createState() => _MovieDetailsScreenState();
+  ConsumerState<MovieDetailsScreen> createState() => _MovieDetailsScreenState();
 }
 
-class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
+class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
   final ApiService _apiService = ApiService();
   Season? _selectedSeason;
   bool _isInWatchlist = false;
@@ -34,17 +33,17 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final auth = ref.read(authProvider);
       setState(() {
         _movieFuture = _apiService.getMovieDetails(widget.movieId, token: auth.token);
-        _recommendationsFuture = _apiService.getTrendingMovies(token: auth.token);
+        _recommendationsFuture = _apiService.getTrendingMovies(token: auth.token).then((res) => List<Movie>.from(res['movies']));
       });
       _checkWatchlistStatus();
     });
   }
 
   void _checkWatchlistStatus() async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(authProvider);
     if (!auth.isAuthenticated || auth.token == null) return;
 
     final watchlist = await _apiService.getWatchlist(auth.token!);
@@ -69,9 +68,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
             return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
           }
           final movie = snapshot.data!;
-
-          // Check if movie is in watchlist (ideally backend returns this in movie details)
-          // For now, we can check it if we had a full profile in auth provider or separate call
 
           if (movie.isTvShow && movie.seasons != null && _selectedSeason == null) {
             _selectedSeason = movie.seasons![0];
@@ -182,7 +178,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Prominent Poster overlay
             Stack(
               children: [
                 ClipRRect(
@@ -288,11 +283,11 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   Widget _buildActionsBar(BuildContext context, Movie movie) {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final downloads = Provider.of<DownloadProvider>(context);
-    final bool isDownloaded = downloads.isDownloaded(movie.id);
-    final bool isDownloading = downloads.isDownloading(movie.id);
-    final double progress = downloads.getDownloadProgress(movie.id);
+    final auth = ref.watch(authProvider);
+    final downloadNotifier = ref.read(downloadProvider.notifier);
+    final bool isDownloaded = downloadNotifier.isDownloaded(movie.id);
+    final bool isDownloading = downloadNotifier.isDownloading(movie.id);
+    final double progress = downloadNotifier.getDownloadProgress(movie.id);
     final bool isComingSoon = movie.contentType == 'coming_soon';
 
     return Column(
@@ -387,7 +382,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                 ],
               )
             : ElevatedButton.icon(
-                onPressed: isDownloaded ? null : () => downloads.startDownload(movie),
+                onPressed: isDownloaded ? null : () => downloadNotifier.startDownload(movie),
                 icon: Icon(isDownloaded ? Icons.download_done : Icons.download, color: Colors.white),
                 label: Text(isDownloaded ? 'DOWNLOADED' : 'DOWNLOAD', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(

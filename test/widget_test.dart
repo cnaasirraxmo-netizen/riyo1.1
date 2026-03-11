@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riyo/main.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
   setUpAll(() {
@@ -11,7 +12,7 @@ void main() {
 
   testWidgets('App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
 
     // Splash Screen should be visible initially
     expect(find.byType(Image), findsAtLeast(1));

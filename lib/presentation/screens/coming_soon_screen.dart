@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
-import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
 import 'package:riyo/services/notification_service.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-class ComingSoonScreen extends StatefulWidget {
+class ComingSoonScreen extends ConsumerStatefulWidget {
   const ComingSoonScreen({super.key});
 
   @override
-  State<ComingSoonScreen> createState() => _ComingSoonScreenState();
+  ConsumerState<ComingSoonScreen> createState() => _ComingSoonScreenState();
 }
 
-class _ComingSoonScreenState extends State<ComingSoonScreen> {
+class _ComingSoonScreenState extends ConsumerState<ComingSoonScreen> {
   final ApiService _apiService = ApiService();
   List<Movie> _movies = [];
   bool _isLoading = true;
@@ -27,8 +27,10 @@ class _ComingSoonScreenState extends State<ComingSoonScreen> {
   }
 
   Future<void> _fetchMovies() async {
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
-    final movies = await _apiService.getComingSoonMovies(token: token);
+    final token = ref.read(authProvider).token;
+    final res = await _apiService.getTrendingMovies(token: token); // Use trending with coming soon logic if available or separate call
+    // For now, let's keep it simple and use a dedicated call if it exists or fallback
+    final movies = await _apiService.getComingSoonMoviesList(token: token);
     if (mounted) {
       setState(() {
         _movies = movies;
@@ -88,7 +90,6 @@ class _ComingSoonScreenState extends State<ComingSoonScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Trailer/Backdrop with Play Icon
           GestureDetector(
             onTap: () {
                if (movie.trailerUrl != null) {
@@ -164,9 +165,7 @@ class _ComingSoonScreenState extends State<ComingSoonScreen> {
   }
 
   Widget _buildNotifyButton(Movie movie) {
-    final auth = Provider.of<AuthProvider>(context);
-    // In a real app, we would check if the user is already in movie.notifyUsers
-    // For now we'll simulate based on the snackbar feedback
+    final auth = ref.watch(authProvider);
 
     return OutlinedButton.icon(
       onPressed: () async {
@@ -176,7 +175,6 @@ class _ComingSoonScreenState extends State<ComingSoonScreen> {
           return;
         }
 
-        // Request notification permissions again just in case
         await NotificationService.initialize();
 
         final res = await _apiService.toggleNotifyMe(movie.backendId ?? movie.id.toString(), auth.token!);

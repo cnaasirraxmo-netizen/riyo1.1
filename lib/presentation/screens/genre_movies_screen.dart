@@ -1,47 +1,98 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
-import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 
-class GenreMoviesScreen extends StatefulWidget {
+class GenreMoviesScreen extends ConsumerStatefulWidget {
   final String genreName;
 
   const GenreMoviesScreen({super.key, required this.genreName});
 
   @override
-  State<GenreMoviesScreen> createState() => _GenreMoviesScreenState();
+  ConsumerState<GenreMoviesScreen> createState() => _GenreMoviesScreenState();
 }
 
-class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
+class _GenreMoviesScreenState extends ConsumerState<GenreMoviesScreen> {
   final ApiService _apiService = ApiService();
-  Future<List<Movie>>? _moviesFuture;
+  final ScrollController _scrollController = ScrollController();
+
+  List<Movie> _movies = [];
+  String? _nextCursor;
+  bool _isLoading = false;
+  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadMovies();
+      _loadMovies(initial: true);
     });
   }
 
-  void _loadMovies() {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    setState(() {
-      if (widget.genreName == 'Watchlist' || widget.genreName == 'MY WATCHLIST') {
-        _moviesFuture = _apiService.getWatchlist(auth.token ?? "");
-      } else if (widget.genreName == 'Trending Now') {
-        _moviesFuture = _apiService.getTrendingMovies(token: auth.token);
-      } else if (widget.genreName == 'Popular on RIYO') {
-        _moviesFuture = _apiService.getTopRatedMovies(token: auth.token);
-      } else if (widget.genreName == 'New Releases') {
-        _moviesFuture = _apiService.getNowPlayingMovies(token: auth.token);
-      } else {
-        _moviesFuture = _apiService.getTrendingMovies(token: auth.token, genre: widget.genreName);
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && _nextCursor != null) {
+        _loadMovies();
       }
+    }
+  }
+
+  Future<void> _loadMovies({bool initial = false}) async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      if (initial) _hasError = false;
     });
+
+    try {
+      final auth = ref.read(authProvider);
+      final Map<String, dynamic> res;
+
+      if (widget.genreName == 'Watchlist' || widget.genreName == 'MY WATCHLIST') {
+        final watchlist = await _apiService.getWatchlist(auth.token ?? "");
+        res = {'movies': watchlist, 'nextCursor': null};
+      } else if (widget.genreName == 'Trending Now') {
+        res = await _apiService.getTrendingMovies(token: auth.token, cursor: _nextCursor);
+      } else if (widget.genreName == 'Popular on RIYO') {
+        res = await _apiService.getTopRatedMovies(token: auth.token, cursor: _nextCursor);
+      } else if (widget.genreName == 'New Releases') {
+        res = await _apiService.getNowPlayingMovies(token: auth.token, cursor: _nextCursor);
+      } else {
+        res = await _apiService.getTrendingMovies(token: auth.token, genre: widget.genreName, cursor: _nextCursor);
+      }
+
+      final List<Movie> newMovies = List<Movie>.from(res['movies']);
+
+      if (mounted) {
+        setState(() {
+          if (initial) {
+            _movies = newMovies;
+          } else {
+            _movies.addAll(newMovies);
+          }
+          _nextCursor = res['nextCursor'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          if (initial) _hasError = true;
+        });
+      }
+    }
   }
 
   @override
@@ -54,14 +105,10 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
             style: const TextStyle(fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: FutureBuilder<List<Movie>>(
-        future: _moviesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildLoadingGrid();
-          }
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
+      body: _movies.isEmpty && _isLoading
+          ? _buildLoadingGrid()
+          : _movies.isEmpty && !_isLoading
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -72,11 +119,9 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
                       style: const TextStyle(color: Colors.white70)),
                 ],
               ),
-            );
-          }
-
-          final movies = snapshot.data!;
-          return GridView.builder(
+            )
+          : GridView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
@@ -84,9 +129,12 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
-            itemCount: movies.length,
+            itemCount: _movies.length + (_isLoading ? 3 : 0),
             itemBuilder: (context, index) {
-              final movie = movies[index];
+              if (index >= _movies.length) {
+                 return const ShimmerLoading.rectangular(height: 160);
+              }
+              final movie = _movies[index];
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -98,26 +146,11 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Text(
-                    '${movie.releaseDate.split('-')[0]}${movie.runtime != null ? " | ${_formatDuration(movie.runtime!)}" : ""}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 9),
-                  ),
                 ],
               );
             },
-          );
-        },
-      ),
+          ),
     );
-  }
-
-  String _formatDuration(int minutes) {
-    final int h = minutes ~/ 60;
-    final int m = minutes % 60;
-    if (h > 0) {
-      return '${h}h ${m}m';
-    }
-    return '${m}m';
   }
 
   Widget _buildLoadingGrid() {

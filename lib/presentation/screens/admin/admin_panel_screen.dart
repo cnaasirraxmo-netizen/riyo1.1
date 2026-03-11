@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:riyo/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riyo/presentation/providers/auth_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart' as dio;
 import 'package:file_picker/file_picker.dart';
@@ -9,14 +9,14 @@ import 'dart:convert';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/core/constants.dart';
 
-class AdminPanelScreen extends StatefulWidget {
+class AdminPanelScreen extends ConsumerStatefulWidget {
   const AdminPanelScreen({super.key});
 
   @override
-  State<AdminPanelScreen> createState() => _AdminPanelScreenState();
+  ConsumerState<AdminPanelScreen> createState() => _AdminPanelScreenState();
 }
 
-class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerProviderStateMixin {
+class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<dynamic> _r2Files = [];
   bool _isLoadingR2 = false;
@@ -42,13 +42,15 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _fetchMovies();
-    _fetchR2Files();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchMovies();
+      _fetchR2Files();
+    });
   }
 
   Future<void> _fetchR2Files() async {
     setState(() => _isLoadingR2 = true);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(authProvider);
     final token = auth.token;
     try {
       final response = await http.get(
@@ -69,7 +71,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   }
 
   void _deleteR2File(String key) async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(authProvider);
     final token = auth.token;
     try {
       final response = await http.delete(
@@ -86,7 +88,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
   Future<void> _fetchMovies() async {
     setState(() => _isLoadingMovies = true);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(authProvider);
     final token = auth.token;
     try {
       final response = await http.get(
@@ -116,7 +118,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     if (result == null) return null;
 
     if (!mounted) return null;
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(authProvider);
     final token = auth.token;
     final file = result.files.first;
 
@@ -168,7 +170,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   Future<void> _uploadFromUrl(String url) async {
     if (url.isEmpty) return;
     setState(() => _isUploading = true);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(authProvider);
     final token = auth.token;
     try {
        final response = await http.post(
@@ -200,7 +202,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     }
 
     setState(() => _isUploading = true);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(authProvider);
     final token = auth.token;
     try {
       final response = await http.post(
@@ -219,7 +221,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           'genre': _genreController.text.split(',').map((e) => e.trim()).toList(),
           'duration': _durationController.text,
           'contentRating': _contentRatingController.text,
-          'isTrending': true, // New uploads are usually trending
+          'isTrending': true,
         }),
       );
       if (!mounted) return;
@@ -250,7 +252,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
   void _deleteMovie(String? id) async {
     if (id == null) return;
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = ref.read(authProvider);
     final token = auth.token;
      try {
       final response = await http.delete(
