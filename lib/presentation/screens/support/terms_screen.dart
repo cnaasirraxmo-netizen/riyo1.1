@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:riyo/core/design_system.dart';
 
 class TermsScreen extends StatelessWidget {
   const TermsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFF141414),
+      backgroundColor: colorScheme.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF141414),
-        title: const Text('TERMS OF SERVICE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: colorScheme.background,
+        title: Text('TERMS OF SERVICE',
+            style: AppTypography.titleMedium.copyWith(
+                fontWeight: FontWeight.bold, color: colorScheme.onBackground)),
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
-      body: const SingleChildScrollView(
-        padding: EdgeInsets.all(20),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Terms of Service', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            Text('Terms of Service',
+                style: AppTypography.titleLarge.copyWith(color: colorScheme.onSurface)),
             SizedBox(height: 10),
             Text('Last updated: February 2024', style: TextStyle(color: Colors.grey, fontSize: 14)),
             SizedBox(height: 30),
