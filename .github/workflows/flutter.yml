@@ -40,6 +40,6 @@ jobs:
       - name: Run tests
         run: flutter test --no-pub
 
-      - name: Build APK
-        run: flutter build apk --release
+      # Build APK removed from here to prevent redundant resource-heavy builds.
+      # APK builds are handled by build_android.yml and release_android.yml
 
