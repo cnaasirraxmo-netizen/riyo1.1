@@ -23,8 +23,8 @@ class MovieCacheAdapter extends TypeAdapter<MovieCache> {
       posterPath: fields[3] as String,
       backdropPath: fields[4] as String?,
       releaseDate: fields[5] as String,
-      voteAverage: fields[6] as double,
-      runtime: fields[7] as int?,
+      voteAverage: (fields[6] as num).toDouble(),
+      runtime: (fields[7] as num?)?.toInt(),
       genres: (fields[8] as List?)?.cast<String>(),
       isTvShow: fields[9] as bool,
       contentType: fields[10] as String,
@@ -85,8 +85,8 @@ class PlaybackProgressCacheAdapter extends TypeAdapter<PlaybackProgressCache> {
     };
     return PlaybackProgressCache(
       movieId: fields[0] as String,
-      positionSeconds: fields[1] as int,
-      durationSeconds: fields[2] as int,
+      positionSeconds: (fields[1] as num).toInt(),
+      durationSeconds: (fields[2] as num).toInt(),
       lastWatched: fields[3] as DateTime,
     );
   }
