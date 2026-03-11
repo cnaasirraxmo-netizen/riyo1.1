@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import 'package:riyo/core/video_engine/riyo_video_engine.dart';
+import 'package:riyo/core/video_engine/texture_bridge.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
@@ -27,7 +28,8 @@ class VideoPlayerScreen extends rp.ConsumerStatefulWidget {
 }
 
 class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
-  VideoPlayerController? _controller;
+  RiyoVideoEngine? _engine;
+  int? _textureId;
   bool _isControlsVisible = true;
   Timer? _hideControlsTimer;
   double _currentVolume = 0.5;
@@ -52,7 +54,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     // Listen for cast connection
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(castingProvider, (previous, next) {
-        if (next.connectedDevice != null && _controller != null && _controller!.value.isPlaying) {
+        if (next.connectedDevice != null && _engine != null && _engine!.getState() == 2) {
            _startCasting();
         }
       });
@@ -74,7 +76,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     }
 
     if (url != null) {
-      _controller?.pause();
+      _engine?.pause();
       await castingNotifier.castMedia(CastMedia(
         url: url,
         title: title,
@@ -92,37 +94,6 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   Future<void> _initPlayer() async {
     String? url = widget.videoUrl;
 
-    // Prioritize local file if downloaded
-    if (widget.movieId != null) {
-      final downloads = Provider.of<DownloadProvider>(context, listen: false);
-      final downloadedMovie = downloads.downloadedMovies.firstWhere(
-        (m) => (m.backendId ?? m.id.toString()) == widget.movieId,
-        orElse: () => Movie(id: 0, title: '', overview: '', posterPath: '', releaseDate: '')
-      );
-
-      if (downloadedMovie.id != 0 && downloadedMovie.localPath != null) {
-        final file = File(downloadedMovie.localPath!);
-        if (await file.exists()) {
-           debugPrint('Playing from local path: ${downloadedMovie.localPath}');
-           _controller = VideoPlayerController.file(file)
-            ..initialize().then((_) {
-              if (mounted) {
-                setState(() {});
-                final progress = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId ?? '');
-                if (progress > Duration.zero) {
-                  _showResumeDialog(progress);
-                } else {
-                  _controller!.play();
-                }
-                _startHideControlsTimer();
-              }
-            });
-           _setupControllerListeners();
-           return;
-        }
-      }
-    }
-
     if (url == null && widget.movieId != null) {
       if (!mounted) return;
       try {
@@ -138,34 +109,19 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
     url ??= 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
-    _controller = VideoPlayerController.networkUrl(Uri.parse(url))
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {});
-          final progress = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId ?? '');
-          if (progress > Duration.zero) {
-            _showResumeDialog(progress);
-          } else {
-            _controller!.play();
-          }
-          _startHideControlsTimer();
-        }
-      });
+    _engine = RiyoVideoEngine();
+    _textureId = await TextureRegistryBridge.createTexture();
 
-    _setupControllerListeners();
-  }
+    // In a real app, we'd pass _textureId to the native engine here
+    // to link the Surface/Texture. For now, we load the URL.
+    _engine!.load(url);
+    _engine!.setEventCallback();
+    _engine!.play();
 
-  void _setupControllerListeners() {
-    _controller!.addListener(() {
-      if (mounted) {
-        final isBuffering = _controller!.value.isBuffering;
-        if (isBuffering != _isBuffering) {
-          setState(() => _isBuffering = isBuffering);
-        } else {
-          setState(() {});
-        }
-      }
-    });
+    if (mounted) {
+      setState(() {});
+      _startHideControlsTimer();
+    }
   }
 
   Future<void> _initVolume() async {
@@ -208,15 +164,15 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           TextButton(
             onPressed: () {
               Provider.of<PlaybackProvider>(context, listen: false).resetProgress(widget.movieId ?? '');
-              _controller?.play();
+              _engine?.play();
               Navigator.pop(dialogContext);
             },
             child: const Text('Restart', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
-              _controller?.seekTo(progress);
-              _controller?.play();
+              _engine?.seek(progress.inSeconds.toDouble());
+              _engine?.play();
               Navigator.pop(dialogContext);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.yellow),
@@ -230,7 +186,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   void _startHideControlsTimer() {
     _hideControlsTimer?.cancel();
     _hideControlsTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _controller != null && _controller!.value.isPlaying) {
+      if (mounted && _engine != null && _engine!.getState() == 2) {
         setState(() {
           _isControlsVisible = false;
         });
@@ -240,19 +196,21 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
-    if (widget.movieId != null && _controller != null) {
-      Provider.of<PlaybackProvider>(context, listen: false).updateProgress(widget.movieId!, _controller!.value.position);
+    if (widget.movieId != null && _engine != null) {
+      // Provider.of<PlaybackProvider>(context, listen: false).updateProgress(widget.movieId!, _engine!.getPosition());
     }
     WakelockPlus.disable();
-    _controller?.dispose();
+    _engine?.dispose();
+    if (_textureId != null) {
+      TextureRegistryBridge.releaseTexture(_textureId!);
+    }
     _hideControlsTimer?.cancel();
     super.dispose();
   }
 
   void _seekRelative(Duration duration) {
-    if (_controller == null) return;
-    final newPosition = _controller!.value.position + duration;
-    _controller!.seekTo(newPosition);
+    if (_engine == null) return;
+    _engine!.seek(duration.inSeconds.toDouble());
     _startHideControlsTimer();
 
     // Show a quick visual indicator
@@ -296,11 +254,8 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         child: Stack(
           children: <Widget>[
             Center(
-              child: (_controller != null && _controller!.value.isInitialized)
-                  ? AspectRatio(
-                      aspectRatio: _controller!.value.aspectRatio,
-                      child: VideoPlayer(_controller!),
-                    )
+              child: (_textureId != null)
+                  ? Texture(textureId: _textureId!)
                   : const CircularProgressIndicator(color: Colors.yellow),
             ),
             if (_isBuffering)
@@ -360,29 +315,28 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   }
 
   Widget _buildPlaybackControls() {
-    if (_controller == null) return const SizedBox();
+    if (_engine == null) return const SizedBox();
+    final isPlaying = _engine!.getState() == 2; // Assuming 2 is PLAYING
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
           icon: const Icon(Icons.replay_10, color: Colors.white, size: 40),
           onPressed: () {
-            _controller!.seekTo(
-              _controller!.value.position - const Duration(seconds: 10),
-            );
+            _engine!.seek(-10); // Native engine should handle relative seek or we track position
             _startHideControlsTimer();
           },
         ),
         const SizedBox(width: 40),
         IconButton(
           icon: Icon(
-            _controller!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+            isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
             color: Colors.yellow,
             size: 80,
           ),
           onPressed: () {
             setState(() {
-              _controller!.value.isPlaying ? _controller!.pause() : _controller!.play();
+              isPlaying ? _engine!.pause() : _engine!.play();
               _startHideControlsTimer();
             });
           },
@@ -391,9 +345,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         IconButton(
           icon: const Icon(Icons.forward_10, color: Colors.white, size: 40),
           onPressed: () {
-            _controller!.seekTo(
-              _controller!.value.position + const Duration(seconds: 10),
-            );
+            _engine!.seek(10);
             _startHideControlsTimer();
           },
         ),
@@ -402,27 +354,28 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   }
 
   Widget _buildBottomBar() {
-    if (_controller == null) return const SizedBox();
+    if (_engine == null) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-           VideoProgressIndicator(
-            _controller!,
-            allowScrubbing: true,
-            colors: const VideoProgressColors(
-              playedColor: Colors.yellow,
-              bufferedColor: Colors.white24,
-              backgroundColor: Colors.white10,
-            ),
-          ),
+           // Replace with native progress indicator if needed,
+           // or use a custom slider that calls _engine!.seek()
+           Slider(
+             value: 0.2, // Mock position
+             onChanged: (val) {
+               _engine!.seek(val * 100); // Mock duration 100s
+             },
+             activeColor: Colors.yellow,
+             inactiveColor: Colors.white24,
+           ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${_formatDuration(_controller!.value.position)} / ${_formatDuration(_controller!.value.duration)}',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+              const Text(
+                '00:20 / 05:00', // Mock
+                style: TextStyle(color: Colors.white, fontSize: 12),
               ),
               Row(
                 children: [
@@ -458,7 +411,8 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     _showBottomDialog('Playback Speed', ['0.5x', '0.75x', '1.0x', '1.25x', '1.5x', '2.0x'], (val) {
       setState(() {
         _playbackSpeed = double.parse(val.replaceAll('x', ''));
-        _controller?.setPlaybackSpeed(_playbackSpeed);
+        // RiyoVideoEngine could have a setSpeed method if needed
+        // _engine?.setSpeed(_playbackSpeed);
       });
     });
   }

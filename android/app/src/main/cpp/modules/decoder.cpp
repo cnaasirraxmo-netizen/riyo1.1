@@ -8,17 +8,40 @@ Decoder::Decoder() : m_codec(nullptr) {}
 Decoder::~Decoder() { release(); }
 
 bool Decoder::init(const char* mime) {
+    if (mime == nullptr) {
+        __android_log_print(ANDROID_LOG_ERROR, "Decoder", "Failed to init: MIME type is null");
+        return false;
+    }
+
+    __android_log_print(ANDROID_LOG_INFO, "Decoder", "Initializing decoder for MIME: %s", mime);
     m_codec = AMediaCodec_createDecoderByType(mime);
-    if (!m_codec) return false;
+    if (!m_codec) {
+        __android_log_print(ANDROID_LOG_ERROR, "Decoder", "Failed to create decoder for MIME: %s", mime);
+        return false;
+    }
 
     AMediaFormat* format = AMediaFormat_new();
     AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, mime);
-    // Add more format settings
+    // Example: set video size if known, or handle in format change callback
+    // AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1280);
+    // AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 720);
 
-    AMediaCodec_configure(m_codec, format, nullptr, nullptr, 0);
+    media_status_t status = AMediaCodec_configure(m_codec, format, nullptr, nullptr, 0);
+    if (status != AMEDIA_OK) {
+        __android_log_print(ANDROID_LOG_ERROR, "Decoder", "Failed to configure codec: %d", status);
+        AMediaFormat_delete(format);
+        return false;
+    }
+
     AMediaFormat_delete(format);
 
-    AMediaCodec_start(m_codec);
+    status = AMediaCodec_start(m_codec);
+    if (status != AMEDIA_OK) {
+        __android_log_print(ANDROID_LOG_ERROR, "Decoder", "Failed to start codec: %d", status);
+        return false;
+    }
+
+    __android_log_print(ANDROID_LOG_INFO, "Decoder", "Decoder started successfully");
     return true;
 }
 

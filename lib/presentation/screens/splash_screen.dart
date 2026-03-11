@@ -113,8 +113,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Image.asset(
-                            'assets/images/full_logo.jpg',
-                            width: 300,
+                            'assets/images/logo.png',
+                            width: 200,
                             fit: BoxFit.contain,
                           ),
                         ],

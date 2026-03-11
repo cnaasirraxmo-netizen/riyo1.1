@@ -82,8 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverAppBar(
                 backgroundColor: const Color(0xFF141414),
                 title: Image.asset(
-                  'assets/images/full_logo.jpg',
-                  height: 40,
+                  'assets/images/logo.png',
+                  height: 32,
                   fit: BoxFit.contain,
                 ),
                 actions: [
