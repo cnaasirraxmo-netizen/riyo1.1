@@ -1,485 +1,181 @@
-import React, { useState, useEffect } from 'react';
-import api from '../utils/api';
+import React, { useState } from 'react';
+import {
+  Plus,
+  Search,
+  X,
+  Upload,
+  Calendar,
+  Image as ImageIcon,
+  Play,
+  Film
+} from 'lucide-react';
 
 const Movies = () => {
-  const [movies, setMovies] = useState([]);
-  const [r2Files, setR2Files] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [videoSource, setVideoSource] = useState('upload'); // upload, url, storage
-  const [uploadProgress, setUploadProgress] = useState({ poster: 0, video: 0 });
-  const [isUploading, setIsUploading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    posterUrl: '',
-    backdropUrl: '',
-    videoUrl: '',
-    trailerUrl: '',
-    year: '',
-    duration: '',
-    genre: '',
-    contentRating: '',
-    isFeatured: false,
-    contentType: 'free',
-    isTvShow: false,
-    seasons: []
-  });
+  const [isAddingNew, setIsAddingNew] = useState(false);
 
-  const fetchMovies = async () => {
-    setLoading(true);
-    try {
-      const [movieRes, r2Res] = await Promise.all([
-        api.get('/admin/movies?limit=100'),
-        api.get('/upload')
-      ]);
-      setMovies(movieRes.data.movies || []);
-      setR2Files(r2Res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const movies = [
+    { id: 1, title: 'Inception', year: '2010', duration: '148 min', category: 'Sci-Fi', status: 'Published', views: '124,000', poster: 'https://picsum.photos/seed/inception/100/150' },
+    { id: 2, title: 'Interstellar', year: '2014', duration: '169 min', category: 'Sci-Fi', status: 'Premium', views: '98,200', poster: 'https://picsum.photos/seed/interstellar/100/150' },
+    { id: 3, title: 'The Dark Knight', year: '2008', duration: '152 min', category: 'Action', status: 'Published', views: '210,000', poster: 'https://picsum.photos/seed/darkknight/100/150' },
+  ];
 
-  useEffect(() => {
-    fetchMovies();
-  }, []);
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this movie?')) return;
-    try {
-      await api.delete(`/admin/movies/${id}`);
-      fetchMovies();
-    } catch (err) {
-      alert('Delete failed');
-    }
-  };
-
-  const handleFileUpload = async (file, type) => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      setIsUploading(true);
-      const res = await api.post('/upload', formData, {
-        onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(prev => ({ ...prev, [type]: progress }));
-        }
-      });
-
-      setFormData(prev => ({
-        ...prev,
-        [type === 'poster' ? 'posterUrl' : 'videoUrl']: res.data.url
-      }));
-    } catch (err) {
-      alert(`${type} upload failed: ${err.response?.data?.message || err.message}`);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleUploadFromUrl = async () => {
-    if (!formData.posterUrl) return;
-    try {
-      setIsUploading(true);
-      const res = await api.post('/upload/by-url', { url: formData.posterUrl });
-      setFormData(prev => ({ ...prev, posterUrl: res.data.url }));
-      alert('Poster fetched and saved to R2');
-    } catch (err) {
-      alert('URL fetch failed');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.posterUrl || !formData.videoUrl) {
-      alert('Please upload poster and video first');
-      return;
-    }
-
-    const data = {
-      ...formData,
-      year: parseInt(formData.year) || new Date().getFullYear(),
-      genre: formData.genre.split(',').map(g => g.trim()),
-      isTrending: true,
-      isFeatured: formData.isFeatured,
-      contentType: formData.contentType
-    };
-
-    try {
-      await api.post('/admin/movies', data);
-      setIsModalOpen(false);
-      setFormData({
-        title: '', description: '', posterUrl: '',
-            backdropUrl: '', videoUrl: '', trailerUrl: '', year: '',
-            duration: '', genre: '', contentRating: '',
-            isFeatured: false, contentType: 'free',
-            isTvShow: false, seasons: []
-      });
-      setUploadProgress({ poster: 0, video: 0 });
-      fetchMovies();
-    } catch (err) {
-      alert('Movie creation failed');
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Published': return 'text-green-600 bg-green-50 border-green-200';
+      case 'Premium': return 'text-purple-600 bg-purple-50 border-purple-200';
+      case 'Coming Soon': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'Draft': return 'text-gray-600 bg-gray-50 border-gray-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Movies</h1>
-          <p className="text-gray-400">Manage your content library.</p>
-        </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-bold transition-colors"
-        >
-          Add New Movie
+    <div className="space-y-6 relative">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-[#1d2327]">Movies</h1>
+        <button onClick={() => setIsAddingNew(true)} className="btn-primary">
+          <Plus size={18} /> Add New Movie
         </button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-20 text-gray-500 italic">Loading content...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {movies.map((movie) => (
-            <div key={movie._id} className="bg-[#1C1C1C] rounded-xl overflow-hidden border border-white/5 group">
-              <div className="h-48 overflow-hidden relative">
-                <img
-                  src={movie.posterUrl}
-                  alt={movie.title}
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  onError={(e) => { e.target.src = 'https://via.placeholder.com/300x450?text=No+Image' }}
-                />
-                <div className="absolute top-2 right-2 flex space-x-2">
-                   <button
-                    onClick={() => handleDelete(movie._id)}
-                    className="p-2 bg-red-600 rounded-full hover:bg-red-700 shadow-lg"
-                   >
-                    🗑️
-                   </button>
-                </div>
-              </div>
-              <div className="p-5">
-                <h3 className="text-lg font-bold truncate">{movie.title}</h3>
-                <p className="text-gray-500 text-sm mt-1 line-clamp-2">{movie.description}</p>
-                <div className="mt-4 pt-4 border-t border-white/5 flex items-center text-xs text-gray-400 italic">
-                  URL: {movie.videoUrl.substring(0, 30)}...
-                </div>
-              </div>
+      {/* Adding New Movie Modal */}
+      {isAddingNew && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-[#dcdcde] flex items-center justify-between sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-bold">Add New Movie</h2>
+              <button onClick={() => setIsAddingNew(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <X size={20} />
+              </button>
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Upload Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1C1C1C] max-w-lg w-full rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-white/5 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Upload New Content</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white">✕</button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Movie Title</label>
-                <input
-                  required
-                  className="w-full bg-[#262626] border border-white/10 rounded px-4 py-2 focus:outline-none focus:border-purple-500"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
-                <textarea
-                  required
-                  rows="3"
-                  className="w-full bg-[#262626] border border-white/10 rounded px-4 py-2 focus:outline-none focus:border-purple-500"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                />
-              </div>
-              <div className="bg-[#262626] p-4 rounded-xl border border-white/5">
-                <label className="block text-xs font-black text-gray-500 mb-3 uppercase tracking-widest">Video Content Source</label>
-                <div className="flex space-x-2 mb-4">
-                   {['upload', 'url', 'storage'].map(type => (
-                     <button
-                        key={type}
-                        type="button"
-                        onClick={() => setVideoSource(type)}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                          videoSource === type ? 'bg-purple-600 text-white shadow-lg' : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                        }`}
-                     >
-                       {type.toUpperCase()}
-                     </button>
-                   ))}
+            <form className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold mb-1">Movie Title</label>
+                  <input type="text" className="input-field w-full" placeholder="Enter title" />
                 </div>
-
-                {videoSource === 'upload' && (
+                <div>
+                  <label className="block text-sm font-bold mb-1">Overview / Synopsis</label>
+                  <textarea className="input-field w-full h-32 resize-none" placeholder="Enter movie description"></textarea>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      className="w-full bg-[#141414] border border-white/10 rounded px-4 py-2 text-sm"
-                      onChange={(e) => handleFileUpload(e.target.files[0], 'video')}
-                    />
-                    {uploadProgress.video > 0 && (
-                      <div className="w-full bg-gray-700 h-1 mt-2 rounded-full overflow-hidden">
-                        <div className="bg-blue-500 h-full" style={{ width: `${uploadProgress.video}%` }}></div>
-                      </div>
-                    )}
+                    <label className="block text-sm font-bold mb-1">Release Year</label>
+                    <input type="text" className="input-field w-full" placeholder="2024" />
                   </div>
-                )}
-
-                {videoSource === 'url' && (
-                  <input
-                    placeholder="Paste direct MP4/HLS link"
-                    className="w-full bg-[#141414] border border-white/10 rounded px-4 py-2 text-sm focus:border-purple-500"
-                    value={formData.videoUrl}
-                    onChange={(e) => setFormData({...formData, videoUrl: e.target.value})}
-                  />
-                )}
-
-                {videoSource === 'storage' && (
-                  <select
-                    className="w-full bg-[#141414] border border-white/10 rounded px-4 py-2 text-sm outline-none focus:border-purple-500"
-                    value={formData.videoUrl}
-                    onChange={(e) => setFormData({...formData, videoUrl: e.target.value})}
-                  >
-                    <option value="">Select a file from R2 Storage</option>
-                    {r2Files.filter(f => f.key.toLowerCase().endsWith('.mp4')).map(file => (
-                      <option key={file.key} value={file.url}>{file.key} ({(file.size/1024/1024).toFixed(2)}MB)</option>
-                    ))}
+                  <div>
+                    <label className="block text-sm font-bold mb-1">Duration (min)</label>
+                    <input type="text" className="input-field w-full" placeholder="120" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-1">Category</label>
+                  <select className="input-field w-full">
+                    <option>Action</option>
+                    <option>Sci-Fi</option>
+                    <option>Drama</option>
+                    <option>Horror</option>
                   </select>
-                )}
-              </div>
-
-              <div className="bg-[#262626] p-4 rounded-xl border border-white/5">
-                <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Trailer Video URL</label>
-                <input
-                  placeholder="Paste direct MP4/HLS trailer link"
-                  className="w-full bg-[#141414] border border-white/10 rounded px-4 py-2 text-sm focus:border-purple-500 outline-none"
-                  value={formData.trailerUrl}
-                  onChange={(e) => setFormData({...formData, trailerUrl: e.target.value})}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 bg-[#262626] p-4 rounded-xl border border-white/5">
-                <label className="block text-xs font-black text-gray-500 mb-1 uppercase tracking-widest">Poster & Visuals</label>
-                <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 font-bold italic">OPTION 1: UPLOAD LOCAL FILE</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="w-full bg-[#141414] border border-white/10 rounded px-4 py-2 text-sm"
-                    onChange={(e) => handleFileUpload(e.target.files[0], 'poster')}
-                  />
-                  {uploadProgress.poster > 0 && (
-                    <div className="w-full bg-gray-700 h-1 mt-2 rounded-full overflow-hidden">
-                      <div className="bg-purple-500 h-full" style={{ width: `${uploadProgress.poster}%` }}></div>
-                    </div>
-                  )}
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 font-bold italic">OPTION 2: FETCH FROM EXTERNAL URL</label>
-                  <div className="flex space-x-2">
-                    <input
-                      placeholder="Paste image link here..."
-                      className="flex-1 bg-[#141414] border border-white/10 rounded px-4 py-2 text-sm focus:border-purple-500 outline-none"
-                      value={formData.posterUrl}
-                      onChange={(e) => setFormData({...formData, posterUrl: e.target.value})}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleUploadFromUrl}
-                      className="bg-white/10 hover:bg-white/20 px-4 rounded text-[10px] font-black uppercase tracking-tighter"
-                    >
-                      Fetch
-                    </button>
+              <div className="space-y-6">
+                <div className="border-2 border-dashed border-[#dcdcde] rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer group">
+                  <ImageIcon size={32} className="mx-auto mb-2 text-gray-400 group-hover:text-blue-500" />
+                  <p className="text-sm font-bold">Upload Poster</p>
+                  <p className="text-xs text-gray-400 mt-1">Recommended: 1000x1500px</p>
+                </div>
+                <div className="border-2 border-dashed border-[#dcdcde] rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer group">
+                  <Play size={32} className="mx-auto mb-2 text-gray-400 group-hover:text-blue-500" />
+                  <p className="text-sm font-bold">Upload Trailer</p>
+                  <p className="text-xs text-gray-400 mt-1">MP4 format preferred</p>
+                </div>
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Upload size={18} className="text-blue-600" />
+                    <span className="font-bold text-blue-800">Movie File</span>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] text-gray-400 mb-1 font-bold uppercase">Backdrop URL (Optional)</label>
-                  <input
-                    className="w-full bg-[#141414] border border-white/10 rounded px-4 py-2 text-sm focus:border-purple-500 outline-none"
-                    value={formData.backdropUrl}
-                    onChange={(e) => setFormData({...formData, backdropUrl: e.target.value})}
-                  />
+                  <button type="button" className="btn-primary w-full justify-center">Select Video File</button>
                 </div>
               </div>
 
-              <div className="bg-[#262626] p-4 rounded-xl border border-white/5">
-                <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Content Classification</label>
-                <select
-                  className="w-full bg-[#141414] border border-white/10 rounded px-4 py-2 text-sm focus:border-purple-500 outline-none"
-                  value={formData.contentType}
-                  onChange={(e) => setFormData({...formData, contentType: e.target.value})}
-                >
-                  <option value="free">Free Access</option>
-                  <option value="premium">Premium Access</option>
-                  <option value="coming_soon">Coming Soon (Trailer only)</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col space-y-2 bg-[#262626] p-4 rounded-xl border border-white/5">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isFeatured"
-                    className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    checked={formData.isFeatured}
-                    onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
-                  />
-                  <label htmlFor="isFeatured" className="text-sm font-bold text-gray-300">Feature in Home Carousel (Big Poster)</label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isTvShow"
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    checked={formData.isTvShow}
-                    onChange={(e) => setFormData({...formData, isTvShow: e.target.checked})}
-                  />
-                  <label htmlFor="isTvShow" className="text-sm font-bold text-gray-300">This is a TV Series</label>
-                </div>
-              </div>
-
-              {formData.isTvShow && (
-                <div className="bg-[#262626] p-4 rounded-xl border border-white/5 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Seasons & Episodes</label>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({...formData, seasons: [...formData.seasons, { number: formData.seasons.length + 1, title: `Season ${formData.seasons.length + 1}`, episodes: [] }]})}
-                      className="text-[10px] bg-blue-600/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-600/30"
-                    >
-                      + ADD SEASON
-                    </button>
-                  </div>
-
-                  {formData.seasons.map((season, sIdx) => (
-                    <div key={sIdx} className="border-l-2 border-blue-600 pl-4 py-2 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <input
-                          className="bg-transparent font-bold text-sm outline-none w-1/2"
-                          value={season.title}
-                          onChange={(e) => {
-                            const newSeasons = [...formData.seasons];
-                            newSeasons[sIdx].title = e.target.value;
-                            setFormData({...formData, seasons: newSeasons});
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newSeasons = [...formData.seasons];
-                            newSeasons[sIdx].episodes.push({ number: season.episodes.length + 1, title: 'New Episode', duration: '45m', videoUrl: '' });
-                            setFormData({...formData, seasons: newSeasons});
-                          }}
-                          className="text-[10px] text-gray-400 hover:text-white"
-                        >
-                          + Add Episode
-                        </button>
-                      </div>
-
-                      {season.episodes.map((ep, eIdx) => (
-                        <div key={eIdx} className="bg-[#141414] p-3 rounded text-xs space-y-2 border border-white/5">
-                          <div className="flex space-x-2">
-                            <input
-                              placeholder="Title"
-                              className="flex-1 bg-transparent border-b border-white/10 py-1"
-                              value={ep.title}
-                              onChange={(e) => {
-                                const newSeasons = [...formData.seasons];
-                                newSeasons[sIdx].episodes[eIdx].title = e.target.value;
-                                setFormData({...formData, seasons: newSeasons});
-                              }}
-                            />
-                            <input
-                              placeholder="Dur"
-                              className="w-12 bg-transparent border-b border-white/10 py-1"
-                              value={ep.duration}
-                              onChange={(e) => {
-                                const newSeasons = [...formData.seasons];
-                                newSeasons[sIdx].episodes[eIdx].duration = e.target.value;
-                                setFormData({...formData, seasons: newSeasons});
-                              }}
-                            />
-                          </div>
-                          <input
-                            placeholder="Video URL"
-                            className="w-full bg-transparent border-b border-white/10 py-1 italic"
-                            value={ep.videoUrl}
-                            onChange={(e) => {
-                              const newSeasons = [...formData.seasons];
-                              newSeasons[sIdx].episodes[eIdx].videoUrl = e.target.value;
-                              setFormData({...formData, seasons: newSeasons});
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Year</label>
-                  <input
-                    type="number"
-                    className="w-full bg-[#262626] border border-white/10 rounded px-4 py-2 focus:outline-none focus:border-purple-500"
-                    value={formData.year}
-                    onChange={(e) => setFormData({...formData, year: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Duration (e.g. 2h 10m)</label>
-                  <input
-                    className="w-full bg-[#262626] border border-white/10 rounded px-4 py-2 focus:outline-none focus:border-purple-500"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Genres (Comma separated)</label>
-                  <input
-                    className="w-full bg-[#262626] border border-white/10 rounded px-4 py-2 focus:outline-none focus:border-purple-500"
-                    value={formData.genre}
-                    onChange={(e) => setFormData({...formData, genre: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Rating (e.g. 13+, R)</label>
-                  <input
-                    className="w-full bg-[#262626] border border-white/10 rounded px-4 py-2 focus:outline-none focus:border-purple-500"
-                    value={formData.contentRating}
-                    onChange={(e) => setFormData({...formData, contentRating: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={isUploading}
-                  className="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-bold transition-all disabled:opacity-50"
-                >
-                  {isUploading ? 'Uploading Files...' : 'Confirm Upload'}
-                </button>
+              <div className="md:col-span-2 flex justify-end gap-4 border-t border-[#dcdcde] pt-6">
+                <button type="button" onClick={() => setIsAddingNew(false)} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary px-8">Publish Movie</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Filters Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <select className="input-field text-sm py-1">
+            <option>Bulk Actions</option>
+            <option>Edit</option>
+            <option>Move to Trash</option>
+          </select>
+          <button className="btn-secondary py-1 px-3 text-sm">Apply</button>
+
+          <select className="input-field text-sm py-1 ml-4">
+            <option>All Dates</option>
+          </select>
+          <button className="btn-secondary py-1 px-3 text-sm">Filter</button>
+        </div>
+
+        <div className="relative">
+          <input type="text" placeholder="Search movies..." className="input-field pl-10 text-sm" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        </div>
+      </div>
+
+      {/* Movies Table */}
+      <div className="admin-card overflow-hidden p-0">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b border-[#dcdcde] text-xs font-bold text-gray-500 uppercase">
+              <th className="p-4 w-12"><input type="checkbox" /></th>
+              <th className="p-4 w-20">Poster</th>
+              <th className="p-4">Title</th>
+              <th className="p-4 text-center">Status</th>
+              <th className="p-4">Year</th>
+              <th className="p-4 text-right pr-8">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#dcdcde]">
+            {movies.map((movie) => (
+              <tr key={movie.id} className="hover:bg-gray-50 group">
+                <td className="p-4"><input type="checkbox" /></td>
+                <td className="p-4">
+                  <div className="w-10 h-14 bg-gray-200 rounded overflow-hidden shadow-sm">
+                    <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
+                  </div>
+                </td>
+                <td className="p-4">
+                  <div>
+                    <p className="font-bold text-[#2271b1] hover:underline cursor-pointer">{movie.title}</p>
+                    <p className="text-xs text-gray-500 mt-1">{movie.category} • {movie.duration}</p>
+                  </div>
+                </td>
+                <td className="p-4 text-center">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase ${getStatusColor(movie.status)}`}>
+                    {movie.status}
+                  </span>
+                </td>
+                <td className="p-4 text-sm text-gray-600">{movie.year}</td>
+                <td className="p-4">
+                  <div className="flex items-center justify-end gap-2 pr-4">
+                    <button className="p-2 hover:bg-gray-100 rounded text-blue-600 transition-colors"><Film size={16} /></button>
+                    <button className="p-2 hover:bg-red-50 rounded text-red-500 transition-colors"><X size={16} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

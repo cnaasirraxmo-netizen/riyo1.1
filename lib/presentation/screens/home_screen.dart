@@ -9,6 +9,7 @@ import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/home_provider.dart';
 import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/providers/settings_provider.dart';
+import 'package:riyo/providers/system_config_provider.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
@@ -107,7 +108,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                   ),
-                  const CastingButton(),
+                  Selector<SystemConfigProvider, bool>(
+                    selector: (_, sc) => sc.config.castingEnabled,
+                    builder: (context, enabled, child) {
+                      return enabled ? const CastingButton() : const SizedBox.shrink();
+                    }
+                  ),
                   IconButton(
                       icon: const Icon(Icons.settings_outlined),
                       onPressed: () => context.push('/settings')),

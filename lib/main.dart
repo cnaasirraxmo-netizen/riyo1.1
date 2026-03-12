@@ -282,36 +282,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
-  int _calculateSelectedIndex(BuildContext context) {
-    final String location = GoRouterState.of(context).uri.path;
-    if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/category')) return 1;
-    if (location.startsWith('/downloads')) return 2;
-    if (location.startsWith('/search')) return 3;
-    if (location.startsWith('/my-riyo')) return 4;
-    return 0; // Default
-  }
-
-  void _onItemTapped(int index, BuildContext context) {
-    switch (index) {
-      case 0:
-        context.go('/home');
-        break;
-      case 1:
-        context.go('/category');
-        break;
-      case 2:
-        context.go('/downloads');
-        break;
-      case 3:
-        context.go('/search');
-        break;
-      case 4:
-        context.go('/my-riyo');
-        break;
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -343,39 +313,84 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
+    return Consumer<SystemConfigProvider>(
+      builder: (context, systemConfig, child) {
+        final bool downloadsEnabled = systemConfig.config.downloadsEnabled;
+
+        final List<BottomNavigationBarItem> items = [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_outlined),
             activeIcon: Icon(Icons.grid_view),
             label: 'Categories',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.download_outlined),
-            activeIcon: Icon(Icons.download),
-            label: 'Downloads',
-          ),
-          BottomNavigationBarItem(
+          if (downloadsEnabled)
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.download_outlined),
+              activeIcon: Icon(Icons.download),
+              label: 'Downloads',
+            ),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.search_outlined),
             activeIcon: Icon(Icons.search),
             label: 'Search',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'My RIYO',
           ),
-        ],
-        currentIndex: _calculateSelectedIndex(context),
-        onTap: (index) => _onItemTapped(index, context),
-      ),
+        ];
+
+        return Scaffold(
+          body: widget.child,
+          bottomNavigationBar: BottomNavigationBar(
+            items: items,
+            currentIndex: _calculateSelectedIndex(context, downloadsEnabled),
+            onTap: (index) => _onItemTapped(index, context, downloadsEnabled),
+            type: BottomNavigationBarType.fixed,
+          ),
+        );
+      },
     );
+  }
+
+  int _calculateSelectedIndex(BuildContext context, bool downloadsEnabled) {
+    final String location = GoRouterState.of(context).uri.path;
+    if (location.startsWith('/home')) return 0;
+    if (location.startsWith('/category')) return 1;
+    if (location.startsWith('/downloads')) return downloadsEnabled ? 2 : 0;
+    if (location.startsWith('/search')) return downloadsEnabled ? 3 : 2;
+    if (location.startsWith('/my-riyo')) return downloadsEnabled ? 4 : 3;
+    return 0;
+  }
+
+  void _onItemTapped(int index, BuildContext context, bool downloadsEnabled) {
+    int targetIndex = index;
+    if (!downloadsEnabled && index >= 2) {
+      targetIndex = index + 1;
+    }
+
+    switch (targetIndex) {
+      case 0:
+        context.go('/home');
+        break;
+      case 1:
+        context.go('/category');
+        break;
+      case 2:
+        context.go('/downloads');
+        break;
+      case 3:
+        context.go('/search');
+        break;
+      case 4:
+        context.go('/my-riyo');
+        break;
+    }
   }
 }

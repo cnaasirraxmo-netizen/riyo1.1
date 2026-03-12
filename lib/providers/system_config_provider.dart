@@ -9,6 +9,8 @@ class SystemConfig {
   final bool notificationsOn;
   final bool trailerAutoplay;
   final bool commentsEnabled;
+  final bool sportsEnabled;
+  final bool kidsEnabled;
 
   SystemConfig({
     required this.downloadsEnabled,
@@ -16,6 +18,8 @@ class SystemConfig {
     required this.notificationsOn,
     required this.trailerAutoplay,
     required this.commentsEnabled,
+    required this.sportsEnabled,
+    required this.kidsEnabled,
   });
 
   factory SystemConfig.fromJson(Map<String, dynamic> json) {
@@ -25,6 +29,8 @@ class SystemConfig {
       notificationsOn: json['notificationsOn'] ?? true,
       trailerAutoplay: json['trailerAutoplay'] ?? true,
       commentsEnabled: json['commentsEnabled'] ?? true,
+      sportsEnabled: json['sportsEnabled'] ?? true,
+      kidsEnabled: json['kidsEnabled'] ?? true,
     );
   }
 
@@ -35,6 +41,8 @@ class SystemConfig {
       notificationsOn: true,
       trailerAutoplay: true,
       commentsEnabled: true,
+      sportsEnabled: true,
+      kidsEnabled: true,
     );
   }
 }

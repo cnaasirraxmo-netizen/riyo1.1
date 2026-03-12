@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:riyo/core/design_system.dart';
+import 'package:riyo/providers/system_config_provider.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 
@@ -24,9 +26,16 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Future<void> _loadCategories() async {
     final cats = await _apiService.getHeaderCategories();
+    final systemConfig = Provider.of<SystemConfigProvider>(context, listen: false).config;
+
     if (mounted) {
       setState(() {
-        _categories = cats;
+        _categories = cats.where((c) {
+          if (c == 'Sports' && !systemConfig.sportsEnabled) return false;
+          if (c == 'Kids' && !systemConfig.kidsEnabled) return false;
+          return true;
+        }).toList();
+
         if (!_categories.contains('Coming Soon')) {
           _categories.insert(0, 'Coming Soon');
         }

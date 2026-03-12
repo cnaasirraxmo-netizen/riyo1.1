@@ -1,49 +1,64 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import AdminLayout from './components/AdminLayout';
 
 // Lazy load pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Movies = lazy(() => import('./pages/Movies'));
-const Media = lazy(() => import('./pages/Media'));
+const TVShows = lazy(() => import('./pages/TVShows'));
+const Trailers = lazy(() => import('./pages/Trailers'));
+const Categories = lazy(() => import('./pages/Categories'));
+const FeaturedContent = lazy(() => import('./pages/FeaturedContent'));
+const Sports = lazy(() => import('./pages/Sports'));
+const KidsContent = lazy(() => import('./pages/KidsContent'));
 const Users = lazy(() => import('./pages/Users'));
-const Layout = lazy(() => import('./pages/Layout'));
-const Management = lazy(() => import('./pages/Management'));
-const SystemSettings = lazy(() => import('./pages/SystemSettings'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Downloads = lazy(() => import('./pages/Downloads'));
+const Settings = lazy(() => import('./pages/Settings'));
+const SystemTools = lazy(() => import('./pages/SystemTools'));
+const Login = lazy(() => import('./pages/Login'));
 
-// Loader
 const PageLoader = () => (
-  <div className="h-full w-full flex items-center justify-center bg-[#141414]">
-    <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+  <div className="h-full w-full flex items-center justify-center bg-[#f0f0f1]">
+    <div className="w-8 h-8 border-4 border-[#2271b1] border-t-transparent rounded-full animate-spin"></div>
   </div>
 );
 
-function App() {
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    window.location.href = '/';
-  };
+const ProtectedRoute = ({ children }) => {
+  // Simple check for now, in real app check actual token
+  // const token = localStorage.getItem('token');
+  // if (!token) return <Navigate to="/login" />;
+  return <AdminLayout>{children}</AdminLayout>;
+};
 
+function App() {
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen bg-[#141414]">
-        <Sidebar onLogout={handleLogout} />
-        <main className="flex-1 p-8 overflow-y-auto">
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/movies" element={<Movies />} />
-              <Route path="/media" element={<Media />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/layout" element={<Layout />} />
-              <Route path="/management" element={<Management />} />
-              <Route path="/settings" element={<SystemSettings />} />
-              <Route path="*" element={<Navigate to="/dashboard" />} />
-            </Routes>
-          </Suspense>
-        </main>
-      </div>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/movies" element={<ProtectedRoute><Movies /></ProtectedRoute>} />
+          <Route path="/tv-shows" element={<ProtectedRoute><TVShows /></ProtectedRoute>} />
+          <Route path="/trailers" element={<ProtectedRoute><Trailers /></ProtectedRoute>} />
+          <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
+          <Route path="/featured" element={<ProtectedRoute><FeaturedContent /></ProtectedRoute>} />
+          <Route path="/sports" element={<ProtectedRoute><Sports /></ProtectedRoute>} />
+          <Route path="/kids" element={<ProtectedRoute><KidsContent /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+          <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+          <Route path="/downloads" element={<ProtectedRoute><Downloads /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/system" element={<ProtectedRoute><SystemTools /></ProtectedRoute>} />
+
+          <Route path="*" element={<Navigate to="/dashboard" />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
