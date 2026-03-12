@@ -39,12 +39,16 @@ func AdminCreateMovie(c *gin.Context) {
 
 func AdminGetMovies(c *gin.Context) {
 	search := c.Query("search")
+	isTvShow := c.Query("isTvShow")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
 	query := bson.M{}
 	if search != "" {
 		query["title"] = bson.M{"$regex": search, "$options": "i"}
+	}
+	if isTvShow != "" {
+		query["isTvShow"] = isTvShow == "true"
 	}
 
 	skip := int64((page - 1) * limit)
@@ -81,6 +85,34 @@ func AdminGetMovies(c *gin.Context) {
 		"pages":  math.Ceil(float64(total) / float64(limit)),
 		"total":  total,
 	})
+}
+
+func AdminUpdateMovie(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := bson.ObjectIDFromHex(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid ID"})
+		return
+	}
+
+	var updateData map[string]interface{}
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	delete(updateData, "_id")
+	delete(updateData, "id")
+	updateData["updatedAt"] = time.Now()
+
+	collection := db.DB.Collection("movies")
+	_, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": updateData})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Movie updated successfully"})
 }
 
 func AdminPublishMovie(c *gin.Context) {
@@ -194,4 +226,33 @@ func AdminGetUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, users)
+}
+
+func GetDashboardStats(c *gin.Context) {
+	movieCount, _ := db.DB.Collection("movies").CountDocuments(context.TODO(), bson.M{"isTvShow": false})
+	tvShowCount, _ := db.DB.Collection("movies").CountDocuments(context.TODO(), bson.M{"isTvShow": true})
+	userCount, _ := db.DB.Collection("users").CountDocuments(context.TODO(), bson.M{})
+
+	// Fetch trending movie (highest rating among trending)
+	var trendingMovie models.Movie
+	opts := options.FindOne().SetSort(bson.M{"rating": -1})
+	err := db.DB.Collection("movies").FindOne(context.TODO(), bson.M{"isTrending": true}, opts).Decode(&trendingMovie)
+
+	trendingTitle := "N/A"
+	if err == nil {
+		trendingTitle = trendingMovie.Title
+	}
+
+	// For Active Streams, we could count users active in last 5 minutes if we had a lastActive field.
+	// For now, let's keep it 0 or return a small random number for UI demonstration if preferred,
+	// but 0 is more honest until we implement heartbeat.
+
+	c.JSON(http.StatusOK, gin.H{
+		"totalMovies":   movieCount,
+		"totalTVShows":  tvShowCount,
+		"totalUsers":    userCount,
+		"activeStreams": 0,             // Requires heartbeat tracking
+		"totalRevenue":  0,             // Requires transaction model
+		"trendingMovie": trendingTitle,
+	})
 }

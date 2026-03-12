@@ -108,8 +108,10 @@ func main() {
 	admin := r.Group("/admin")
 	admin.Use(middleware.Protect(), middleware.AdminOnly())
 	{
+		admin.GET("/stats", handlers.GetDashboardStats)
 		admin.POST("/movies", handlers.AdminCreateMovie)
 		admin.GET("/movies", handlers.AdminGetMovies)
+		admin.PUT("/movies/:id", handlers.AdminUpdateMovie)
 		admin.PUT("/movies/:id/publish", handlers.AdminPublishMovie)
 		admin.DELETE("/movies/:id", handlers.AdminDeleteMovie)
 		admin.GET("/users", handlers.AdminGetUsers)

@@ -43,6 +43,14 @@ app.*.map.json
 node_modules/
 **/node_modules/
 
+# Web build artifacts
+dist/
+**/dist/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile

@@ -107,7 +107,7 @@ const Movies = () => {
   return (
     <div className="space-y-6 relative">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#1d2327]">Movies</h1>
+        <h1 className="text-2xl font-bold text-[#1d2327] dark:text-white">Movies</h1>
         <button onClick={() => setIsAddingNew(true)} className="btn-primary">
           <Plus size={18} /> Add New Movie
         </button>
@@ -116,10 +116,10 @@ const Movies = () => {
       {/* Adding New Movie Modal */}
       {isAddingNew && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-[#dcdcde] flex items-center justify-between sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold">Add New Movie</h2>
-              <button onClick={() => setIsAddingNew(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <div className="bg-white dark:bg-[#1e1e1e] rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-[#dcdcde] dark:border-gray-800 flex items-center justify-between sticky top-0 bg-white dark:bg-[#1e1e1e] z-10">
+              <h2 className="text-xl font-bold dark:text-white">Add New Movie</h2>
+              <button onClick={() => setIsAddingNew(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors dark:text-gray-400">
                 <X size={20} />
               </button>
             </div>
@@ -127,7 +127,7 @@ const Movies = () => {
             <form onSubmit={handleCreateMovie} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold mb-1">Movie Title</label>
+                  <label className="block text-sm font-bold mb-1 dark:text-gray-300">Movie Title</label>
                   <input
                     type="text"
                     required
@@ -138,7 +138,7 @@ const Movies = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold mb-1">Overview / Synopsis</label>
+                  <label className="block text-sm font-bold mb-1 dark:text-gray-300">Overview / Synopsis</label>
                   <textarea
                     required
                     className="input-field w-full h-32 resize-none"
@@ -149,7 +149,7 @@ const Movies = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold mb-1">Release Year</label>
+                    <label className="block text-sm font-bold mb-1 dark:text-gray-300">Release Year</label>
                     <input
                       type="number"
                       className="input-field w-full"
@@ -159,7 +159,7 @@ const Movies = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold mb-1">Duration (min)</label>
+                    <label className="block text-sm font-bold mb-1 dark:text-gray-300">Duration (min)</label>
                     <input
                       type="text"
                       className="input-field w-full"
@@ -170,7 +170,7 @@ const Movies = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold mb-1">Genre</label>
+                  <label className="block text-sm font-bold mb-1 dark:text-gray-300">Genre</label>
                   <select
                     className="input-field w-full"
                     onChange={(e) => setNewMovie({...newMovie, genre: [e.target.value]})}
@@ -186,7 +186,7 @@ const Movies = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold mb-1">Poster URL</label>
+                  <label className="block text-sm font-bold mb-1 dark:text-gray-300">Poster URL</label>
                   <input
                     type="text"
                     className="input-field w-full"
@@ -196,7 +196,7 @@ const Movies = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold mb-1">Video URL (m3u8/mp4)</label>
+                  <label className="block text-sm font-bold mb-1 dark:text-gray-300">Video URL (m3u8/mp4)</label>
                   <input
                     type="text"
                     required
@@ -207,7 +207,7 @@ const Movies = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold mb-1">Trailer URL</label>
+                  <label className="block text-sm font-bold mb-1 dark:text-gray-300">Trailer URL</label>
                   <input
                     type="text"
                     className="input-field w-full"
@@ -216,18 +216,18 @@ const Movies = () => {
                     onChange={(e) => setNewMovie({...newMovie, trailerUrl: e.target.value})}
                   />
                 </div>
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mt-4">
+                <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg p-4 mt-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <AlertCircle size={16} className="text-blue-600" />
-                    <span className="text-xs font-bold text-blue-800 uppercase">Pro Tip</span>
+                    <AlertCircle size={16} className="text-blue-600 dark:text-blue-400" />
+                    <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase">Pro Tip</span>
                   </div>
-                  <p className="text-[11px] text-blue-700 leading-relaxed">
+                  <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed">
                     Use high-quality HLS (.m3u8) links for the best streaming experience across all devices.
                   </p>
                 </div>
               </div>
 
-              <div className="md:col-span-2 flex justify-end gap-4 border-t border-[#dcdcde] pt-6">
+              <div className="md:col-span-2 flex justify-end gap-4 border-t border-[#dcdcde] dark:border-gray-800 pt-6">
                 <button type="button" onClick={() => setIsAddingNew(false)} className="btn-secondary">Cancel</button>
                 <button
                   type="submit"
@@ -245,10 +245,10 @@ const Movies = () => {
       {/* Filters Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <select className="input-field text-sm py-1">
+          <select className="input-field text-sm py-1 dark:bg-[#1e1e1e] dark:border-gray-700 dark:text-white">
             <option>All Genres</option>
           </select>
-          <select className="input-field text-sm py-1">
+          <select className="input-field text-sm py-1 dark:bg-[#1e1e1e] dark:border-gray-700 dark:text-white">
             <option>All Status</option>
           </select>
         </div>
@@ -257,7 +257,7 @@ const Movies = () => {
           <input
             type="text"
             placeholder="Search movies..."
-            className="input-field pl-10 text-sm"
+            className="input-field pl-10 text-sm dark:bg-[#1e1e1e] dark:border-gray-700 dark:text-white"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -266,7 +266,7 @@ const Movies = () => {
       </div>
 
       {/* Movies Table */}
-      <div className="admin-card overflow-hidden p-0">
+      <div className="admin-card overflow-hidden p-0 dark:bg-[#1e1e1e] dark:border-gray-800">
         {isLoading ? (
           <div className="p-12 flex justify-center">
             <Loader2 size={32} className="animate-spin text-[#2271b1]" />
@@ -274,7 +274,7 @@ const Movies = () => {
         ) : (
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-[#dcdcde] text-xs font-bold text-gray-500 uppercase">
+              <tr className="bg-gray-50 dark:bg-[#2c3338] border-b border-[#dcdcde] dark:border-gray-800 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
                 <th className="p-4 w-12"><input type="checkbox" /></th>
                 <th className="p-4 w-20">Poster</th>
                 <th className="p-4">Title</th>
@@ -283,12 +283,12 @@ const Movies = () => {
                 <th className="p-4 text-right pr-8">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#dcdcde]">
+            <tbody className="divide-y divide-[#dcdcde] dark:divide-gray-800">
               {filteredMovies.map((movie) => (
-                <tr key={movie._id} className="hover:bg-gray-50 group">
+                <tr key={movie._id} className="hover:bg-gray-50 dark:hover:bg-[#2c3338] group transition-colors">
                   <td className="p-4"><input type="checkbox" /></td>
                   <td className="p-4">
-                    <div className="w-10 h-14 bg-gray-200 rounded overflow-hidden shadow-sm">
+                    <div className="w-10 h-14 bg-gray-200 dark:bg-gray-800 rounded overflow-hidden shadow-sm">
                       <img
                         src={movie.posterUrl || 'https://via.placeholder.com/100x150'}
                         alt={movie.title}
@@ -298,8 +298,8 @@ const Movies = () => {
                   </td>
                   <td className="p-4">
                     <div>
-                      <p className="font-bold text-[#2271b1] hover:underline cursor-pointer">{movie.title}</p>
-                      <p className="text-xs text-gray-500 mt-1">{movie.genre?.join(', ')} • {movie.duration}</p>
+                      <p className="font-bold text-[#2271b1] dark:text-blue-400 hover:underline cursor-pointer">{movie.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{movie.genre?.join(', ')} • {movie.duration}</p>
                     </div>
                   </td>
                   <td className="p-4 text-center">
@@ -307,22 +307,22 @@ const Movies = () => {
                       onClick={() => handleTogglePublish(movie._id, movie.isPublished)}
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase transition-colors ${
                         movie.isPublished
-                        ? 'text-green-600 bg-green-50 border-green-200 hover:bg-green-100'
-                        : 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        ? 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/40 hover:bg-green-100 dark:hover:bg-green-900/30'
+                        : 'text-gray-600 bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
                       {movie.isPublished ? 'Published' : 'Draft'}
                     </button>
                   </td>
-                  <td className="p-4 text-sm text-gray-600">{movie.year}</td>
+                  <td className="p-4 text-sm text-gray-600 dark:text-gray-400">{movie.year}</td>
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-2 pr-4">
-                      <button className="p-2 hover:bg-gray-100 rounded text-blue-600 transition-colors">
+                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-blue-600 dark:text-blue-400 transition-colors">
                         <Film size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteMovie(movie._id)}
-                        className="p-2 hover:bg-red-50 rounded text-red-500 transition-colors"
+                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded text-red-500 dark:text-red-400 transition-colors"
                       >
                         <X size={16} />
                       </button>
@@ -332,7 +332,7 @@ const Movies = () => {
               ))}
               {filteredMovies.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="p-12 text-center text-gray-500">
+                  <td colSpan="6" className="p-12 text-center text-gray-500 dark:text-gray-400">
                     No movies found. Add your first movie to get started!
                   </td>
                 </tr>

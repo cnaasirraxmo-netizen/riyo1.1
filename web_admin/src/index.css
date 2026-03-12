@@ -12,15 +12,22 @@
   --wp-admin-border: #dcdcde;
 }
 
+.dark {
+  --wp-admin-background: #121212;
+  --wp-admin-sidebar: #1a1a1a;
+  --wp-admin-accent: #3582c4;
+  --wp-admin-text: #d1d1d1;
+  --wp-admin-border: #2c3338;
+}
+
 body {
+  @apply bg-[#f0f0f1] text-[#3c434a] dark:bg-[#121212] dark:text-[#d1d1d1];
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f0f0f1;
-  color: #3c434a;
 }
 
 /* Scrollbar styles */
@@ -34,29 +41,28 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c3c4c7;
-  border-radius: 4px;
+  @apply bg-[#c3c4c7] dark:bg-[#32373c] rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a7aaad;
+  @apply bg-[#a7aaad] dark:bg-[#4a5158];
 }
 
 /* Custom utility classes */
 @layer components {
   .admin-card {
-    @apply bg-white border border-[#dcdcde] rounded-lg shadow-sm p-6;
+    @apply bg-white border border-[#dcdcde] rounded-lg shadow-sm p-6 dark:bg-[#1e1e1e] dark:border-gray-800;
   }
 
   .btn-primary {
-    @apply bg-[#2271b1] hover:bg-[#135e96] text-white px-4 py-2 rounded font-semibold transition-colors flex items-center gap-2;
+    @apply bg-[#2271b1] hover:bg-[#135e96] text-white px-4 py-2 rounded font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
-    @apply bg-white border border-[#2271b1] text-[#2271b1] hover:bg-[#f6f7f7] px-4 py-2 rounded font-semibold transition-colors flex items-center gap-2;
+    @apply bg-white border border-[#2271b1] text-[#2271b1] hover:bg-[#f6f7f7] px-4 py-2 rounded font-semibold transition-colors flex items-center gap-2 dark:bg-[#1e1e1e] dark:border-blue-500 dark:text-blue-400 dark:hover:bg-[#2c3338];
   }
 
   .input-field {
-    @apply border border-[#8c8f94] rounded px-3 py-2 focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1] outline-none transition-all;
+    @apply border border-[#8c8f94] rounded px-3 py-2 focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1] outline-none transition-all dark:bg-[#2c3338] dark:border-gray-700 dark:text-white dark:focus:border-blue-500;
   }
 }

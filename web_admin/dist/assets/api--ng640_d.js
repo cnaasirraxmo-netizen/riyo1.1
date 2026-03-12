@@ -1,1 +1,0 @@
-import{a as r}from"./index-42ANG6Sg.js";const o="https://riyo-2.onrender.com",a=r.create({baseURL:o});a.interceptors.request.use(e=>{const t=localStorage.getItem("token");return t&&(e.headers.Authorization=`Bearer ${t}`),e});export{a};
