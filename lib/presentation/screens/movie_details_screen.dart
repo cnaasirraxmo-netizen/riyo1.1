@@ -170,43 +170,79 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (movie.quality != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withAlpha(20),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              movie.quality!.toUpperCase(),
+              style: AppTypography.labelSmall.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
         Text(
           movie.title,
           style: AppTypography.headlineLarge,
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Text(
-              movie.releaseDate.split('-')[0],
-              style: AppTypography.labelMedium,
+        if (movie.shortDesc.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              movie.shortDesc,
+              style: AppTypography.titleMedium.copyWith(color: Theme.of(context).colorScheme.primary.withOpacity(0.8)),
             ),
-            const SizedBox(width: 16),
+          ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          children: [
+            _buildMetaItem(Icons.calendar_today_rounded, movie.releaseDate.split('-')[0]),
+            _buildMetaItem(Icons.timer_outlined, movie.isTvShow ? 'TV Series' : '${movie.runtime} min'),
+            _buildMetaItem(Icons.star_rounded, movie.voteAverage.toStringAsFixed(1), iconColor: Colors.amber),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
                 border: Border.all(color: Theme.of(context).dividerColor),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                movie.contentRating ?? '13+',
+                movie.ageRating ?? '13+',
                 style: AppTypography.labelSmall.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(width: 16),
-            Text(
-              movie.isTvShow ? 'TV Series' : '${movie.runtime} min',
-              style: AppTypography.labelMedium,
-            ),
-            const Spacer(),
-            Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-            const SizedBox(width: 4),
-            Text(
-              movie.voteAverage.toStringAsFixed(1),
-              style: AppTypography.labelMedium.copyWith(fontWeight: FontWeight.bold),
-            ),
           ],
         ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Icon(Icons.language_rounded, size: 16, color: Colors.grey),
+            const SizedBox(width: 6),
+            Text(movie.language ?? 'English', style: AppTypography.labelMedium),
+            const SizedBox(width: 16),
+            Icon(Icons.location_on_rounded, size: 16, color: Colors.grey),
+            const SizedBox(width: 6),
+            Text(movie.country ?? 'USA', style: AppTypography.labelMedium),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetaItem(IconData icon, String label, {Color? iconColor}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: iconColor ?? Colors.grey),
+        const SizedBox(width: 6),
+        Text(label, style: AppTypography.labelMedium),
       ],
     );
   }
@@ -504,11 +540,15 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Details', style: AppTypography.titleLarge),
-        const SizedBox(height: 16),
+        Text('Detailed Information', style: AppTypography.titleLarge),
+        const SizedBox(height: 20),
         _buildDetailRow('Director', movie.director ?? 'N/A'),
+        _buildDetailRow('Cast', movie.cast?.join(', ') ?? 'N/A'),
         _buildDetailRow('Genres', movie.genres?.join(', ') ?? 'N/A'),
-        _buildDetailRow('Maturity', movie.contentRating ?? '13+'),
+        _buildDetailRow('Language', movie.language ?? 'English'),
+        _buildDetailRow('Country', movie.country ?? 'United States'),
+        if (movie.tags != null && movie.tags!.isNotEmpty)
+          _buildDetailRow('Tags', movie.tags!.join(' #')),
       ],
     );
   }

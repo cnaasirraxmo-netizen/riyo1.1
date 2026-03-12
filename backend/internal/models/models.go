@@ -65,28 +65,48 @@ type Season struct {
 	Episodes []Episode `bson:"episodes" json:"episodes"`
 }
 
+type StreamSource struct {
+	Label    string `bson:"label" json:"label"`       // Primary, Backup 1, etc.
+	URL      string `bson:"url" json:"url"`           // URL to the video
+	Type     string `bson:"type" json:"type"`         // direct, hls, dash, embed
+	Provider string `bson:"provider" json:"provider"` // local, url, youtube, vimeo, s3, r2
+}
+
 type Movie struct {
-	ID            bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
-	Title         string          `bson:"title" json:"title"`
-	Description   string          `bson:"description" json:"description"`
-	PosterURL     string          `bson:"posterUrl" json:"posterUrl"`
-	BackdropURL   string          `bson:"backdropUrl" json:"backdropUrl"`
-	VideoURL      string          `bson:"videoUrl" json:"videoUrl"`
-	Duration      string          `bson:"duration" json:"duration"`
-	Year          int             `bson:"year" json:"year"`
-	Genre         []string        `bson:"genre" json:"genre"`
-	Rating        float64         `bson:"rating" json:"rating"`
-	IsTrending    bool            `bson:"isTrending" json:"isTrending"`
-	IsFeatured    bool            `bson:"isFeatured" json:"isFeatured"`
-	ContentType   string          `bson:"contentType" json:"contentType"`
-	TrailerURL    string          `bson:"trailerUrl" json:"trailerUrl"`
-	IsPublished   bool            `bson:"isPublished" json:"isPublished"`
-	NotifyUsers   []bson.ObjectID `bson:"notifyUsers" json:"notifyUsers"`
-	ContentRating string          `bson:"contentRating" json:"contentRating"`
-	IsTvShow      bool            `bson:"isTvShow" json:"isTvShow"`
-	Seasons       []Season        `bson:"seasons" json:"seasons"`
-	CreatedAt     time.Time       `bson:"createdAt" json:"createdAt"`
-	UpdatedAt     time.Time       `bson:"updatedAt" json:"updatedAt"`
+	ID            bson.ObjectID    `bson:"_id,omitempty" json:"_id,omitempty"`
+	Title         string           `bson:"title" json:"title"`
+	ShortDesc     string           `bson:"shortDesc" json:"shortDesc"`
+	Description   string           `bson:"description" json:"description"`
+	PosterURL     string           `bson:"posterUrl" json:"posterUrl"`
+	BannerURL     string           `bson:"bannerUrl" json:"bannerUrl"`
+	ThumbnailURL  string           `bson:"thumbnailUrl" json:"thumbnailUrl"`
+	VideoURL      string           `bson:"videoUrl" json:"videoUrl"` // For backward compatibility
+	Sources       []StreamSource   `bson:"sources" json:"sources"`
+	TrailerURL    string           `bson:"trailerUrl" json:"trailerUrl"`
+	TrailerType   string           `bson:"trailerType" json:"trailerType"` // local, youtube, link
+	Duration      int              `bson:"duration" json:"duration"`       // in minutes
+	Year          int              `bson:"year" json:"year"`
+	Genre         []string         `bson:"genre" json:"genre"`
+	Language      string           `bson:"language" json:"language"`
+	Country       string           `bson:"country" json:"country"`
+	Director      string           `bson:"director" json:"director"`
+	Cast          []string         `bson:"cast" json:"cast"`
+	Rating        float64          `bson:"rating" json:"rating"`
+	AgeRating     string           `bson:"ageRating" json:"ageRating"` // 13+, 18+, etc.
+	Tags          []string         `bson:"tags" json:"tags"`
+	Quality       string           `bson:"quality" json:"quality"`       // HD, Full HD, 4K
+	Status        string           `bson:"status" json:"status"`         // published, draft, coming_soon, premium, trailer_only
+	AccessType    string           `bson:"accessType" json:"accessType"` // free, premium, subscription
+	Views         int64            `bson:"views" json:"views"`
+	DailyViews    map[string]int64 `bson:"dailyViews" json:"dailyViews"` // date string -> count
+	IsTrending    bool             `bson:"isTrending" json:"isTrending"`
+	IsFeatured    bool             `bson:"isFeatured" json:"isFeatured"`
+	IsTvShow      bool             `bson:"isTvShow" json:"isTvShow"`
+	Seasons       []Season         `bson:"seasons" json:"seasons"`
+	NotifyUsers   []bson.ObjectID  `bson:"notifyUsers" json:"notifyUsers"`
+	ContentRating string           `bson:"contentRating" json:"contentRating"` // Deprecated but kept for compat
+	CreatedAt     time.Time        `bson:"createdAt" json:"createdAt"`
+	UpdatedAt     time.Time        `bson:"updatedAt" json:"updatedAt"`
 }
 
 type Category struct {

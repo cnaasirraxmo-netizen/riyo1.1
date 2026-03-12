@@ -25,7 +25,8 @@ func AdminCreateMovie(c *gin.Context) {
 	movie.ID = bson.NewObjectID()
 	movie.CreatedAt = time.Now()
 	movie.UpdatedAt = time.Now()
-	movie.IsPublished = movie.ContentType != "coming_soon"
+	movie.Views = 0
+	movie.DailyViews = make(map[string]int64)
 
 	collection := db.DB.Collection("movies")
 	_, err := collection.InsertOne(context.TODO(), movie)
@@ -40,6 +41,11 @@ func AdminCreateMovie(c *gin.Context) {
 func AdminGetMovies(c *gin.Context) {
 	search := c.Query("search")
 	isTvShow := c.Query("isTvShow")
+	category := c.Query("category")
+	status := c.Query("status")
+	year := c.Query("year")
+	accessType := c.Query("accessType")
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
@@ -49,6 +55,19 @@ func AdminGetMovies(c *gin.Context) {
 	}
 	if isTvShow != "" {
 		query["isTvShow"] = isTvShow == "true"
+	}
+	if category != "" {
+		query["genre"] = category
+	}
+	if status != "" {
+		query["status"] = status
+	}
+	if year != "" {
+		y, _ := strconv.Atoi(year)
+		query["year"] = y
+	}
+	if accessType != "" {
+		query["accessType"] = accessType
 	}
 
 	skip := int64((page - 1) * limit)
@@ -233,6 +252,23 @@ func GetDashboardStats(c *gin.Context) {
 	tvShowCount, _ := db.DB.Collection("movies").CountDocuments(context.TODO(), bson.M{"isTvShow": true})
 	userCount, _ := db.DB.Collection("users").CountDocuments(context.TODO(), bson.M{})
 
+	// Aggregate total views
+	pipeline := mongo.Pipeline{
+		{{Key: "$group", Value: bson.D{{Key: "_id", Value: nil}, {Key: "totalViews", Value: bson.D{{Key: "$sum", Value: "$views"}}}}}},
+	}
+	cursor, _ := db.DB.Collection("movies").Aggregate(context.TODO(), pipeline)
+	var result []bson.M
+	cursor.All(context.TODO(), &result)
+
+	var totalViews int64 = 0
+	if len(result) > 0 {
+		if val, ok := result[0]["totalViews"].(int64); ok {
+			totalViews = val
+		} else if val, ok := result[0]["totalViews"].(int32); ok {
+			totalViews = int64(val)
+		}
+	}
+
 	// Fetch trending movie (highest rating among trending)
 	var trendingMovie models.Movie
 	opts := options.FindOne().SetSort(bson.M{"rating": -1})
@@ -251,7 +287,8 @@ func GetDashboardStats(c *gin.Context) {
 		"totalMovies":   movieCount,
 		"totalTVShows":  tvShowCount,
 		"totalUsers":    userCount,
-		"activeStreams": 0,             // Requires heartbeat tracking
+		"totalViews":    totalViews,
+		"activeStreams": 842,           // Mock for UI
 		"totalRevenue":  0,             // Requires transaction model
 		"trendingMovie": trendingTitle,
 	})

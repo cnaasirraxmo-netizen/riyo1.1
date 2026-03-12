@@ -1,25 +1,61 @@
+class StreamSource {
+  final String label;
+  final String url;
+  final String type;
+  final String provider;
+
+  StreamSource({
+    required this.label,
+    required this.url,
+    required this.type,
+    required this.provider,
+  });
+
+  factory StreamSource.fromJson(Map<String, dynamic> json) {
+    return StreamSource(
+      label: json['label'] ?? '',
+      url: json['url'] ?? '',
+      type: json['type'] ?? 'direct',
+      provider: json['provider'] ?? 'url',
+    );
+  }
+}
+
 class Movie {
   final int id;
   final String? backendId; // MongoDB _id
   final String title;
+  final String shortDesc;
   final String overview;
   final String posterPath;
   final String? backdropPath;
+  final String? bannerUrl;
+  final String? thumbnailUrl;
   final String releaseDate;
   final double voteAverage;
   final int? runtime;
   final List<String>? genres;
   final List<String>? cast;
   final String? director;
-  final String? contentRating;
+  final String? ageRating;
+  final String? contentRating; // kept for compatibility
+  final String? language;
+  final String? country;
+  final List<String>? tags;
+  final String? quality;
+  final String status; // published, draft, coming_soon, premium, trailer_only
+  final String accessType; // free, premium, subscription
+  final int views;
   final bool isTvShow;
   final int? seasonNumber;
   final List<Season>? seasons;
   final String? videoUrl;
+  final List<StreamSource>? sources;
   final String? trailerUrl;
-  final String contentType; // free, premium, coming_soon
+  final String? trailerType;
+  final String contentType; // Deprecated but kept for compat
   final bool isPublished;
-  final List<String> notifyUsers; // List of user IDs
+  final List<String> notifyUsers;
   final String? localPath;
 
   // Download related fields
@@ -33,21 +69,34 @@ class Movie {
     required this.id,
     this.backendId,
     required this.title,
+    this.shortDesc = '',
     required this.overview,
     required this.posterPath,
     this.backdropPath,
+    this.bannerUrl,
+    this.thumbnailUrl,
     required this.releaseDate,
     this.voteAverage = 0.0,
     this.runtime,
     this.genres,
     this.cast,
     this.director,
+    this.ageRating,
     this.contentRating,
+    this.language,
+    this.country,
+    this.tags,
+    this.quality,
+    this.status = 'published',
+    this.accessType = 'free',
+    this.views = 0,
     this.isTvShow = false,
     this.seasonNumber,
     this.seasons,
     this.videoUrl,
+    this.sources,
     this.trailerUrl,
+    this.trailerType,
     this.contentType = 'free',
     this.isPublished = true,
     this.notifyUsers = const [],
@@ -64,22 +113,27 @@ class Movie {
       'id': id,
       '_id': backendId,
       'title': title,
-      'overview': overview,
+      'shortDesc': shortDesc,
+      'description': overview,
       'posterUrl': posterPath,
+      'bannerUrl': bannerUrl,
       'backdropUrl': backdropPath,
       'year': releaseDate,
       'rating': voteAverage,
       'runtime': runtime,
       'genre': genres,
-      'is_tv_show': isTvShow,
-      'season_number': seasonNumber,
+      'director': director,
+      'cast': cast,
+      'ageRating': ageRating,
+      'contentRating': contentRating,
+      'language': language,
+      'country': country,
+      'quality': quality,
+      'status': status,
+      'accessType': accessType,
+      'isTvShow': isTvShow,
       'videoUrl': videoUrl,
-      'trailer_url': trailerUrl,
-      'content_type': contentType,
-      'is_published': isPublished,
-      'local_path': localPath,
-      'is_downloaded': isDownloaded,
-      'file_size': fileSize,
+      'trailerUrl': trailerUrl,
     };
   }
 
@@ -88,19 +142,34 @@ class Movie {
       id: json['id'] ?? (json['_id'] != null ? json['_id'].toString().hashCode : 0),
       backendId: json['_id']?.toString(),
       title: json['title'] ?? '',
-      overview: json['overview'] ?? json['description'] ?? '',
-      posterPath: json['poster_path'] ?? json['posterUrl'] ?? '',
-      backdropPath: json['backdrop_path'] ?? json['backdropUrl'] ?? json['posterUrl'],
-      releaseDate: json['release_date'] ?? json['year']?.toString() ?? json['createdAt']?.toString().split('T')[0] ?? '',
-      voteAverage: (json['vote_average'] as num?)?.toDouble() ?? (json['rating'] as num?)?.toDouble() ?? 0.0,
-      runtime: json['runtime'] ?? (json['duration'] != null ? _parseDuration(json['duration']) : null),
+      shortDesc: json['shortDesc'] ?? '',
+      overview: json['description'] ?? json['overview'] ?? '',
+      posterPath: json['posterUrl'] ?? json['poster_path'] ?? '',
+      backdropPath: json['backdropUrl'] ?? json['backdrop_path'] ?? json['posterUrl'],
+      bannerUrl: json['bannerUrl'],
+      thumbnailUrl: json['thumbnailUrl'],
+      releaseDate: json['year']?.toString() ?? json['release_date'] ?? json['createdAt']?.toString().split('T')[0] ?? '',
+      voteAverage: (json['rating'] as num?)?.toDouble() ?? (json['vote_average'] as num?)?.toDouble() ?? 0.0,
+      runtime: json['duration'] is int ? json['duration'] : (json['duration'] != null ? _parseDuration(json['duration']) : (json['runtime'] is int ? json['runtime'] : null)),
       genres: json['genre'] != null ? List<String>.from(json['genre']) : null,
-      contentRating: json['contentRating'],
+      cast: json['cast'] != null ? List<String>.from(json['cast']) : null,
+      director: json['director'],
+      ageRating: json['ageRating'] ?? json['contentRating'],
+      contentRating: json['contentRating'] ?? json['ageRating'],
+      language: json['language'],
+      country: json['country'],
+      tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
+      quality: json['quality'],
+      status: json['status'] ?? 'published',
+      accessType: json['accessType'] ?? 'free',
+      views: (json['views'] as num?)?.toInt() ?? 0,
       isTvShow: json['isTvShow'] ?? json['is_tv_show'] ?? false,
-      seasonNumber: json['season_number'] ?? (json['seasons'] != null && (json['seasons'] as List).isNotEmpty ? json['seasons'][0]['number'] : null),
+      seasonNumber: json['season_number'],
       seasons: json['seasons'] != null ? (json['seasons'] as List).map((s) => Season.fromJson(s)).toList() : null,
       videoUrl: json['videoUrl'],
+      sources: json['sources'] != null ? (json['sources'] as List).map((s) => StreamSource.fromJson(s)).toList() : null,
       trailerUrl: json['trailerUrl'] ?? json['trailer_url'],
+      trailerType: json['trailerType'],
       contentType: json['contentType'] ?? json['content_type'] ?? 'free',
       isPublished: json['isPublished'] ?? json['is_published'] ?? true,
       notifyUsers: json['notifyUsers'] != null ? List<String>.from(json['notifyUsers'].map((u) => u.toString())) : [],
@@ -147,23 +216,37 @@ class Movie {
       id: id,
       backendId: backendId,
       title: title,
+      shortDesc: shortDesc,
       overview: overview,
       posterPath: posterPath,
       backdropPath: backdropPath,
+      bannerUrl: bannerUrl,
+      thumbnailUrl: thumbnailUrl,
       releaseDate: releaseDate,
       voteAverage: voteAverage,
       runtime: runtime,
       genres: genres,
       cast: cast,
       director: director,
+      ageRating: ageRating,
       contentRating: contentRating,
+      language: language,
+      country: country,
+      tags: tags,
+      quality: quality,
+      status: status,
+      accessType: accessType,
+      views: views,
       isTvShow: isTvShow,
       seasonNumber: seasonNumber ?? this.seasonNumber,
       seasons: seasons,
       videoUrl: videoUrl ?? this.videoUrl,
+      sources: sources,
       trailerUrl: trailerUrl ?? this.trailerUrl,
+      trailerType: trailerType,
       contentType: contentType ?? this.contentType,
       isPublished: isPublished ?? this.isPublished,
+      notifyUsers: notifyUsers,
       localPath: localPath ?? this.localPath,
       isDownloaded: isDownloaded ?? this.isDownloaded,
       isDownloading: isDownloading ?? this.isDownloading,
