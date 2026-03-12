@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:riyo/core/design_system.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 
@@ -20,60 +21,84 @@ class MovieCard extends StatelessWidget {
       },
       child: Stack(
         children: [
-          Card(
+          Container(
+            height: height,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.cardBorderRadius),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.light
+                    ? AppColors.lightBorder
+                    : AppColors.darkBorder,
+                width: 1,
+              ),
+            ),
             clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            child: SizedBox(
-              height: height,
-              width: double.infinity,
-              child: CachedNetworkImage(
-                imageUrl: movie.posterPath.isNotEmpty
-                  ? (movie.posterPath.startsWith('http') ? movie.posterPath : 'https://image.tmdb.org/t/p/w500${movie.posterPath}')
+            child: CachedNetworkImage(
+              imageUrl: movie.posterPath.isNotEmpty
+                  ? (movie.posterPath.startsWith('http')
+                      ? movie.posterPath
+                      : 'https://image.tmdb.org/t/p/w500${movie.posterPath}')
                   : 'https://picsum.photos/seed/${movie.id}/200/300',
-                fit: BoxFit.cover,
-                placeholder: (context, url) => ShimmerLoading.rectangular(height: height),
-                errorWidget: (context, url, error) => const Center(child: Icon(Icons.movie, color: Colors.white24)),
+              fit: BoxFit.cover,
+              placeholder: (context, url) =>
+                  ShimmerLoading.rectangular(height: height),
+              errorWidget: (context, url, error) => Center(
+                child: Icon(
+                  Icons.movie,
+                  color: Theme.of(context).textTheme.labelSmall?.color,
+                ),
               ),
             ),
           ),
           if (movie.contentType == 'premium')
             Positioned(
-              top: 8,
-              left: 8,
+              top: 10,
+              left: 10,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.yellow,
-                  borderRadius: BorderRadius.circular(4),
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                      child: const Text('PREMIUM', style: TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.w900)),
+                child: const Text(
+                  'PREMIUM',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
             ),
           if (movie.isDownloaded)
             Positioned(
-              top: 8,
-              right: 8,
+              top: 10,
+              right: 10,
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: const BoxDecoration(
                   color: Colors.black54,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                child: const Icon(Icons.check_circle,
+                    color: Colors.green, size: 18),
               ),
             ),
           if (movie.isDownloading)
             Positioned(
-              bottom: 4,
-              left: 4,
-              right: 4,
+              bottom: 0,
+              left: 0,
+              right: 0,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(AppTheme.cardBorderRadius)),
                 child: LinearProgressIndicator(
                   value: movie.downloadProgress,
                   backgroundColor: Colors.white10,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepPurpleAccent),
-                  minHeight: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).colorScheme.primary),
+                  minHeight: 4,
                 ),
               ),
             ),

@@ -1,7 +1,9 @@
 
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 import 'package:go_router/go_router.dart';
+import 'package:riyo/core/design_system.dart';
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/settings_provider.dart';
 import 'package:riyo/providers/playback_provider.dart';
@@ -228,53 +230,41 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => HomeProvider()),
         ChangeNotifierProvider(create: (_) => SystemConfigProvider()),
       ],
-      child: Consumer<SettingsProvider>(
-        builder: (context, settings, child) {
-          final auth = Provider.of<AuthProvider>(context, listen: false);
-          return MaterialApp.router(
-            routerConfig: _createRouter(auth),
-            title: 'RIYO',
-            themeMode: settings.themeMode,
-            locale: settings.language == 'Arabic'
-                ? const Locale('ar', '')
-                : const Locale('en', ''),
-            builder: (context, child) {
-              return Directionality(
-                textDirection: settings.language == 'Arabic'
-                    ? TextDirection.rtl
-                    : TextDirection.ltr,
-                child: child!,
+      child: DynamicColorBuilder(
+        builder: (lightDynamic, darkDynamic) {
+          return Consumer<SettingsProvider>(
+            builder: (context, settings, child) {
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+
+              final lightTheme = AppTheme.getLightTheme(
+                settings.dynamicColor ? lightDynamic : null,
+              );
+
+              final darkTheme = AppTheme.getDarkTheme(
+                settings.dynamicColor ? darkDynamic : null,
+                isAmoled: settings.amoledMode,
+              );
+
+              return MaterialApp.router(
+                routerConfig: _createRouter(auth),
+                title: 'RIYO',
+                themeMode: settings.themeMode,
+                locale: settings.language == 'Arabic'
+                    ? const Locale('ar', '')
+                    : const Locale('en', ''),
+                builder: (context, child) {
+                  return Directionality(
+                    textDirection: settings.language == 'Arabic'
+                        ? TextDirection.rtl
+                        : TextDirection.ltr,
+                    child: child!,
+                  );
+                },
+                theme: lightTheme,
+                darkTheme: darkTheme,
+                debugShowCheckedModeBanner: false,
               );
             },
-            theme: ThemeData(
-              useMaterial3: true,
-              brightness: Brightness.light,
-              primaryColor: Colors.deepPurple,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.light,
-                secondary: Colors.deepPurpleAccent,
-              ),
-            ),
-            darkTheme: ThemeData(
-              useMaterial3: true,
-              brightness: Brightness.dark,
-              primaryColor: Colors.deepPurple,
-              scaffoldBackgroundColor: const Color(0xFF1C1B1F),
-              colorScheme: const ColorScheme.dark(
-                primary: Colors.deepPurple,
-                secondary: Colors.yellow,
-                onPrimary: Colors.white,
-                onSecondary: Colors.black,
-              ),
-              bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-                backgroundColor: Color(0xFF1C1B1F),
-                selectedItemColor: Colors.yellow,
-                unselectedItemColor: Colors.grey,
-                type: BottomNavigationBarType.fixed,
-                showUnselectedLabels: true,
-              ),
-            ),
           );
         },
       ),

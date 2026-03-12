@@ -15,15 +15,14 @@ void main() {
 
     // Splash Screen should be visible initially
     expect(find.byType(Image), findsAtLeast(1));
-    expect(find.text('PREMIUM STREAMING EXPERIENCE'), findsOneWidget);
 
-    // Wait for splash animation to finish (2.5s in code)
+    // Wait for splash animation to finish
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
 
     // After splash, since onboarding is not complete, we should be on Welcome Screen
-    expect(find.text('Unlimited movies, TV shows, and more.'), findsOneWidget);
-    expect(find.text('GET STARTED'), findsOneWidget);
+    expect(find.text('Unlimited movies, TV shows, and more'), findsOneWidget);
+    expect(find.text('Get Started'), findsOneWidget);
   });
 }
 

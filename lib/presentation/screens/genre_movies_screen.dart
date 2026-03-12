@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:riyo/core/design_system.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/providers/auth_provider.dart';
@@ -47,12 +48,9 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF141414),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF141414),
-        title: Text(widget.genreName.toUpperCase(),
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(widget.genreName, style: AppTypography.titleLarge),
+        surfaceTintColor: Colors.transparent,
       ),
       body: FutureBuilder<List<Movie>>(
         future: _moviesFuture,
@@ -65,11 +63,10 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.movie_outlined,
-                      size: 80, color: Colors.white10),
+                  Icon(Icons.movie_filter_rounded,
+                      size: 80, color: Theme.of(context).colorScheme.primary.withAlpha(50)),
                   const SizedBox(height: 16),
-                  Text('No movies found in ${widget.genreName}',
-                      style: const TextStyle(color: Colors.white70)),
+                  Text('No movies found', style: AppTypography.bodyMedium),
                 ],
               ),
             );
@@ -77,7 +74,7 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
 
           final movies = snapshot.data!;
           return GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               childAspectRatio: 0.65,
@@ -86,24 +83,7 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
             ),
             itemCount: movies.length,
             itemBuilder: (context, index) {
-              final movie = movies[index];
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: MovieCard(movie: movie, height: 160)),
-                  const SizedBox(height: 4),
-                  Text(
-                    movie.title,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    '${movie.releaseDate.split('-')[0]}${movie.runtime != null ? " | ${_formatDuration(movie.runtime!)}" : ""}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 9),
-                  ),
-                ],
-              );
+              return MovieCard(movie: movies[index]);
             },
           );
         },
@@ -111,18 +91,9 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
     );
   }
 
-  String _formatDuration(int minutes) {
-    final int h = minutes ~/ 60;
-    final int m = minutes % 60;
-    if (h > 0) {
-      return '${h}h ${m}m';
-    }
-    return '${m}m';
-  }
-
   Widget _buildLoadingGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         childAspectRatio: 0.65,

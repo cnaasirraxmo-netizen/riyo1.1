@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:riyo/core/design_system.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/providers/auth_provider.dart';
@@ -90,7 +91,6 @@ class _SearchScreenState extends State<SearchScreen> {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF141414),
       body: SafeArea(
         child: Column(
           children: [
@@ -108,67 +108,35 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildSearchHeader(bool isOffline, {String? token}) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) => _onSearchChanged(val, isOffline, token: token),
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: isOffline ? 'Search downloads...' : 'Search movies, TV shows...',
-                hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
-                prefixIcon: const Icon(Icons.search, color: Colors.deepPurpleAccent),
-                filled: true,
-                fillColor: const Color(0xFF1C1C1C),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4.0),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.white54),
-                      onPressed: () {
-                        _searchController.clear();
-                      _onSearchChanged('', isOffline, token: token);
-                      },
-                    )
-                  : null,
-              ),
-            ),
-          ),
-          if (_searchController.text.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: GestureDetector(
-                onTap: () {
+      padding: const EdgeInsets.all(24.0),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) => _onSearchChanged(val, isOffline, token: token),
+        style: AppTypography.bodyLarge,
+        decoration: InputDecoration(
+          hintText: isOffline ? 'Search downloads...' : 'Search movies, TV shows...',
+          prefixIcon: const Icon(Icons.search_rounded),
+          suffixIcon: _searchController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear_rounded),
+                onPressed: () {
                   _searchController.clear();
                   _onSearchChanged('', isOffline, token: token);
-                  FocusScope.of(context).unfocus();
                 },
-                child: const Text(
-                  'CANCEL',
-                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-        ],
+              )
+            : null,
+        ),
       ),
     );
   }
 
   Widget _buildInitialContent() {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
       children: [
-        const Text(
-          'TOP SEARCHES',
-          style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.0,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1),
+        Text(
+          'Top Searches',
+          style: AppTypography.titleLarge,
         ),
         const SizedBox(height: 16.0),
         _buildTrendingSearch('Inception'),
@@ -176,13 +144,9 @@ class _SearchScreenState extends State<SearchScreen> {
         _buildTrendingSearch('The Dark Knight'),
         _buildTrendingSearch('Pulp Fiction'),
         const SizedBox(height: 32.0),
-        const Text(
-          'CATEGORIES',
-          style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.0,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1),
+        Text(
+          'Categories',
+          style: AppTypography.titleLarge,
         ),
         const SizedBox(height: 16.0),
         GridView.count(
@@ -191,12 +155,12 @@ class _SearchScreenState extends State<SearchScreen> {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 12.0,
           crossAxisSpacing: 12.0,
-          childAspectRatio: 2.2,
+          childAspectRatio: 2.5,
           children: [
-            _buildCategoryChip('Action', Colors.redAccent),
-            _buildCategoryChip('Comedy', Colors.orangeAccent),
-            _buildCategoryChip('Drama', Colors.blueAccent),
-            _buildCategoryChip('Horror', Colors.deepPurpleAccent),
+            _buildCategoryChip('Action'),
+            _buildCategoryChip('Comedy'),
+            _buildCategoryChip('Drama'),
+            _buildCategoryChip('Horror'),
           ],
         ),
       ],
@@ -215,12 +179,12 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 0.7,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        childAspectRatio: 0.65,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
       ),
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
@@ -231,12 +195,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildLoadingGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 0.7,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        childAspectRatio: 0.65,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
       ),
       itemCount: 6,
       itemBuilder: (context, index) => const ShimmerLoading.rectangular(height: 150),
@@ -245,27 +209,29 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildTrendingSearch(String title) {
     return ListTile(
-      leading: const Icon(Icons.trending_up, color: Colors.white24),
-      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
-      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14.0),
+      leading: Icon(Icons.trending_up_rounded, color: Theme.of(context).colorScheme.primary),
+      title: Text(title, style: AppTypography.bodyLarge),
+      trailing: const Icon(Icons.chevron_right_rounded, size: 20),
       onTap: () {
         _searchController.text = title;
-        // Logic to trigger search
+        _performSearch(title, false);
       },
+      contentPadding: EdgeInsets.zero,
     );
   }
 
-  Widget _buildCategoryChip(String label, Color color) {
+  Widget _buildCategoryChip(String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4.0),
-        color: const Color(0xFF1C1C1C),
-        border: Border.all(color: color.withAlpha(50)),
+        borderRadius: BorderRadius.circular(AppTheme.cardBorderRadius),
+        color: isDark ? AppColors.amoledSurface : Colors.white,
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
       child: Center(
         child: Text(
-          label.toUpperCase(),
-          style: const TextStyle(color: Colors.white, fontSize: 14.0, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+          label,
+          style: AppTypography.labelLarge,
         ),
       ),
     );

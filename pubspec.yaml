@@ -36,6 +36,7 @@ dependencies:
   flutter_riverpod: ^3.2.1
   media_cast_dlna: ^0.2.0
   ffi: ^2.2.0
+  dynamic_color: ^1.8.1
 
 dev_dependencies:
   flutter_test:

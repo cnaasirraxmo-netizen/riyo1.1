@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:riyo/core/design_system.dart';
 import 'package:riyo/presentation/screens/settings/settings_widgets.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -8,26 +9,27 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Settings', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('Settings', style: AppTypography.titleLarge),
+        surfaceTintColor: Colors.transparent,
       ),
       body: ListView(
         children: [
+          const SettingsHeader(title: 'Appearance'),
           SettingsItem(
             icon: Icons.palette_outlined,
             title: 'Appearance',
             subtitle: 'Theme, AMOLED mode, posters',
             onTap: () => context.push('/settings/appearance'),
           ),
+          const SettingsHeader(title: 'Account'),
           SettingsItem(
             icon: Icons.account_circle_outlined,
             title: 'Account',
             subtitle: 'Profile, password, subscription',
             onTap: () => context.push('/settings/account'),
           ),
+          const SettingsHeader(title: 'Media & Playback'),
           SettingsItem(
             icon: Icons.notifications_none_outlined,
             title: 'Notifications',
@@ -52,18 +54,21 @@ class SettingsScreen extends StatelessWidget {
             subtitle: 'Reduce image quality, limit data',
             onTap: () => context.push('/settings/data-saver'),
           ),
+          const SettingsHeader(title: 'Regional'),
           SettingsItem(
             icon: Icons.language_outlined,
             title: 'Language',
             subtitle: 'App language, subtitles, audio',
             onTap: () => context.push('/settings/language'),
           ),
+          const SettingsHeader(title: 'Security'),
           SettingsItem(
             icon: Icons.security_outlined,
             title: 'Privacy & Security',
             subtitle: 'Watch history, 2FA, permissions',
             onTap: () => context.push('/settings/privacy'),
           ),
+          const SettingsHeader(title: 'More'),
           SettingsItem(
             icon: Icons.tune_outlined,
             title: 'Preferences',
@@ -88,6 +93,7 @@ class SettingsScreen extends StatelessWidget {
             subtitle: 'App version, license, updates',
             onTap: () => context.push('/settings/about'),
           ),
+          const SizedBox(height: 40),
         ],
       ),
     );

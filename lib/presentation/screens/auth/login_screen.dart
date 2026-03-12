@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:riyo/core/design_system.dart';
+import 'package:riyo/presentation/widgets/riyo_components.dart';
 import 'package:riyo/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -37,65 +39,98 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('SIGN IN', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 40),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email or phone number',
-                filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Welcome back',
+                style: AppTypography.headlineLarge,
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _handleLogin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurpleAccent,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _isLoading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('SIGN IN', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {},
-              child: const Text('Forgot password?', style: TextStyle(color: Colors.grey)),
-            ),
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('New to RIYO? ', style: TextStyle(color: Colors.grey)),
-                GestureDetector(
-                  onTap: () => context.push('/signup'),
-                  child: const Text('Sign up now.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                'Sign in to continue watching',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: Theme.of(context).textTheme.labelSmall?.color,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 48),
+              RiyoTextField(
+                controller: _emailController,
+                label: 'Email or Username',
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              RiyoTextField(
+                controller: _passwordController,
+                label: 'Password',
+                obscureText: true,
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: RiyoButton(
+                  text: 'Forgot password?',
+                  isPrimary: false,
+                  onPressed: () {},
+                ),
+              ),
+              const SizedBox(height: 24),
+              RiyoButton(
+                text: 'Sign In',
+                isLoading: _isLoading,
+                onPressed: _handleLogin,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR',
+                      style: AppTypography.labelSmall,
+                    ),
+                  ),
+                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              RiyoSocialButton(
+                text: 'Continue with Google',
+                icon: Image.network('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg', height: 24, errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 28)),
+                onPressed: () {},
+              ),
+              const SizedBox(height: 16),
+              RiyoSocialButton(
+                text: 'Continue with Apple',
+                icon: const Icon(Icons.apple, size: 28),
+                onPressed: () {},
+              ),
+              const SizedBox(height: 40),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Don't have an account? ",
+                    style: AppTypography.bodyMedium,
+                  ),
+                  GestureDetector(
+                    onTap: () => context.push('/signup'),
+                    child: Text(
+                      'Sign Up',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

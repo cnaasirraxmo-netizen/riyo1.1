@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:riyo/core/design_system.dart';
+import 'package:riyo/presentation/widgets/riyo_components.dart';
 import 'package:riyo/providers/auth_provider.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -39,70 +41,69 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('SIGN UP', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 40),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Create Account',
+                style: AppTypography.headlineLarge,
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                filled: true,
-                fillColor: Color(0xFF333333),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _handleSignUp,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurpleAccent,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _isLoading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('CREATE ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Already have an account? ', style: TextStyle(color: Colors.grey)),
-                GestureDetector(
-                  onTap: () => context.pop(),
-                  child: const Text('Sign in.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                'Join RIYO to start streaming',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: Theme.of(context).textTheme.labelSmall?.color,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 48),
+              RiyoTextField(
+                controller: _nameController,
+                label: 'Full Name',
+                keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 16),
+              RiyoTextField(
+                controller: _emailController,
+                label: 'Email',
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              RiyoTextField(
+                controller: _passwordController,
+                label: 'Password',
+                obscureText: true,
+              ),
+              const SizedBox(height: 32),
+              RiyoButton(
+                text: 'Create Account',
+                isLoading: _isLoading,
+                onPressed: _handleSignUp,
+              ),
+              const SizedBox(height: 40),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Already have an account? ",
+                    style: AppTypography.bodyMedium,
+                  ),
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Text(
+                      'Sign In',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

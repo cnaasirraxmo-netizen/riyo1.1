@@ -58,20 +58,16 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF141414),
       body: FutureBuilder<Movie>(
         future: _movieFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.deepPurple));
+            return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
           final movie = snapshot.data!;
-
-          // Check if movie is in watchlist (ideally backend returns this in movie details)
-          // For now, we can check it if we had a full profile in auth provider or separate call
 
           if (movie.isTvShow && movie.seasons != null && _selectedSeason == null) {
             _selectedSeason = movie.seasons![0];
@@ -82,27 +78,24 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
               _buildHeroSection(movie),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.all(24.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 20),
                       _buildMainInfo(movie),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                       _buildActionsBar(context, movie),
-                      const SizedBox(height: 24),
-                      _buildBadges(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                       _buildSynopsis(movie),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                       _buildCastSection(movie),
                       const SizedBox(height: 32),
                       if (movie.isTvShow) _buildSeasonSelector(movie),
                       if (movie.isTvShow) _buildEpisodeList(),
                       const SizedBox(height: 32),
                       _buildMoreInfo(movie),
-                      const SizedBox(height: 40),
-                      _buildRecommendationsSection("MORE LIKE THIS"),
+                      const SizedBox(height: 48),
+                      _buildRecommendationsSection("More Like This"),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -117,11 +110,12 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
 
   Widget _buildHeroSection(Movie movie) {
     return SliverAppBar(
-      expandedHeight: 250,
+      expandedHeight: 300,
       pinned: true,
-      backgroundColor: const Color(0xFF141414),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        icon: const Icon(Icons.arrow_back_ios_new_rounded),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
@@ -136,37 +130,34 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                   ? (movie.backdropPath ?? movie.posterPath)
                   : 'https://image.tmdb.org/t/p/original${movie.backdropPath ?? movie.posterPath}',
               fit: BoxFit.cover,
-              placeholder: (context, url) => const ShimmerLoading.rectangular(height: 250),
+              placeholder: (context, url) => const ShimmerLoading.rectangular(height: 300),
               errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
             ),
             Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black45,
+                    Colors.black26,
                     Colors.transparent,
-                    Color(0xFF141414),
+                    Theme.of(context).scaffoldBackgroundColor,
                   ],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
             ),
             Center(
-              child: GestureDetector(
-                onTap: () {
+              child: FloatingActionButton.large(
+                onPressed: () {
                   final id = movie.backendId ?? movie.id.toString();
                   context.push('/movie/$id/play');
                 },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.black38,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(Icons.play_arrow, size: 60, color: Colors.white),
-                ),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.play_arrow_rounded, size: 48),
               ),
             ),
           ],
@@ -179,99 +170,40 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Prominent Poster overlay
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: CachedNetworkImage(
-                    imageUrl: movie.posterPath.startsWith('http') ? movie.posterPath : 'https://image.tmdb.org/t/p/w500${movie.posterPath}',
-                    width: 100,
-                    height: 150,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const ShimmerLoading.rectangular(width: 100, height: 150),
-                  ),
-                ),
-                if (movie.contentType == 'premium')
-                  Positioned(
-                    top: 4,
-                    left: 4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.yellow, borderRadius: BorderRadius.circular(2)),
-                      child: const Text('PREMIUM', style: TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    movie.title.toUpperCase(),
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildStatsRow(movie),
-                ],
-              ),
-            ),
-          ],
+        Text(
+          movie.title,
+          style: AppTypography.headlineLarge,
         ),
-      ],
-    );
-  }
-
-  Widget _buildStatsRow(Movie movie) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
         const SizedBox(height: 12),
         Row(
           children: [
             Text(
               movie.releaseDate.split('-')[0],
-              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500, fontSize: 13),
+              style: AppTypography.labelMedium,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
+                border: Border.all(color: Theme.of(context).dividerColor),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 movie.contentRating ?? '13+',
-                style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+                style: AppTypography.labelSmall.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Text(
               movie.isTvShow ? 'TV Series' : '${movie.runtime} min',
-              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+              style: AppTypography.labelMedium,
             ),
-            const SizedBox(width: 12),
-            const Icon(Icons.hd_outlined, color: Colors.grey, size: 20),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const Icon(Icons.star, color: Colors.yellow, size: 18),
+            const Spacer(),
+            Icon(Icons.star_rounded, color: Colors.amber, size: 20),
             const SizedBox(width: 4),
             Text(
               movie.voteAverage.toStringAsFixed(1),
-              style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'TMDB RATING',
-              style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold),
+              style: AppTypography.labelMedium.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -298,105 +230,89 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     return Column(
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-             Expanded(
-               child: _buildActionIconButton(
-                 _isInWatchlist ? Icons.check : Icons.add,
-                 'MY LIST',
-                 onTap: () => _toggleWatchlist(auth.token, movie.backendId ?? movie.id.toString())
-               ),
+             _buildActionIconButton(
+               _isInWatchlist ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+               'My List',
+               onTap: () => _toggleWatchlist(auth.token, movie.backendId ?? movie.id.toString())
              ),
-             Expanded(
-               child: _buildActionIconButton(Icons.thumb_up_alt_outlined, 'RATE'),
-             ),
-             Expanded(
-               child: _buildActionIconButton(Icons.share_outlined, 'SHARE'),
-             ),
+             _buildActionIconButton(Icons.thumb_up_outlined, 'Rate'),
+             _buildActionIconButton(Icons.share_rounded, 'Share'),
              if (ref.watch(castingProvider).connectedDevice != null && !isComingSoon)
-               Expanded(
-                 child: _buildActionIconButton(
-                   Icons.cast_connected,
-                   'CAST',
-                   onTap: () => ref.read(castingProvider.notifier).castMedia(
-                     CastMedia(
-                       url: movie.videoUrl ?? '',
-                       title: movie.title,
-                       posterUrl: movie.posterPath,
-                     ),
-                   )
-                 ),
+               _buildActionIconButton(
+                 Icons.cast_connected,
+                 'Cast',
+                 onTap: () => ref.read(castingProvider.notifier).castMedia(
+                   CastMedia(
+                     url: movie.videoUrl ?? '',
+                     title: movie.title,
+                     posterUrl: movie.posterPath,
+                   ),
+                 )
                ),
           ],
         ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () {
-               final id = movie.backendId ?? movie.id.toString();
-               if (isComingSoon) {
-                  if (movie.trailerUrl != null) {
-                    context.push('/movie/$id/play?url=${Uri.encodeComponent(movie.trailerUrl!)}');
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
-                  }
-               } else {
-                  context.push('/movie/$id/play');
-               }
+        const SizedBox(height: 32),
+        ElevatedButton.icon(
+          onPressed: () {
+             final id = movie.backendId ?? movie.id.toString();
+             if (isComingSoon) {
+                if (movie.trailerUrl != null) {
+                  context.push('/movie/$id/play?url=${Uri.encodeComponent(movie.trailerUrl!)}');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
+                }
+             } else {
+                context.push('/movie/$id/play');
+             }
+          },
+          icon: Icon(isComingSoon ? Icons.play_circle_outline : Icons.play_arrow_rounded),
+          label: Text(isComingSoon ? 'Watch Trailer' : 'Play Now'),
+        ),
+        const SizedBox(height: 16),
+        if (isComingSoon)
+          OutlinedButton.icon(
+            onPressed: () async {
+              if (!auth.isAuthenticated) {
+                context.push('/login');
+                return;
+              }
+              final res = await _apiService.toggleNotifyMe(movie.backendId ?? movie.id.toString(), auth.token!);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(res ? 'We will notify you when it is released!' : 'Notifications disabled'))
+                );
+              }
             },
-            icon: Icon(isComingSoon ? Icons.play_circle_outline : Icons.play_arrow, color: Colors.black),
-            label: Text(isComingSoon ? 'WATCH TRAILER' : 'RESUME', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            icon: const Icon(Icons.notifications_none_rounded),
+            label: const Text('Notify Me'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius)),
+            ),
+          )
+        else if (isDownloading)
+          Column(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(value: progress, minHeight: 4),
+              ),
+              const SizedBox(height: 8),
+              Text('Downloading... ${(progress * 100).toStringAsFixed(0)}%', style: AppTypography.labelSmall),
+            ],
+          )
+        else
+          TextButton.icon(
+            onPressed: isDownloaded ? null : () => downloads.startDownload(movie),
+            icon: Icon(isDownloaded ? Icons.download_done_rounded : Icons.download_rounded),
+            label: Text(isDownloaded ? 'Downloaded' : 'Download Offline'),
+            style: TextButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              foregroundColor: Theme.of(context).colorScheme.primary,
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: isComingSoon
-            ? OutlinedButton.icon(
-                onPressed: () async {
-                  if (!auth.isAuthenticated) {
-                    context.push('/login');
-                    return;
-                  }
-                  final res = await _apiService.toggleNotifyMe(movie.backendId ?? movie.id.toString(), auth.token!);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(res ? 'We will notify you when it is released!' : 'Notifications disabled'))
-                    );
-                  }
-                },
-                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                label: const Text('NOTIFY ME', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white24),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                ),
-              )
-            : isDownloading
-            ? Column(
-                children: [
-                  LinearProgressIndicator(value: progress, color: Colors.deepPurpleAccent, backgroundColor: Colors.white10),
-                  const SizedBox(height: 8),
-                  Text('Downloading... ${(progress * 100).toStringAsFixed(0)}%', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
-              )
-            : ElevatedButton.icon(
-                onPressed: isDownloaded ? null : () => downloads.startDownload(movie),
-                icon: Icon(isDownloaded ? Icons.download_done : Icons.download, color: Colors.white),
-                label: Text(isDownloaded ? 'DOWNLOADED' : 'DOWNLOAD', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF262626),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                ),
-              ),
-        ),
       ],
     );
   }
@@ -404,23 +320,17 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   Widget _buildActionIconButton(IconData icon, String label, {VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white, size: 28),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
-        ],
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
+            const SizedBox(height: 8),
+            Text(label, style: AppTypography.labelSmall),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildBadges() {
-    return const Wrap(
-      spacing: 8,
-      children: [
-        _Badge(text: 'RIYO ORIGINAL', color: Colors.deepPurpleAccent),
-        _Badge(text: 'TRENDING NOW', color: Colors.redAccent),
-      ],
     );
   }
 
@@ -432,16 +342,19 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
       children: [
         Text(
           movie.overview,
-          style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
-          maxLines: _isSynopsisExpanded ? null : 3,
+          style: AppTypography.bodyMedium.copyWith(height: 1.6),
+          maxLines: _isSynopsisExpanded ? null : 4,
           overflow: _isSynopsisExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
         ),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: () => setState(() => _isSynopsisExpanded = !_isSynopsisExpanded),
           child: Text(
-            _isSynopsisExpanded ? 'SHOW LESS' : 'READ MORE',
-            style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+            _isSynopsisExpanded ? 'Show Less' : 'Read More',
+            style: AppTypography.labelMedium.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -452,25 +365,25 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('CAST', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 12),
+        Text('Cast', style: AppTypography.titleLarge),
+        const SizedBox(height: 16),
         SizedBox(
-          height: 100,
+          height: 110,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: movie.cast?.length ?? 0,
             itemBuilder: (context, index) {
               return Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(right: 20),
                 child: Column(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 30,
-                      backgroundColor: Color(0xFF262626),
-                      child: Icon(Icons.person, color: Colors.grey),
+                      backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(20),
+                      child: Icon(Icons.person_rounded, color: Theme.of(context).colorScheme.primary),
                     ),
                     const SizedBox(height: 8),
-                    Text(movie.cast![index], style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(movie.cast![index], style: AppTypography.labelSmall),
                   ],
                 ),
               );
@@ -482,52 +395,35 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   Widget _buildSeasonSelector(Movie movie) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: () => _showSeasonPicker(movie),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceVariant.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_selectedSeason?.title ?? 'Select Season',
-                  style: AppTypography.labelLarge
-                      .copyWith(color: colorScheme.onSurface)),
-              const SizedBox(width: 8),
-              Icon(Icons.arrow_drop_down, color: colorScheme.onSurface),
-            ],
-          ),
+      padding: const EdgeInsets.only(bottom: 24),
+      child: OutlinedButton.icon(
+        onPressed: () => _showSeasonPicker(movie),
+        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+        label: Text(_selectedSeason?.title ?? 'Select Season'),
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );
   }
 
   void _showSeasonPicker(Movie movie) {
-    final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: ListView.builder(
             shrinkWrap: true,
             itemCount: movie.seasons?.length ?? 0,
             itemBuilder: (context, index) {
               final season = movie.seasons![index];
               return ListTile(
-                title: Text(season.title,
-                    style: AppTypography.bodyLarge
-                        .copyWith(color: colorScheme.onSurface)),
+                title: Text(season.title, style: AppTypography.titleMedium),
                 onTap: () {
                   setState(() => _selectedSeason = season);
                   Navigator.pop(context);
@@ -550,17 +446,13 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   Widget _buildEpisodeItem(Episode episode) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       child: InkWell(
         onTap: () {
           if (episode.videoUrl != null) {
             context.push(
                 '/movie/${widget.movieId}/play?url=${Uri.encodeComponent(episode.videoUrl!)}');
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Episode video not available')));
           }
         },
         child: Column(
@@ -569,43 +461,36 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
             Row(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    width: 130,
-                    height: 75,
-                    color: colorScheme.surfaceVariant.withOpacity(0.3),
+                    width: 140,
+                    height: 80,
+                    color: Theme.of(context).colorScheme.primary.withAlpha(20),
                     child: const Center(
-                        child: Icon(Icons.play_arrow,
-                            color: Colors.white, size: 32)),
+                        child: Icon(Icons.play_circle_fill_rounded, size: 32)),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('${episode.number}. ${episode.title}',
-                          style: AppTypography.bodyLarge.copyWith(
-                              color: colorScheme.onSurface,
-                              fontWeight: FontWeight.bold)),
+                          style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      Text(episode.duration,
-                          style: AppTypography.labelSmall
-                              .copyWith(color: colorScheme.onSurfaceVariant)),
+                      Text(episode.duration, style: AppTypography.labelSmall),
                     ],
                   ),
                 ),
                 IconButton(
-                    icon: Icon(Icons.download_for_offline_outlined,
-                        color: colorScheme.onSurface),
+                    icon: const Icon(Icons.download_for_offline_outlined),
                     onPressed: () {}),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              'In this episode, the story continues as our heroes face new challenges and unexpected turns.',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: colorScheme.onSurfaceVariant),
+              'Enjoy the latest episode of ${episode.title}. High quality streaming available.',
+              style: AppTypography.bodyMedium.copyWith(color: Theme.of(context).textTheme.labelSmall?.color),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -619,27 +504,29 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('DETAILS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 12),
+        Text('Details', style: AppTypography.titleLarge),
+        const SizedBox(height: 16),
         _buildDetailRow('Director', movie.director ?? 'N/A'),
         _buildDetailRow('Genres', movie.genres?.join(', ') ?? 'N/A'),
-        _buildDetailRow('Maturity Rating', movie.contentRating ?? '13+'),
-        _buildDetailRow('Audio', 'English, Somali, Arabic'),
-        _buildDetailRow('Subtitles', 'English, Arabic'),
+        _buildDetailRow('Maturity', movie.contentRating ?? '13+'),
       ],
     );
   }
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(text: '$label: ', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13)),
-            TextSpan(text: value, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-          ],
-        ),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text('$label:', style: AppTypography.labelLarge.copyWith(color: Theme.of(context).textTheme.labelSmall?.color)),
+          ),
+          Expanded(
+            child: Text(value, style: AppTypography.bodyLarge),
+          ),
+        ],
       ),
     );
   }
@@ -648,24 +535,22 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(title, style: AppTypography.titleLarge),
         const SizedBox(height: 16),
         FutureBuilder<List<Movie>>(
           future: _recommendationsFuture,
           builder: (context, snapshot) {
-            if (!snapshot.hasData) return const SizedBox(height: 180, child: ShimmerLoading.rectangular(height: 180));
+            if (!snapshot.hasData) return const SizedBox(height: 210, child: ShimmerLoading.rectangular(height: 210));
             final movies = snapshot.data!;
             return SizedBox(
-              height: 180,
+              height: 210,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: movies.length,
                 itemBuilder: (context, index) {
                   return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: MovieCard(movie: movies[index], height: 180),
+                    padding: const EdgeInsets.only(right: 12),
+                    child: SizedBox(width: 140, child: MovieCard(movie: movies[index], height: 210)),
                   );
                 },
               ),
@@ -673,28 +558,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
           },
         ),
       ],
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  final String text;
-  final Color color;
-
-  const _Badge({required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withAlpha(51),
-        borderRadius: BorderRadius.circular(2),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
-      ),
     );
   }
 }

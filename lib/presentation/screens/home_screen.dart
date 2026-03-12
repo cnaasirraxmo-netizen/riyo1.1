@@ -4,6 +4,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:riyo/core/design_system.dart';
 import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/home_provider.dart';
 import 'package:riyo/providers/playback_provider.dart';
@@ -66,83 +67,96 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final homeProvider = Provider.of<HomeProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF141414),
       body: RefreshIndicator(
         onRefresh: () async {
           homeProvider.refresh();
           await homeProvider.loadConfig(token: auth.token);
         },
-        color: Colors.deepPurpleAccent,
-        backgroundColor: const Color(0xFF1C1C1C),
         child: NestedScrollView(
           headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
             return <Widget>[
               SliverAppBar(
-                backgroundColor: const Color(0xFF141414),
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                surfaceTintColor: Colors.transparent,
                 title: Image.asset(
                   'assets/images/logo.png',
-                  height: 32,
+                  height: 28,
                   fit: BoxFit.contain,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
                 actions: [
                   Selector<SettingsProvider, bool>(
                     selector: (_, s) => s.isOffline,
                     builder: (context, isOffline, child) {
                       if (!isOffline) return const SizedBox.shrink();
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Chip(
-                          label: Text('OFFLINE MODE',
+                          label: const Text('OFFLINE',
                               style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white)),
-                          backgroundColor: Colors.redAccent,
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          padding: EdgeInsets.zero,
+                          side: BorderSide.none,
                         ),
                       );
                     },
                   ),
                   const CastingButton(),
                   IconButton(
-                      icon: const Icon(Icons.settings, color: Colors.white),
+                      icon: const Icon(Icons.settings_outlined),
                       onPressed: () => context.push('/settings')),
                 ],
                 pinned: true,
                 floating: true,
                 forceElevated: innerBoxIsScrolled,
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(50.0),
-                  child: SizedBox(
-                    height: 50.0,
+                  preferredSize: const Size.fromHeight(60.0),
+                  child: Container(
+                    height: 60.0,
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Selector<HomeProvider, List<String>>(
                       selector: (_, h) => h.categories,
                       builder: (context, categories, child) {
                         return ListView.builder(
                           scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           itemCount: categories.length,
                           itemBuilder: (context, index) {
                             return Padding(
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 8.0),
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
                               child: Selector<HomeProvider, String>(
                                 selector: (_, h) => h.selectedCategory,
                                 builder: (context, selectedCategory, child) {
                                   final category = categories[index];
+                                  final isSelected = selectedCategory == category;
                                   return ChoiceChip(
                                     label: Text(category),
-                                    selected: selectedCategory == category,
+                                    selected: isSelected,
                                     onSelected: (bool selected) {
                                       homeProvider.setSelectedCategory(category);
                                     },
-                                    backgroundColor: const Color(0xFF262626),
-                                    selectedColor: Colors.deepPurpleAccent,
+                                    showCheckmark: false,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      side: BorderSide(
+                                        color: isSelected
+                                          ? Colors.transparent
+                                          : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                      ),
+                                    ),
                                     labelStyle: TextStyle(
-                                      color: selectedCategory == category
+                                      color: isSelected
                                           ? Colors.white
-                                          : Colors.grey[400],
-                                      fontSize: 12,
+                                          : Theme.of(context).textTheme.bodyMedium?.color,
+                                      fontSize: 13,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                     ),
                                   );
                                 },
@@ -162,8 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, isLoading, child) {
               if (isLoading) {
                 return const Center(
-                    child: CircularProgressIndicator(
-                        color: Colors.deepPurpleAccent));
+                    child: CircularProgressIndicator());
               }
               return Consumer2<SettingsProvider, HomeProvider>(
                 builder: (context, settings, home, child) {
@@ -185,25 +198,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: settings.isOffline
                               ? [
-                                  const Padding(
-                                    padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
-                                    child: Text('MY DOWNLOADS',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold)),
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                                    child: Text('My Downloads',
+                                        style: AppTypography.headlineMedium),
                                   ),
                                   _buildMovieCategory(
                                       "Available Offline",
                                       Future.value(snapshot.data ?? [])),
-                                  const SizedBox(height: 400),
+                                  const SizedBox(height: 100),
                                 ]
                               : [
                                   RepaintBoundary(
                                       child: _buildCarouselSlider(
                                           auth.token, home)),
+                                  const SizedBox(height: 24),
                                   _buildContinueWatchingSection(auth.token),
-                                  const SizedBox(height: 20),
                                   ...home.sections.map((sec) {
                                     if (sec['type'] == 'continue_watching') {
                                       return _buildContinueWatchingSection(
@@ -236,10 +246,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _apiService.getTrendingMovies(token: token, isFeatured: true),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const ShimmerLoading.rectangular(height: 400);
+          return const ShimmerLoading.rectangular(height: 450);
         }
         if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          // Fallback to trending if no featured movies
           return _buildTrendingCarousel(token);
         }
 
@@ -249,11 +258,9 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             CarouselSlider(
               options: CarouselOptions(
-                height: 450.0, // Large poster height
+                height: 500.0,
                 autoPlay: true,
-                autoPlayInterval: const Duration(seconds: 5),
-                autoPlayAnimationDuration: const Duration(milliseconds: 1000),
-                autoPlayCurve: Curves.fastOutSlowIn,
+                autoPlayInterval: const Duration(seconds: 8),
                 viewportFraction: 1.0,
                 onPageChanged: (index, reason) {
                   setState(() {
@@ -276,40 +283,41 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ? (movie.posterPath)
                                 : 'https://image.tmdb.org/t/p/w780${movie.posterPath}',
                             fit: BoxFit.cover,
-                            height: 450.0,
+                            height: 500.0,
                             width: double.infinity,
-                            placeholder: (context, url) => const ShimmerLoading.rectangular(height: 450),
+                            placeholder: (context, url) => const ShimmerLoading.rectangular(height: 500),
                             errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
                           ),
                         Container(
-                          height: 450.0,
+                          height: 500.0,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
-                              colors: [Colors.black.withAlpha(204), Colors.transparent],
+                              colors: [
+                                Theme.of(context).scaffoldBackgroundColor,
+                                Theme.of(context).scaffoldBackgroundColor.withAlpha(0),
+                              ],
+                              stops: const [0.0, 0.5],
                             ),
                           ),
                         ),
                         Positioned(
-                          bottom: 30,
+                          bottom: 40,
                           left: 20,
                           right: 20,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                movie.title.toUpperCase(),
+                                movie.title,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: AppTypography.headlineLarge.copyWith(
                                   color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.5,
-                                  shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+                                  shadows: [const Shadow(color: Colors.black, blurRadius: 12)],
                                 ),
                               ),
-                              const SizedBox(height: 15),
+                              const SizedBox(height: 20),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -318,27 +326,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                       final id = movie.backendId ?? movie.id.toString();
                                       context.push('/movie/$id/play');
                                     },
-                                    icon: const Icon(Icons.play_arrow, color: Colors.black),
-                                    label: const Text('PLAY', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                    icon: const Icon(Icons.play_arrow_rounded),
+                                    label: const Text('Play Now'),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                      minimumSize: const Size(140, 48),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  OutlinedButton.icon(
+                                  IconButton.filledTonal(
                                     onPressed: () {
                                       final id = movie.backendId ?? movie.id.toString();
                                       context.push('/movie/$id');
                                     },
-                                    icon: const Icon(Icons.info_outline, color: Colors.white),
-                                    label: const Text('DETAILS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: Colors.white, width: 2),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                                    ),
+                                    icon: const Icon(Icons.info_outline_rounded),
                                   ),
                                 ],
                               ),
@@ -352,20 +352,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }).toList(),
             ),
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: movies.asMap().entries.map((entry) {
-                return GestureDetector(
-                  onTap: () => setState(() => _currentCarouselIndex = entry.key),
-                  child: Container(
-                    width: 6.0,
-                    height: 6.0,
-                    margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 2.0),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white
-                          .withAlpha(_currentCarouselIndex == entry.key ? 230 : 102),
-                    ),
+                return Container(
+                  width: _currentCarouselIndex == entry.key ? 16.0 : 6.0,
+                  height: 6.0,
+                  margin: const EdgeInsets.symmetric(horizontal: 3.0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(3),
+                    color: Theme.of(context).colorScheme.primary.withAlpha(
+                        _currentCarouselIndex == entry.key ? 255 : 100),
                   ),
                 );
               }).toList(),
@@ -398,66 +396,83 @@ class _HomeScreenState extends State<HomeScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
-                  child: Text('CONTINUE WATCHING', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                  child: Text('Continue Watching', style: AppTypography.titleLarge),
                 ),
                 SizedBox(
-                  height: 160,
+                  height: 180,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: moviesWithProgress.length,
                     itemBuilder: (context, index) {
                       final movie = moviesWithProgress[index];
                       return Container(
-                        width: 240,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        width: 260,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
                         child: GestureDetector(
                           onTap: () {
                              final id = movie.backendId ?? movie.id.toString();
                              context.push('/movie/$id/play');
                           },
-                          child: Stack(
-                            alignment: Alignment.bottomCenter,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: (movie.backdropPath ?? movie.posterPath).startsWith('http')
-                                      ? (movie.backdropPath ?? movie.posterPath)
-                                      : 'https://image.tmdb.org/t/p/w500${movie.backdropPath ?? movie.posterPath}',
-                                  fit: BoxFit.cover,
-                                  width: 240,
-                                  height: 135,
-                                  placeholder: (context, url) => const ShimmerLoading.rectangular(height: 135, width: 240),
-                                  errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+                              Stack(
+                                alignment: Alignment.bottomCenter,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(AppTheme.cardBorderRadius),
+                                    child: CachedNetworkImage(
+                                      imageUrl: (movie.backdropPath ?? movie.posterPath).startsWith('http')
+                                          ? (movie.backdropPath ?? movie.posterPath)
+                                          : 'https://image.tmdb.org/t/p/w500${movie.backdropPath ?? movie.posterPath}',
+                                      fit: BoxFit.cover,
+                                      width: 260,
+                                      height: 146,
+                                      placeholder: (context, url) => const ShimmerLoading.rectangular(height: 146, width: 260),
+                                      errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    child: Container(
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white24,
+                                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppTheme.cardBorderRadius)),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 0,
+                                    left: 0,
+                                    child: Container(
+                                      width: 130, // Mock progress
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primary,
+                                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(AppTheme.cardBorderRadius)),
+                                      ),
+                                    ),
+                                  ),
+                                  const Center(
+                                    child: Icon(Icons.play_circle_outline_rounded, color: Colors.white, size: 40),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Text(
+                                  movie.title,
+                                  style: AppTypography.labelMedium,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              Container(
-                                width: 240,
-                                height: 4,
-                                color: Colors.white24,
-                              ),
-                              Positioned(
-                                left: 0,
-                                child: Container(
-                                  width: 120, // Mock progress
-                                  height: 4,
-                                  color: Colors.deepPurpleAccent,
-                                ),
-                              ),
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                child: Icon(Icons.play_circle_fill, color: Colors.white.withAlpha(204), size: 48),
-                              ),
-                              Positioned(
-                                bottom: 8,
-                                left: 8,
-                                child: Text(movie.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                               ),
                             ],
                           ),
@@ -475,142 +490,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTrendingCarousel(String? token) {
-    return FutureBuilder<List<Movie>>(
-      future: _apiService.getTrendingMovies(token: token),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const ShimmerLoading.rectangular(height: 400);
-        }
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox(
-            height: 200,
-            child: Center(child: Text('Cilad ayaa dhacday.', style: TextStyle(color: Colors.white))),
-          );
-        }
-
-        final movies = snapshot.data!;
-
-        return Column(
-          children: [
-            CarouselSlider(
-              options: CarouselOptions(
-                height: 450.0,
-                autoPlay: true,
-                autoPlayInterval: const Duration(seconds: 5),
-                autoPlayAnimationDuration: const Duration(milliseconds: 1000),
-                autoPlayCurve: Curves.fastOutSlowIn,
-                viewportFraction: 1.0,
-                onPageChanged: (index, reason) {
-                  setState(() {
-                    _currentCarouselIndex = index;
-                  });
-                },
-              ),
-              items: movies.take(5).map((movie) {
-                return Builder(
-                  builder: (BuildContext context) {
-                    return GestureDetector(
-                      onTap: () {
-                        final id = movie.backendId ?? movie.id.toString();
-                        context.push('/movie/$id');
-                      },
-                      child: Stack(
-                        children: [
-                          CachedNetworkImage(
-                            imageUrl: (movie.posterPath).startsWith('http')
-                                ? (movie.posterPath)
-                                : 'https://image.tmdb.org/t/p/w780${movie.posterPath}',
-                            fit: BoxFit.cover,
-                            height: 450.0,
-                            width: double.infinity,
-                            placeholder: (context, url) => const ShimmerLoading.rectangular(height: 450),
-                            errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
-                          ),
-                        Container(
-                          height: 450.0,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [Colors.black.withAlpha(204), Colors.transparent],
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 30,
-                          left: 20,
-                          right: 20,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                movie.title.toUpperCase(),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.5,
-                                  shadows: [Shadow(color: Colors.black, blurRadius: 10)],
-                                ),
-                              ),
-                              const SizedBox(height: 15),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      final id = movie.backendId ?? movie.id.toString();
-                                      context.push('/movie/$id/play');
-                                    },
-                                    icon: const Icon(Icons.play_arrow, color: Colors.black),
-                                    label: const Text('PLAY', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                  },
-                );
-              }).toList(),
-            ),
-          ],
-        );
-      },
-    );
+     return const ShimmerLoading.rectangular(height: 450);
   }
 
   Widget _buildMovieCategory(String title, Future<List<Movie>> future) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          onTap: () => context.push('/genre/$title'),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
-              ],
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: AppTypography.titleLarge,
+              ),
+              IconButton(
+                onPressed: () => context.push('/genre/$title'),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
           ),
         ),
         SizedBox(
-          height: 220,
+          height: 240,
           child: FutureBuilder<List<Movie>>(
             future: future,
             builder: (context, snapshot) {
@@ -618,34 +524,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 return _buildMovieShimmerList();
               }
               if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text('Cilad ayaa ka dhacday soo rarida filimada.', style: TextStyle(color: Colors.white)));
+                return const Center(child: Text('No movies found.'));
               }
               final movies = snapshot.data!;
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 itemCount: movies.length,
                 itemBuilder: (context, index) {
                   final movie = movies[index];
                   return SizedBox(
-                    width: 140,
+                    width: 150,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          MovieCard(movie: movie, height: 160),
-                          const SizedBox(height: 8),
-                          Text(
-                            movie.title,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${movie.releaseDate.split('-')[0]}${movie.runtime != null ? " | ${_formatDuration(movie.runtime!)}" : ""}',
-                            style: const TextStyle(color: Colors.grey, fontSize: 11),
-                          ),
+                          MovieCard(movie: movie, height: 210),
                         ],
                       ),
                     ),
@@ -659,34 +554,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String _formatDuration(int minutes) {
-    final int h = minutes ~/ 60;
-    final int m = minutes % 60;
-    if (h > 0) {
-      return '${h}h ${m}m';
-    }
-    return '${m}m';
-  }
-
   Widget _buildMovieShimmerList() {
     return ListView.builder(
       scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: 5,
       itemBuilder: (context, index) {
         return const SizedBox(
-          width: 140,
+          width: 150,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ShimmerLoading.rectangular(height: 160),
-                SizedBox(height: 8),
-                ShimmerLoading.rectangular(height: 14, width: 100),
-                SizedBox(height: 4),
-                ShimmerLoading.rectangular(height: 12, width: 40),
-              ],
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 4.0),
+            child: ShimmerLoading.rectangular(height: 210),
           ),
         );
       },

@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/core/design_system.dart';
+import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/providers/auth_provider.dart';
@@ -16,31 +16,29 @@ class MyRiyoScreen extends StatelessWidget {
     final apiService = ApiService();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF141414),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF141414),
-        elevation: 0,
-        title: const Text('MY RIYO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
+        title: Text('My RIYO', style: AppTypography.titleLarge),
         actions: [
           IconButton(
-            icon: const Icon(Icons.cast, color: Colors.white),
+            icon: const Icon(Icons.cast_connected_outlined),
             onPressed: () => context.push('/cast'),
           ),
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
+            icon: const Icon(Icons.settings_outlined),
             onPressed: () => context.push('/settings'),
           ),
         ],
+        surfaceTintColor: Colors.transparent,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
             _buildStatsSection(context, auth.token),
             const SizedBox(height: 40),
-            _buildSectionHeader('MY WATCHLIST', onTap: () => context.push('/genre/Watchlist')),
+            _buildSectionHeader(context, 'My Watchlist', onTap: () => context.push('/genre/Watchlist')),
             const SizedBox(height: 16),
             FutureBuilder<List<Movie>>(
               future: auth.token != null ? apiService.getWatchlist(auth.token!) : Future.value([]),
@@ -50,11 +48,12 @@ class MyRiyoScreen extends StatelessWidget {
               }
             ),
             const SizedBox(height: 40),
-            _buildSectionHeader('ACCOUNT SETTINGS', showArrow: false),
+            _buildSectionHeader(context, 'Account Settings', showArrow: false),
             const SizedBox(height: 16),
             _buildAccountSettings(context),
             const SizedBox(height: 48),
-            _buildFooter(),
+            _buildFooter(context),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -70,9 +69,9 @@ class MyRiyoScreen extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildStatItem(context, watchlistCount.toString(), 'WATCHLIST', () {}),
-            _buildStatItem(context, '0', 'HISTORY', () {}),
-            _buildStatItem(context, '0', 'DOWNLOADS', () => context.go('/downloads')),
+            _buildStatItem(context, watchlistCount.toString(), 'Watchlist', () {}),
+            _buildStatItem(context, '0', 'History', () {}),
+            _buildStatItem(context, '0', 'Downloads', () => context.go('/downloads')),
           ],
         );
       }
@@ -84,23 +83,23 @@ class MyRiyoScreen extends StatelessWidget {
       onTap: onTap,
       child: Column(
         children: [
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(value, style: AppTypography.headlineMedium.copyWith(color: Theme.of(context).colorScheme.primary)),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+          Text(label, style: AppTypography.labelSmall),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, {bool showArrow = true, VoidCallback? onTap}) {
+  Widget _buildSectionHeader(BuildContext context, String title, {bool showArrow = true, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+          Text(title, style: AppTypography.titleMedium),
           if (showArrow)
-            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+            const Icon(Icons.chevron_right_rounded, size: 24),
         ],
       ),
     );
@@ -108,52 +107,23 @@ class MyRiyoScreen extends StatelessWidget {
 
   Widget _buildMovieHorizontalList(BuildContext context, List<Movie> movies) {
     if (movies.isEmpty) {
-      return const Center(child: Text('Your list is empty', style: TextStyle(color: Colors.white54)));
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Text('Your list is empty', style: AppTypography.bodyMedium.copyWith(color: Theme.of(context).textTheme.labelSmall?.color)),
+      );
     }
 
     return SizedBox(
-      height: 180,
+      height: 210,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: movies.length,
         itemBuilder: (context, index) {
           final movie = movies[index];
-          return GestureDetector(
-            onTap: () {
-              final id = movie.backendId ?? movie.id.toString();
-              context.push('/movie/$id');
-            },
-            child: Container(
-              width: 130,
-              margin: const EdgeInsets.only(right: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.network(
-                        movie.posterPath.startsWith('http') ? movie.posterPath : 'https://image.tmdb.org/t/p/w500${movie.posterPath}',
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                         loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return const ShimmerLoading.rectangular(height: 180);
-                        },
-                        errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF262626), child: const Icon(Icons.movie, color: Colors.white10)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(movie.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${movie.releaseDate.split('-')[0]}${movie.runtime != null ? " | ${_formatDuration(movie.runtime!)}" : ""}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
+          return Container(
+            width: 140,
+            margin: const EdgeInsets.only(right: 12),
+            child: MovieCard(movie: movie, height: 210),
           );
         },
       ),
@@ -172,14 +142,14 @@ class MyRiyoScreen extends StatelessWidget {
             onTap: () => context.push('/admin'),
           ),
         if (auth.role == 'admin')
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
         _buildSettingsButton(
           context,
           icon: Icons.settings_outlined,
           text: 'App Settings',
           onTap: () => context.push('/settings'),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
          _buildSettingsButton(
           context,
           icon: Icons.subscriptions_outlined,
@@ -191,41 +161,35 @@ class MyRiyoScreen extends StatelessWidget {
   }
 
   Widget _buildSettingsButton(BuildContext context, {required IconData icon, required String text, required VoidCallback onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1C),
-          borderRadius: BorderRadius.circular(4),
+          color: isDark ? AppColors.amoledSurface : Colors.white,
+          borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
+          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
         ),
         child: Row(
           children: [
-            Icon(icon, color: Colors.white, size: 20),
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
             const SizedBox(width: 16),
-            Expanded(child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500))),
-            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 12),
+            Expanded(child: Text(text, style: AppTypography.titleMedium)),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
           ],
         ),
       ),
     );
   }
 
-  String _formatDuration(int minutes) {
-    final int h = minutes ~/ 60;
-    final int m = minutes % 60;
-    if (h > 0) {
-      return '${h}h ${m}m';
-    }
-    return '${m}m';
-  }
-
-  Widget _buildFooter() {
-    return const Column(
+  Widget _buildFooter(BuildContext context) {
+    return Column(
       children: [
-        Text('RIYO PREMIUM V2.4.0', style: TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-        SizedBox(height: 4),
-        Text('CLOUD ID: 9L6K4D38', style: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 1.1)),
+        Text('RIYO PREMIUM V3.0.0', style: AppTypography.labelSmall.copyWith(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+        const SizedBox(height: 4),
+        Text('DESIGN SYSTEM V2', style: AppTypography.labelSmall.copyWith(fontSize: 10, color: Theme.of(context).textTheme.labelSmall?.color)),
       ],
     );
   }

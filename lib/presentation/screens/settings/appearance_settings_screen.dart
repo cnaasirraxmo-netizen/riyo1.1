@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:riyo/core/design_system.dart';
 import 'package:riyo/providers/settings_provider.dart';
 import 'package:riyo/presentation/screens/settings/settings_widgets.dart';
 
@@ -11,11 +12,9 @@ class AppearanceSettingsScreen extends StatelessWidget {
     final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Appearance', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('Appearance', style: AppTypography.titleLarge),
+        surfaceTintColor: Colors.transparent,
       ),
       body: ListView(
         children: [
@@ -35,7 +34,7 @@ class AppearanceSettingsScreen extends StatelessWidget {
           SettingsToggle(
             icon: Icons.color_lens_outlined,
             title: 'Dynamic Color',
-            subtitle: 'Use system accent color (Android 12+)',
+            subtitle: 'Use system accent color (Material You)',
             value: settings.dynamicColor,
             onChanged: (val) => settings.setDynamicColor(val),
           ),
@@ -67,6 +66,7 @@ class AppearanceSettingsScreen extends StatelessWidget {
             value: settings.reduceMotion,
             onChanged: (val) => settings.setReduceMotion(val),
           ),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -74,11 +74,11 @@ class AppearanceSettingsScreen extends StatelessWidget {
 
   Widget _buildRadioTile<T>(BuildContext context, String title, T value, T groupValue, ValueChanged<T?> onChanged) {
     return RadioListTile<T>(
-      title: Text(title, style: const TextStyle(color: Colors.white)),
+      title: Text(title, style: AppTypography.titleMedium),
       value: value,
       groupValue: groupValue,
       onChanged: onChanged,
-      activeColor: Theme.of(context).primaryColor,
+      activeColor: Theme.of(context).colorScheme.primary,
     );
   }
 
@@ -94,19 +94,19 @@ class AppearanceSettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1C),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
+        title: Text(title, style: AppTypography.titleLarge),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: options.map((opt) => RadioListTile<String>(
-            title: Text(opt, style: const TextStyle(color: Colors.white)),
+            title: Text(opt, style: AppTypography.bodyLarge),
             value: opt,
             groupValue: current,
             onChanged: (val) {
               onSelected(val!);
               Navigator.pop(context);
             },
-            activeColor: Theme.of(context).primaryColor,
+            activeColor: Theme.of(context).colorScheme.primary,
+            contentPadding: EdgeInsets.zero,
           )).toList(),
         ),
       ),
