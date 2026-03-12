@@ -69,6 +69,12 @@ func AdminGetMovies(c *gin.Context) {
 
 	total, _ := collection.CountDocuments(context.TODO(), query)
 
+	// If it's a direct array request or the first page without pagination wrapper
+	if c.Query("paginate") == "false" {
+		c.JSON(http.StatusOK, movies)
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"movies": movies,
 		"page":   page,

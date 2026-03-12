@@ -56,6 +56,8 @@ func GetSystemConfig(c *gin.Context) {
 				NotificationsOn:  true,
 				TrailerAutoplay:  true,
 				CommentsEnabled:  true,
+				SportsEnabled:    true,
+				KidsEnabled:      true,
 			}
 			c.JSON(http.StatusOK, defaultConfig)
 			return

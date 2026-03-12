@@ -30,13 +30,15 @@ type User struct {
 }
 
 type SystemConfig struct {
-	ID              bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	ID               bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
 	DownloadsEnabled bool          `bson:"downloadsEnabled" json:"downloadsEnabled"`
 	CastingEnabled   bool          `bson:"castingEnabled" json:"castingEnabled"`
 	NotificationsOn  bool          `bson:"notificationsOn" json:"notificationsOn"`
 	TrailerAutoplay  bool          `bson:"trailerAutoplay" json:"trailerAutoplay"`
 	CommentsEnabled  bool          `bson:"commentsEnabled" json:"commentsEnabled"`
-	UpdatedAt       time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SportsEnabled    bool          `bson:"sportsEnabled" json:"sportsEnabled"`
+	KidsEnabled      bool          `bson:"kidsEnabled" json:"kidsEnabled"`
+	UpdatedAt        time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
 
 type VideoJob struct {
