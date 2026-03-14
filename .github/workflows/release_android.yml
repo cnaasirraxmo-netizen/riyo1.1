@@ -2,7 +2,7 @@ name: Build and Release Android APK
 
 on:
   push:
-    branches: 
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -39,7 +39,9 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > android/release.keystore
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > android/release.keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
 
       - name: Build Release APK
         run: flutter build apk --release
