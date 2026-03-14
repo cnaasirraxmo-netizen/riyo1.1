@@ -15,6 +15,9 @@ import (
 	"github.com/riyobox/backend/internal/middleware"
 	"github.com/riyobox/backend/internal/services"
 	"github.com/riyobox/backend/internal/utils"
+	"github.com/riyobox/backend/providers"
+	"github.com/riyobox/backend/workers"
+	appServices "github.com/riyobox/backend/services"
 )
 
 func main() {
@@ -26,6 +29,22 @@ func main() {
 
 	db.ConnectDB()
 	utils.InitR2()
+
+	// Initialize New Services
+	tmdbProv := providers.NewTMDbProvider()
+	metaSvc := appServices.NewMetadataService(tmdbProv)
+	videoExt := appServices.NewVideoExtractor()
+
+	handlers.MetadataSvc = metaSvc
+	handlers.VideoExt = videoExt
+
+	// Start Scheduler
+	scheduler := workers.NewScheduler(metaSvc)
+	scheduler.Start()
+
+	// Start Health Checker
+	healthChecker := workers.NewHealthChecker()
+	healthChecker.Start()
 
 	// Initialize Video Pipeline
 	videoOrchestrator := services.NewVideoOrchestrator()
@@ -104,6 +123,9 @@ func main() {
 	}
 
 	r.GET("/system-config", handlers.GetSystemConfig)
+
+	// New API routes
+	handlers.RegisterNewRoutes(r)
 
 	admin := r.Group("/admin")
 	admin.Use(middleware.Protect(), middleware.AdminOnly())
