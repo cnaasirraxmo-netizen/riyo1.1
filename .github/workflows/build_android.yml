@@ -1,18 +1,19 @@
-name: Build and Sign Android APK
+name: Build and Release Android APK
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build Signed APK
+    name: Build and Sign APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Free Disk Space (Ubuntu)
+      - name: Free Disk Space
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -38,19 +39,47 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > android/release.keystore
 
-      - name: Build Signed APK
+      - name: Build Release APK
         run: flutter build apk --release
         env:
-          KEYSTORE_PATH: "keystore.jks"
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      # We normally use upload-artifact here, but the user requested
-      # a separate workflow to handle release and explicitly said
-      # "Do NOT use actions/upload-artifact".
-      # Since we cannot pass files between workflows without artifacts,
-      # the release workflow will rebuild or we'd use a different trigger.
-      # For this specific requirement, we build it here.
+      - name: Extract SHA-1
+        run: |
+          keytool -list -v -keystore android/release.keystore -alias ${{ secrets.RELEASE_KEY_ALIAS }} -storepass ${{ secrets.RELEASE_STORE_PASSWORD }} > key_info.txt
+          grep "SHA1:" key_info.txt | head -n 1 | cut -d ' ' -f 12 > sha1.txt
+          echo "SHA-1: $(cat sha1.txt)"
+
+      - name: Add SHA-1 to APK
+        run: |
+          zip -j build/app/outputs/flutter-apk/app-release.apk sha1.txt
+
+      - name: Get Version from pubspec
+        id: get_version
+        run: |
+          VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            sha1.txt
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: "Automated production release for RIYO BOX. SHA-1 Fingerprint included inside APK."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
