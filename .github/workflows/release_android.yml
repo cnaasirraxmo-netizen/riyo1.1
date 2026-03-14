@@ -57,6 +57,7 @@ jobs:
       - name: Add SHA-1 to APK
         run: |
           zip -j build/app/outputs/flutter-apk/app-release.apk sha1.txt
+        continue-on-error: true
 
       - name: Get Version from pubspec
         id: get_version

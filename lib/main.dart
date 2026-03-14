@@ -47,16 +47,25 @@ import 'package:riyo/presentation/screens/settings/developer_settings_screen.dar
 import 'package:riyo/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
   try {
     await Firebase.initializeApp();
     await NotificationService.initialize();
   } catch (e) {
     debugPrint('Firebase/Notification Init Error: $e');
   }
-  runApp(const rp.ProviderScope(child: MyApp()));
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('so'), Locale('ar'), Locale('es')],
+      path: 'assets/lang',
+      fallbackLocale: const Locale('en'),
+      child: const rp.ProviderScope(child: MyApp()),
+    ),
+  );
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -268,16 +277,11 @@ class _MyAppState extends State<MyApp> {
                 routerConfig: _router!,
                 title: 'RIYO',
                 themeMode: settings.themeMode,
-                locale: settings.language == 'Arabic'
-                    ? const Locale('ar', '')
-                    : const Locale('en', ''),
+                localizationsDelegates: context.localizationDelegates,
+                supportedLocales: context.supportedLocales,
+                locale: context.locale,
                 builder: (context, child) {
-                  return Directionality(
-                    textDirection: settings.language == 'Arabic'
-                        ? TextDirection.rtl
-                        : TextDirection.ltr,
-                    child: child!,
-                  );
+                  return child!;
                 },
                 theme: lightTheme,
                 darkTheme: darkTheme,
@@ -337,31 +341,31 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         final bool downloadsEnabled = systemConfig.config.downloadsEnabled;
 
         final List<BottomNavigationBarItem> items = [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.home_outlined),
+            activeIcon: const Icon(Icons.home),
+            label: 'home'.tr(),
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_outlined),
-            activeIcon: Icon(Icons.grid_view),
-            label: 'Categories',
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.grid_view_outlined),
+            activeIcon: const Icon(Icons.grid_view),
+            label: 'categories'.tr(),
           ),
           if (downloadsEnabled)
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.download_outlined),
-              activeIcon: Icon(Icons.download),
-              label: 'Downloads',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.download_outlined),
+              activeIcon: const Icon(Icons.download),
+              label: 'downloads'.tr(),
             ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined),
-            activeIcon: Icon(Icons.search),
-            label: 'Search',
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.search_outlined),
+            activeIcon: const Icon(Icons.search),
+            label: 'search'.tr(),
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'My RIYO',
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.person_outline),
+            activeIcon: const Icon(Icons.person),
+            label: 'profile_title'.tr(),
           ),
         ];
 

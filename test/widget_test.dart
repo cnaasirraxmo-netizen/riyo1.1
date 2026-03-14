@@ -3,20 +3,40 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riyo/main.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
 void main() {
-  setUpAll(() {
+  setUpAll(() async {
     HttpOverrides.global = _MockHttpOverrides();
+    SharedPreferences.setMockInitialValues({});
+    // Ensure EasyLocalization is initialized for tests
+    WidgetsFlutterBinding.ensureInitialized();
+    await EasyLocalization.ensureInitialized();
   });
 
   testWidgets('App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      EasyLocalization(
+        supportedLocales: const [Locale('en'), Locale('so'), Locale('ar'), Locale('es')],
+        path: 'assets/lang',
+        fallbackLocale: const Locale('en'),
+        saveLocale: false,
+        useOnlyLangCode: true,
+        child: const rp.ProviderScope(child: MyApp()),
+      ),
+    );
+
+    // Initial pump to allow EasyLocalization to load
+    await tester.pumpAndSettle();
 
     // Splash Screen should be visible initially
+    // SplashScreen uses Image.asset
     expect(find.byType(Image), findsAtLeast(1));
 
-    // Wait for splash animation to finish
+    // Wait for splash animation to finish (2 seconds in code + some padding)
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
 

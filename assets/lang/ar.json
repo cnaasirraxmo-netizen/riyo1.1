@@ -1,0 +1,22 @@
+{
+  "welcome_message": "مرحبًا بك في RIYOBOX",
+  "login_button": "تسجيل الدخول",
+  "logout_button": "تسجيل الخروج",
+  "error_network": "انقطع الاتصال بالشبكة. يرجى التحقق من الإنترنت الخاص بك.",
+  "profile_title": "ملفي الشخصي",
+  "settings": "الإعدادات",
+  "save_button": "حفظ التغييرات",
+  "cancel_button": "إلغاء",
+  "notifications": "الإشعارات",
+  "language_select": "اختر اللغة",
+  "home": "الرئيسية",
+  "categories": "الفئات",
+  "downloads": "التنزيلات",
+  "search": "بحث",
+  "my_list": "قائمتي",
+  "play_now": "شاهد الآن",
+  "watch_trailer": "شاهد الإعلان",
+  "trending": "الرائج",
+  "popular": "الأكثر شهرة",
+  "top_rated": "الأعلى تقييمًا"
+}

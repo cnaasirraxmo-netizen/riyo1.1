@@ -1,0 +1,22 @@
+{
+  "welcome_message": "Welcome to RIYOBOX",
+  "login_button": "Log In",
+  "logout_button": "Log Out",
+  "error_network": "Network connection lost. Please check your internet.",
+  "profile_title": "My Profile",
+  "settings": "Settings",
+  "save_button": "Save Changes",
+  "cancel_button": "Cancel",
+  "notifications": "Notifications",
+  "language_select": "Select Language",
+  "home": "Home",
+  "categories": "Categories",
+  "downloads": "Downloads",
+  "search": "Search",
+  "my_list": "My List",
+  "play_now": "Play Now",
+  "watch_trailer": "Watch Trailer",
+  "trending": "Trending",
+  "popular": "Popular",
+  "top_rated": "Top Rated"
+}

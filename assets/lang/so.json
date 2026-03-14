@@ -1,0 +1,22 @@
+{
+  "welcome_message": "Ku soo dhawaada RIYOBOX",
+  "login_button": "Gali",
+  "logout_button": "Ka bax",
+  "error_network": "Xidhiidhka internetka ayaa go'ay. Fadlan iska hubi internetkaaga.",
+  "profile_title": "Profile-kayga",
+  "settings": "Settings",
+  "save_button": "Keydi Isbeddelada",
+  "cancel_button": "Iska dhaaf",
+  "notifications": "Ogeysiisyada",
+  "language_select": "Dooro Luuqadda",
+  "home": "Hoyga",
+  "categories": "Qaybaha",
+  "downloads": "Downloads",
+  "search": "Raadi",
+  "my_list": "Liiskayga",
+  "play_now": "Hadda daawo",
+  "watch_trailer": "Daawo Trailer-ka",
+  "trending": "Kuwa ugu caansan",
+  "popular": "Caan ah",
+  "top_rated": "Ugu qiimaynta sarreeya"
+}
