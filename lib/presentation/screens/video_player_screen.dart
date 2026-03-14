@@ -395,7 +395,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           children: [
             Icon(icon, color: Colors.white, size: 24),
             const SizedBox(height: 4),
-            Text(label.toUpperCase(), style: const TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.black)),
+            Text(label.toUpperCase(), style: const TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
@@ -442,13 +442,13 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.black, fontSize: 14, letterSpacing: 2)),
+            Text(title, style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2)),
             const SizedBox(height: 24),
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: options.length,
-                separatorBuilder: (c, i) => const Divider(color: Colors.white05),
+                separatorBuilder: (c, i) => Divider(color: Colors.white.withOpacity(0.05)),
                 itemBuilder: (context, index) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(options[index], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
