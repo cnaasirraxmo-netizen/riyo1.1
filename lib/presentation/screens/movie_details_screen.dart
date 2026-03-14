@@ -486,10 +486,9 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
       padding: const EdgeInsets.only(bottom: 24),
       child: InkWell(
         onTap: () {
-          if (episode.videoUrl != null) {
-            context.push(
-                '/movie/${widget.movieId}/play?url=${Uri.encodeComponent(episode.videoUrl!)}');
-          }
+          final s = _selectedSeason?.number ?? 1;
+          final e = episode.number;
+          context.push('/movie/${widget.movieId}/play?s=$s&e=$e');
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

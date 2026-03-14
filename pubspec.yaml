@@ -37,6 +37,7 @@ dependencies:
   media_cast_dlna: ^0.2.0
   ffi: ^2.2.0
   dynamic_color: ^1.8.1
+  webview_flutter: ^4.10.0
 
 dev_dependencies:
   flutter_test:

@@ -27,37 +27,23 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, isTvShow bool, season, episo
 	for _, p := range embedProviders {
 		var url string
 		if isTvShow {
-			url = providers.GenerateTVURL(p, tmdbID, season, episode)
+			// Ensure season and episode are at least 1
+			s := season
+			if s < 1 { s = 1 }
+			ep := episode
+			if ep < 1 { ep = 1 }
+			url = providers.GenerateTVURL(p, tmdbID, s, ep)
 		} else {
 			url = providers.GenerateMovieURL(p, tmdbID)
 		}
 
-		// Simplified: For now, we return the embed URL as a source
-		// In a real scenario, we would scrape it to get direct links
 		allSources = append(allSources, models.StreamSource{
 			Label:    p.Name,
 			URL:      url,
 			Type:     "embed",
 			Provider: strings.ToLower(p.Name),
+			Quality:  "720p", // Default for embeds
 		})
-
-		// Example of scraping (commented out for now as it might be slow during API request)
-		/*
-		html, err := scrapers.FetchHTML(url)
-		if err == nil {
-			directSources := scrapers.ExtractVideoSources(html)
-			for _, ds := range directSources {
-				if e.ValidateLink(ds) {
-					allSources = append(allSources, models.StreamSource{
-						Label: p.Name + " Direct",
-						URL: ds,
-						Type: e.DetectType(ds),
-						Provider: strings.ToLower(p.Name),
-					})
-				}
-			}
-		}
-		*/
 	}
 
 	return allSources

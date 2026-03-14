@@ -159,7 +159,15 @@ GoRouter _createRouter(AuthProvider authProvider) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final id = state.pathParameters['id'];
-          return VideoPlayerScreen(movieId: id);
+          final url = state.uri.queryParameters['url'];
+          final s = state.uri.queryParameters['s'];
+          final e = state.uri.queryParameters['e'];
+          return VideoPlayerScreen(
+            movieId: id,
+            videoUrl: url,
+            season: s != null ? int.tryParse(s) : null,
+            episode: e != null ? int.tryParse(e) : null,
+          );
         },
       ),
       GoRoute(

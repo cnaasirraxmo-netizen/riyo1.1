@@ -116,7 +116,7 @@ const MovieDetails = () => {
                     <div
                       key={idx}
                       className="group bg-white/5 hover:bg-white/10 rounded-lg p-4 flex items-center cursor-pointer transition-colors"
-                      onClick={() => episode.videoUrl && navigate(`/watch/${movie._id}?url=${encodeURIComponent(episode.videoUrl)}`)}
+                    onClick={() => navigate(`/watch/${movie._id}?s=${movie.seasons[selectedSeason].number}&e=${episode.number}`)}
                     >
                       <div className="w-10 text-gray-500 font-bold text-xl">{episode.number}</div>
                       <div className="flex-1">

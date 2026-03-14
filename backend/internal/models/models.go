@@ -105,6 +105,7 @@ type Movie struct {
 	IsTrending    bool             `bson:"isTrending" json:"isTrending"`
 	IsFeatured    bool             `bson:"isFeatured" json:"isFeatured"`
 	IsTvShow      bool             `bson:"isTvShow" json:"isTvShow"`
+	IsPublished   bool             `bson:"isPublished" json:"isPublished"`
 	Seasons       []Season         `bson:"seasons" json:"seasons"`
 	NotifyUsers   []bson.ObjectID  `bson:"notifyUsers" json:"notifyUsers"`
 	ContentRating string           `bson:"contentRating" json:"contentRating"` // Deprecated but kept for compat

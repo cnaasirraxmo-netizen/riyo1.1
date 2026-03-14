@@ -26,17 +26,17 @@ func GetHome(c *gin.Context) {
 
 	opts := options.Find().SetLimit(10).SetSort(bson.M{"createdAt": -1})
 
-	cursor, _ := collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": false}, opts)
+	cursor, _ := collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": false, "isPublished": true}, opts)
 	cursor.All(context.TODO(), &trendingMovies)
 
-	cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false}, opts)
+	cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, opts)
 	cursor.All(context.TODO(), &popularMovies)
 
 	optsRating := options.Find().SetLimit(10).SetSort(bson.M{"rating": -1})
-	cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false}, optsRating)
+	cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, optsRating)
 	cursor.All(context.TODO(), &topRatedMovies)
 
-	cursor, _ = collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": true}, opts)
+	cursor, _ = collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": true, "isPublished": true}, opts)
 	cursor.All(context.TODO(), &trendingTV)
 
 	c.JSON(http.StatusOK, gin.H{
