@@ -15,10 +15,12 @@ import (
 
 type MetadataService struct {
 	TMDB *providers.TMDbProvider
+	Genres map[int]string
 }
 
 func NewMetadataService(tmdb *providers.TMDbProvider) *MetadataService {
-	return &MetadataService{TMDB: tmdb}
+	genres, _ := tmdb.FetchGenres()
+	return &MetadataService{TMDB: tmdb, Genres: genres}
 }
 
 func (s *MetadataService) SyncTrendingMovies() error {
@@ -52,9 +54,19 @@ func (s *MetadataService) SyncTrendingTVShows() error {
 	}
 
 	for _, tt := range tmdbTVShows {
-		s.saveTVShow(tt, true, false)
+		s.SyncTVShowFull(tt.ID, true, false)
 	}
 	return nil
+}
+
+func (s *MetadataService) getGenreNames(ids []int) []string {
+	names := []string{}
+	for _, id := range ids {
+		if name, ok := s.Genres[id]; ok {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isFeatured bool) {
@@ -71,6 +83,8 @@ func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isF
 		year, _ = strconv.Atoi(tm.ReleaseDate[:4])
 	}
 
+	genres := s.getGenreNames(tm.GenreIDs)
+
 	if err == mongo.ErrNoDocuments {
 		movie := models.Movie{
 			ID:           bson.NewObjectID(),
@@ -81,6 +95,8 @@ func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isF
 			BannerURL:    bannerURL,
 			Rating:       tm.VoteAverage,
 			Year:         year,
+			Genre:        genres,
+			Duration:     tm.Runtime,
 			IsTrending:   isTrending,
 			IsFeatured:   isFeatured,
 			IsTvShow:     false,
@@ -100,6 +116,8 @@ func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isF
 				"bannerUrl":   bannerURL,
 				"rating":      tm.VoteAverage,
 				"year":        year,
+				"genre":       genres,
+				"duration":    tm.Runtime,
 				"isTrending":  isTrending || existing.IsTrending,
 				"updatedAt":   time.Now(),
 			},
@@ -108,11 +126,16 @@ func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isF
 	}
 }
 
-func (s *MetadataService) saveTVShow(tt providers.TMDbTVShow, isTrending bool, isFeatured bool) {
-	collection := db.DB.Collection("movies")
+func (s *MetadataService) SyncTVShowFull(tmdbID int, isTrending bool, isFeatured bool) {
+	tt, err := s.TMDB.FetchTVShowDetails(tmdbID)
+	if err != nil {
+		log.Printf("Error fetching TV details for %d: %v", tmdbID, err)
+		return
+	}
 
+	collection := db.DB.Collection("movies")
 	var existing models.Movie
-	err := collection.FindOne(context.TODO(), bson.M{"tmdbId": tt.ID}).Decode(&existing)
+	err = collection.FindOne(context.TODO(), bson.M{"tmdbId": tmdbID}).Decode(&existing)
 
 	posterURL := "https://image.tmdb.org/t/p/w500" + tt.PosterPath
 	bannerURL := "https://image.tmdb.org/t/p/original" + tt.BackdropPath
@@ -122,20 +145,47 @@ func (s *MetadataService) saveTVShow(tt providers.TMDbTVShow, isTrending bool, i
 		year, _ = strconv.Atoi(tt.FirstAirDate[:4])
 	}
 
+	genres := s.getGenreNames(tt.GenreIDs)
+
+	seasons := []models.Season{}
+	for i := 1; i <= tt.NumberOfSeasons; i++ {
+		ts, err := s.TMDB.FetchSeasonDetails(tmdbID, i)
+		if err != nil {
+			continue
+		}
+
+		episodes := []models.Episode{}
+		for _, te := range ts.Episodes {
+			episodes = append(episodes, models.Episode{
+				Number:   te.EpisodeNumber,
+				Title:    te.Name,
+				Duration: strconv.Itoa(te.Runtime) + " min",
+			})
+		}
+
+		seasons = append(seasons, models.Season{
+			Number:   ts.SeasonNumber,
+			Title:    ts.Name,
+			Episodes: episodes,
+		})
+	}
+
 	if err == mongo.ErrNoDocuments {
 		tvShow := models.Movie{
 			ID:           bson.NewObjectID(),
-			TMDbID:       tt.ID,
+			TMDbID:       tmdbID,
 			Title:        tt.Name,
 			Description:  tt.Overview,
 			PosterURL:    posterURL,
 			BannerURL:    bannerURL,
 			Rating:       tt.VoteAverage,
 			Year:         year,
+			Genre:        genres,
 			IsTrending:   isTrending,
 			IsFeatured:   isFeatured,
 			IsTvShow:     true,
 			IsPublished:  true,
+			Seasons:      seasons,
 			Status:       "published",
 			AccessType:   "free",
 			CreatedAt:    time.Now(),
@@ -151,11 +201,13 @@ func (s *MetadataService) saveTVShow(tt providers.TMDbTVShow, isTrending bool, i
 				"bannerUrl":   bannerURL,
 				"rating":      tt.VoteAverage,
 				"year":        year,
+				"genre":       genres,
 				"isTrending":  isTrending || existing.IsTrending,
+				"seasons":     seasons,
 				"updatedAt":   time.Now(),
 			},
 		}
-		_, _ = collection.UpdateOne(context.TODO(), bson.M{"tmdbId": tt.ID}, update)
+		_, _ = collection.UpdateOne(context.TODO(), bson.M{"tmdbId": tmdbID}, update)
 	}
 }
 

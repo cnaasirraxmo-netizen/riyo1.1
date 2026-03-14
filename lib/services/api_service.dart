@@ -22,7 +22,7 @@ class ApiService {
     throw Exception('Failed to load home data');
   }
 
-  Future<List<Map<String, dynamic>>> getSources(String id, {int? season, int? episode}) async {
+  Future<Map<String, dynamic>> getSources(String id, {int? season, int? episode}) async {
     String url = '$_backendUrl/api/v1/movie/$id/sources';
     if (season != null && episode != null) {
       url = '$_backendUrl/api/v1/tv/$id/sources/$season/$episode';
@@ -30,9 +30,9 @@ class ApiService {
 
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
+      return Map<String, dynamic>.from(json.decode(response.body));
     }
-    return [];
+    return {'sources': [], 'subtitles': []};
   }
 
   // RESTORED METHODS TO FIX CI COMPILATION ERRORS

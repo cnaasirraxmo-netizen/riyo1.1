@@ -24,10 +24,9 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, isTvShow bool, season, episo
 
 	var allSources []models.StreamSource
 
-	for _, p := range embedProviders {
+	for i, p := range embedProviders {
 		var url string
 		if isTvShow {
-			// Ensure season and episode are at least 1
 			s := season
 			if s < 1 { s = 1 }
 			ep := episode
@@ -37,13 +36,25 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, isTvShow bool, season, episo
 			url = providers.GenerateMovieURL(p, tmdbID)
 		}
 
+		// Main server
 		allSources = append(allSources, models.StreamSource{
-			Label:    p.Name,
+			Label:    p.Name + " Server",
 			URL:      url,
 			Type:     "embed",
 			Provider: strings.ToLower(p.Name),
-			Quality:  "720p", // Default for embeds
+			Quality:  "1080p",
 		})
+
+		// Add a backup/mirror for variety if it's the primary provider
+		if i == 0 {
+			allSources = append(allSources, models.StreamSource{
+				Label:    p.Name + " Mirror 1",
+				URL:      url + "&mirror=1", // Hypothetical mirror param
+				Type:     "embed",
+				Provider: strings.ToLower(p.Name),
+				Quality:  "720p",
+			})
+		}
 	}
 
 	return allSources

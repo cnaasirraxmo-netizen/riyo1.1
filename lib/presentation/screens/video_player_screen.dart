@@ -65,7 +65,8 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     if (widget.movieId != null) {
       try {
         _movie = await apiService.getMovieDetails(widget.movieId!, token: auth.token);
-        _sources = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
+        final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
+        _sources = List<Map<String, dynamic>>.from(response['sources']);
 
         if (_sources.isNotEmpty) {
            _selectedSource = _sources.first;

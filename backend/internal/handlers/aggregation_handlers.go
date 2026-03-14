@@ -9,6 +9,7 @@ import (
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/services"
+	"github.com/riyobox/backend/utils"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -67,7 +68,6 @@ func GetMoviesByFilter(filter bson.M) gin.HandlerFunc {
 
 func GetMovieSources(c *gin.Context) {
 	idStr := c.Param("id")
-	// Try to find by ObjectID first, then by TMDbID if it's a number
 	collection := db.DB.Collection("movies")
 	var movie models.Movie
 
@@ -83,7 +83,12 @@ func GetMovieSources(c *gin.Context) {
 	}
 
 	sources := VideoExt.ExtractSources(movie.TMDbID, movie.IsTvShow, 0, 0)
-	c.JSON(http.StatusOK, sources)
+	subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
+
+	c.JSON(http.StatusOK, gin.H{
+		"sources":   sources,
+		"subtitles": subtitles,
+	})
 }
 
 func GetTVSources(c *gin.Context) {
@@ -106,7 +111,12 @@ func GetTVSources(c *gin.Context) {
 	}
 
 	sources := VideoExt.ExtractSources(movie.TMDbID, true, season, episode)
-	c.JSON(http.StatusOK, sources)
+	subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
+
+	c.JSON(http.StatusOK, gin.H{
+		"sources":   sources,
+		"subtitles": subtitles,
+	})
 }
 
 func SearchMovies(c *gin.Context) {

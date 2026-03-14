@@ -29,6 +29,7 @@ type TMDbMovie struct {
 	ReleaseDate      string   `json:"release_date"`
 	VoteAverage      float64  `json:"vote_average"`
 	GenreIDs         []int    `json:"genre_ids"`
+	Runtime          int      `json:"runtime"`
 }
 
 type TMDbTVShow struct {
@@ -41,6 +42,22 @@ type TMDbTVShow struct {
 	FirstAirDate     string   `json:"first_air_date"`
 	VoteAverage      float64  `json:"vote_average"`
 	GenreIDs         []int    `json:"genre_ids"`
+	NumberOfSeasons  int      `json:"number_of_seasons"`
+}
+
+type TMDbSeason struct {
+	SeasonNumber int `json:"season_number"`
+	Name         string `json:"name"`
+	Episodes     []TMDbEpisode `json:"episodes"`
+}
+
+type TMDbEpisode struct {
+	EpisodeNumber int    `json:"episode_number"`
+	Name          string `json:"name"`
+	Overview      string `json:"overview"`
+	StillPath     string `json:"still_path"`
+	AirDate       string `json:"air_date"`
+	Runtime       int    `json:"runtime"`
 }
 
 type TMDbResponse struct {
@@ -57,23 +74,8 @@ func (p *TMDbProvider) FetchPopularMovies() ([]TMDbMovie, error) {
 	return p.fetchMovies(url)
 }
 
-func (p *TMDbProvider) FetchTopRatedMovies() ([]TMDbMovie, error) {
-	url := fmt.Sprintf("%s/movie/top_rated?api_key=%s", p.BaseURL, p.APIKey)
-	return p.fetchMovies(url)
-}
-
-func (p *TMDbProvider) FetchUpcomingMovies() ([]TMDbMovie, error) {
-	url := fmt.Sprintf("%s/movie/upcoming?api_key=%s", p.BaseURL, p.APIKey)
-	return p.fetchMovies(url)
-}
-
 func (p *TMDbProvider) FetchTrendingTVShows() ([]TMDbTVShow, error) {
 	url := fmt.Sprintf("%s/trending/tv/day?api_key=%s", p.BaseURL, p.APIKey)
-	return p.fetchTVShows(url)
-}
-
-func (p *TMDbProvider) FetchPopularTVShows() ([]TMDbTVShow, error) {
-	url := fmt.Sprintf("%s/tv/popular?api_key=%s", p.BaseURL, p.APIKey)
 	return p.fetchTVShows(url)
 }
 
@@ -149,4 +151,19 @@ func (p *TMDbProvider) FetchTVShowDetails(tmdbID int) (TMDbTVShow, error) {
 		return TMDbTVShow{}, err
 	}
 	return tvShow, nil
+}
+
+func (p *TMDbProvider) FetchSeasonDetails(tvID int, seasonNumber int) (TMDbSeason, error) {
+	url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", p.BaseURL, tvID, seasonNumber, p.APIKey)
+	resp, err := http.Get(url)
+	if err != nil {
+		return TMDbSeason{}, err
+	}
+	defer resp.Body.Close()
+
+	var season TMDbSeason
+	if err := json.NewDecoder(resp.Body).Decode(&season); err != nil {
+		return TMDbSeason{}, err
+	}
+	return season, nil
 }
