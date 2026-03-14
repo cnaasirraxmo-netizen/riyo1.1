@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api';
-import { ArrowLeft, Play, Pause, Volume2, Maximize, Settings, RotateCcw, RotateCw, Monitor, Subtitles, Zap } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Volume2, Maximize, Settings, RotateCcw, RotateCw, Monitor, Subtitles, Zap, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Player = () => {
@@ -98,13 +98,13 @@ const Player = () => {
   };
 
   if (!movie) return (
-    <div className="h-screen bg-[#0a0a0a] flex flex-col items-center justify-center space-y-6">
+    <div className="h-screen bg-[#050505] flex flex-col items-center justify-center space-y-8">
         <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-            className="w-12 h-12 border-t-2 border-purple-600 border-solid rounded-full"
+            animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+            className="w-16 h-16 border-t-4 border-purple-600 border-solid rounded-full shadow-[0_0_50px_rgba(139,92,246,0.2)]"
         />
-        <div className="text-purple-500 font-black uppercase italic tracking-widest animate-pulse">Establishing Connection...</div>
+        <div className="text-white font-black uppercase tracking-[0.4em] text-[10px] animate-pulse">Initializing Theatre Mode</div>
     </div>
   );
 
@@ -112,44 +112,44 @@ const Player = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black group overflow-hidden select-none"
+      className="fixed inset-0 z-[100] bg-black group overflow-hidden select-none cursor-none"
       onMouseMove={handleMouseMove}
     >
       <AnimatePresence>
         {showControls && (
             <motion.div
-                initial={{ opacity: 0, y: -20 }}
+                initial={{ opacity: 0, y: -40 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="absolute top-0 left-0 w-full p-8 z-[110] flex items-center justify-between pointer-events-none"
+                exit={{ opacity: 0, y: -40 }}
+                className="absolute top-0 left-0 w-full p-10 z-[110] flex items-center justify-between pointer-events-none"
             >
                 <button
                     onClick={() => navigate(-1)}
-                    className="pointer-events-auto flex items-center space-x-4 text-white hover:text-purple-400 transition-all group"
+                    className="pointer-events-auto flex items-center space-x-6 text-white group"
                 >
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10 group-hover:bg-purple-600/20 group-hover:border-purple-600/50">
+                    <div className="bg-white/5 p-5 rounded-[1.2rem] border border-white/10 group-hover:bg-purple-600 transition-all shadow-2xl">
                         <ArrowLeft size={24} />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Back to Library</span>
-                        <span className="text-xl font-black uppercase italic tracking-tighter">{movie.title} {season && ` • S${season}E${episode}`}</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-purple-500 mb-1">Exit Playback</span>
+                        <span className="text-3xl font-black uppercase italic tracking-tighter leading-none group-hover:text-purple-500 transition-colors">{movie.title} {season && ` • S${season}E${episode}`}</span>
                     </div>
                 </button>
 
-                <div className="pointer-events-auto bg-purple-600/10 border border-purple-500/20 px-4 py-2 rounded-xl flex items-center space-x-3">
-                    <Zap size={16} className="text-purple-500 fill-purple-500" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-purple-500">Streaming via {selectedSource?.provider || 'Direct'}</span>
+                <div className="pointer-events-auto glass px-6 py-3 rounded-2xl flex items-center space-x-4 border border-white/10">
+                    <Zap size={18} className="text-purple-500 fill-purple-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Stream: {selectedSource?.provider || 'Secure Server'}</span>
                 </div>
             </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Video Content */}
-      <div className="w-full h-full bg-black">
+      {/* Primary Video Container */}
+      <div className="w-full h-full bg-[#000]">
         {isEmbed ? (
           <iframe
             src={selectedSource.url}
-            className="w-full h-full border-none shadow-[0_0_100px_rgba(147,51,234,0.1)]"
+            className="w-full h-full border-none pointer-events-auto"
             allowFullScreen
             title="Video Player"
           />
@@ -157,7 +157,7 @@ const Player = () => {
           <video
             ref={videoRef}
             src={selectedSource?.url || movie.videoUrl}
-            className="w-full h-full cursor-none object-contain"
+            className="w-full h-full object-contain pointer-events-auto"
             onTimeUpdate={onTimeUpdate}
             onLoadedMetadata={onLoadedMetadata}
             onClick={togglePlay}
@@ -176,7 +176,7 @@ const Player = () => {
         )}
       </div>
 
-      {/* Controls Overlay (Only for non-embed) */}
+      {/* Premium UI Overlay */}
       {!isEmbed && (
         <AnimatePresence>
             {showControls && (
@@ -184,70 +184,78 @@ const Player = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40 flex flex-col justify-end p-8 md:p-12"
+                    className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40 flex flex-col justify-end p-10 md:p-16"
                 >
-                    {/* Progress Bar */}
-                    <div className="w-full mb-10 group/seek">
+                    {/* Cinematic Seek Bar */}
+                    <div className="w-full mb-12 group/seek pointer-events-auto">
+                        <div className="relative w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                                className="absolute left-0 top-0 h-full bg-purple-600 shadow-[0_0_20px_rgba(139,92,246,0.8)]"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
                         <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={progress}
-                        onChange={handleSeek}
-                        className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-600 hover:h-2.5 transition-all"
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={progress}
+                            onChange={handleSeek}
+                            className="absolute -top-1 left-0 w-full opacity-0 cursor-pointer h-3"
                         />
-                        <div className="flex justify-between text-xs mt-4 font-black font-mono text-white/50 tracking-[0.2em]">
-                        <span>{formatTime(videoRef.current?.currentTime || 0)}</span>
-                        <span>{formatTime(duration)}</span>
+                        <div className="flex justify-between text-[11px] mt-6 font-black font-mono text-slate-500 tracking-[0.3em] uppercase">
+                            <span className="text-purple-500">{formatTime(videoRef.current?.currentTime || 0)}</span>
+                            <span>{formatTime(duration)}</span>
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-12">
-                        <button onClick={togglePlay} className="text-white hover:scale-125 transition-transform">
-                            {isPlaying ? <Pause size={56} fill="white" /> : <Play size={56} fill="white" className="ml-1" />}
-                        </button>
-                        <div className="flex items-center space-x-6">
-                            <button onClick={() => videoRef.current.currentTime -= 10} className="text-white/60 hover:text-white transition-all">
-                            <RotateCcw size={32} />
+                    {/* Master Controls */}
+                    <div className="flex items-center justify-between pointer-events-auto">
+                        <div className="flex items-center space-x-16">
+                            <button onClick={togglePlay} className="text-white hover:scale-110 active:scale-90 transition-all">
+                                {isPlaying ? <Pause size={72} fill="white" /> : <Play size={72} fill="white" className="ml-2" />}
                             </button>
-                            <button onClick={() => videoRef.current.currentTime += 10} className="text-white/60 hover:text-white transition-all">
-                            <RotateCw size={32} />
-                            </button>
-                        </div>
-                        <div className="flex items-center space-x-4 group/vol">
-                            <Volume2 size={24} className="text-white/60" />
-                            <input type="range" className="w-0 group-hover/vol:w-24 transition-all accent-purple-600 h-1 appearance-none bg-white/10 rounded-full" />
-                        </div>
-                        </div>
 
-                        <div className="flex items-center space-x-8">
-                        <button
-                            onClick={() => setShowSubtitleSelector(true)}
-                            className={`flex flex-col items-center space-y-1 transition-all ${selectedSubtitle ? 'text-purple-400 scale-110' : 'text-white/40 hover:text-white'}`}
-                        >
-                            <Subtitles size={28} />
-                            <span className="text-[8px] font-black uppercase tracking-widest">{selectedSubtitle?.language || 'Off'}</span>
-                        </button>
-
-                        <button
-                            onClick={() => setShowSourceSelector(true)}
-                            className="flex items-center space-x-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 hover:border-purple-500/50 hover:bg-purple-600/10 transition-all text-white/80"
-                        >
-                            <Monitor size={20} />
-                            <div className="flex flex-col items-start">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-gray-500">Source Server</span>
-                                <span className="text-xs font-black uppercase tracking-widest">{selectedSource?.label || 'Select'}</span>
+                            <div className="flex items-center space-x-8">
+                                <button onClick={() => videoRef.current.currentTime -= 10} className="text-slate-400 hover:text-white transition-all">
+                                    <RotateCcw size={36} />
+                                </button>
+                                <button onClick={() => videoRef.current.currentTime += 10} className="text-slate-400 hover:text-white transition-all">
+                                    <RotateCw size={36} />
+                                </button>
                             </div>
-                        </button>
 
-                        <button
-                            onClick={() => videoRef.current.requestFullscreen()}
-                            className="text-white/40 hover:text-white hover:scale-110 transition-transform"
-                        >
-                            <Maximize size={28} />
-                        </button>
+                            <div className="flex items-center space-x-6 group/vol bg-white/5 px-6 py-4 rounded-3xl border border-white/5">
+                                <Volume2 size={24} className="text-slate-400 group-hover/vol:text-white transition-colors" />
+                                <input type="range" className="w-24 accent-white h-1 appearance-none bg-white/10 rounded-full" />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-10">
+                            <button
+                                onClick={() => setShowSubtitleSelector(true)}
+                                className={`flex flex-col items-center space-y-2 transition-all ${selectedSubtitle ? 'text-purple-500 scale-110' : 'text-slate-500 hover:text-white'}`}
+                            >
+                                <Subtitles size={32} />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{selectedSubtitle?.language || 'Off'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => setShowSourceSelector(true)}
+                                className="flex items-center space-x-5 glass-dark px-8 py-4 rounded-[1.5rem] border border-white/10 hover:border-purple-600 transition-all text-white group"
+                            >
+                                <Monitor size={24} className="text-purple-500" />
+                                <div className="flex flex-col items-start leading-none">
+                                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">Mirror</span>
+                                    <span className="text-sm font-black uppercase tracking-widest">{selectedSource?.label || 'Direct'}</span>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => videoRef.current.requestFullscreen()}
+                                className="text-slate-500 hover:text-white hover:scale-110 transition-transform"
+                            >
+                                <Maximize size={32} />
+                            </button>
                         </div>
                     </div>
                 </motion.div>
@@ -255,56 +263,51 @@ const Player = () => {
         </AnimatePresence>
       )}
 
-      {/* Floating Source Selector (For embed mode) */}
+      {/* Floating Server UI (Embed Mode) */}
       {isEmbed && showControls && (
-          <div className="absolute bottom-12 right-12 z-[120]">
+          <div className="absolute bottom-16 right-16 z-[120] pointer-events-auto">
              <motion.button
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 onClick={() => setShowSourceSelector(true)}
-                className="bg-purple-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center space-x-4 hover:bg-purple-700 transition-all shadow-[0_20px_50px_rgba(147,51,234,0.4)] active:scale-95"
+                className="bg-purple-600 text-white px-10 py-5 rounded-[1.8rem] font-black uppercase tracking-[0.3em] text-[11px] flex items-center space-x-5 hover:bg-purple-700 transition-all shadow-[0_30px_100px_rgba(139,92,246,0.5)] active:scale-95 border-b-4 border-black/20"
               >
-                <Monitor size={20} />
-                <span>Change Server</span>
+                <Monitor size={22} />
+                <span>Switch Mirror</span>
               </motion.button>
           </div>
       )}
 
-      {/* Modern Fullscreen Selection Overlays */}
+      {/* Full-Screen Selection Overlays */}
       <AnimatePresence>
-        {showSourceSelector && (
-            <SelectionOverlay
-                title="Select Server"
-                subtitle="Choose a high-speed streaming server for the best experience"
-                items={sources}
-                selectedItem={selectedSource}
+        {(showSourceSelector || showSubtitleSelector) && (
+            <SelectionModal
+                title={showSourceSelector ? "Select Mirror" : "Subtitles"}
+                items={showSourceSelector ? sources : [{language: 'Off'}, ...subtitles]}
+                selectedItem={showSourceSelector ? selectedSource : (selectedSubtitle || {language: 'Off'})}
                 onSelect={(item) => {
-                    setSelectedSource(item);
-                    setShowSourceSelector(false);
+                    if (showSourceSelector) {
+                        setSelectedSource(item);
+                        setShowSourceSelector(false);
+                    } else {
+                        setSelectedSubtitle(item.language === 'Off' ? null : item);
+                        setShowSubtitleSelector(false);
+                    }
                 }}
-                onClose={() => setShowSourceSelector(false)}
-                renderItem={(source) => (
-                    <>
-                    <div className="text-white font-black text-2xl mb-1 italic uppercase tracking-tighter">{source.label}</div>
-                    <div className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em]">{source.quality} • {source.provider} • Cloud Layer</div>
-                    </>
-                )}
-            />
-        )}
-
-        {showSubtitleSelector && (
-            <SelectionOverlay
-                title="Subtitles"
-                subtitle="Select your preferred language for CC"
-                items={[{language: 'Off'}, ...subtitles]}
-                selectedItem={selectedSubtitle || {language: 'Off'}}
-                onSelect={(item) => {
-                    setSelectedSubtitle(item.language === 'Off' ? null : item);
+                onClose={() => {
+                    setShowSourceSelector(false);
                     setShowSubtitleSelector(false);
                 }}
-                onClose={() => setShowSubtitleSelector(false)}
-                renderItem={(sub) => (
-                    <div className="text-white font-black text-2xl py-2 italic uppercase tracking-tighter">{sub.language}</div>
+                renderItem={(item) => (
+                    <div className="flex items-center justify-between w-full">
+                        <div className="text-left">
+                            <div className="text-white font-black text-3xl uppercase italic tracking-tighter mb-1">{item.label || item.language}</div>
+                            <div className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">{item.quality || 'Auto'} • {item.provider || 'Secure'}</div>
+                        </div>
+                        <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center">
+                            <Zap size={20} className="text-purple-500" />
+                        </div>
+                    </div>
                 )}
             />
         )}
@@ -313,48 +316,41 @@ const Player = () => {
   );
 };
 
-const SelectionOverlay = ({ title, subtitle, items, selectedItem, onSelect, onClose, renderItem }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="absolute inset-0 bg-[#0a0a0a]/95 z-[200] flex items-center justify-center p-8 backdrop-blur-2xl"
-  >
-    <div className="max-w-4xl w-full">
-      <div className="flex flex-col space-y-2 mb-16 border-l-8 border-purple-600 pl-8">
-        <h2 className="text-6xl font-black text-white italic uppercase tracking-tighter leading-none">{title}</h2>
-        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">{subtitle}</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[50vh] overflow-y-auto pr-6 custom-scrollbar">
-        {items.map((item, index) => (
-          <button
-            key={index}
-            onClick={() => onSelect(item)}
-            className={`group p-8 rounded-[2rem] text-left transition-all transform hover:scale-[1.02] ${
-              (selectedItem?.label === item.label || selectedItem?.language === item.language)
-              ? 'bg-purple-600 shadow-[0_25px_60px_rgba(147,51,234,0.3)]'
-              : 'bg-white/5 border border-white/5 hover:border-purple-500/30 hover:bg-white/10'
-            }`}
-          >
-            {renderItem(item)}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-16 flex justify-center">
-        <button
-            onClick={onClose}
-            className="group flex flex-col items-center space-y-4"
-        >
-            <div className="w-16 h-16 rounded-full border-2 border-white/10 flex items-center justify-center group-hover:border-purple-600 group-hover:bg-purple-600 transition-all">
-                <Maximize size={24} className="rotate-45 text-white" />
+const SelectionModal = ({ title, items, selectedItem, onSelect, onClose, renderItem }) => (
+    <motion.div
+        initial={{ opacity: 0, scale: 1.1 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 1.1 }}
+        className="absolute inset-0 bg-[#050505]/98 z-[300] flex items-center justify-center p-12 backdrop-blur-3xl pointer-events-auto"
+    >
+        <div className="max-w-5xl w-full">
+            <div className="flex items-end justify-between mb-20">
+                <div>
+                    <h2 className="text-8xl font-black text-white italic uppercase tracking-tighter leading-none mb-4">{title}</h2>
+                    <div className="h-2 w-32 bg-purple-600"></div>
+                </div>
+                <button onClick={onClose} className="p-6 bg-white/5 rounded-full hover:bg-white/10 transition-all text-slate-500 hover:text-white">
+                    <Maximize size={40} className="rotate-45" />
+                </button>
             </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-gray-600 group-hover:text-white transition-colors">Dismiss</span>
-        </button>
-      </div>
-    </div>
-  </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[50vh] overflow-y-auto pr-8 custom-scrollbar">
+                {items.map((item, index) => (
+                    <button
+                        key={index}
+                        onClick={() => onSelect(item)}
+                        className={`p-10 rounded-[2.5rem] transition-all transform hover:scale-[1.03] active:scale-95 ${
+                            (selectedItem?.label === item.label || selectedItem?.language === item.language)
+                            ? 'bg-purple-600 shadow-[0_0_80px_rgba(139,92,246,0.4)] border-transparent'
+                            : 'bg-white/5 border border-white/5 hover:border-purple-600/50 hover:bg-white/10'
+                        }`}
+                    >
+                        {renderItem(item)}
+                    </button>
+                ))}
+            </div>
+        </div>
+    </motion.div>
 );
 
 export default Player;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { Play, Plus, ThumbsUp, Check, Star, Clock, Calendar, Globe, User } from 'lucide-react';
+import { Play, Plus, ThumbsUp, Check, Star, Clock, Calendar, Globe, User, Shield, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const MovieDetails = () => {
@@ -21,7 +21,6 @@ const MovieDetails = () => {
           setSelectedSeason(0);
         }
 
-        // Check watchlist
         const profileRes = await api.get('/users/profile');
         setIsInWatchlist(profileRes.data.watchlist?.some(m => m._id === id) || false);
       } catch (err) {
@@ -42,124 +41,135 @@ const MovieDetails = () => {
     }
   };
 
-  if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-[#0a0a0a]">
-      <div className="w-16 h-16 border-t-4 border-purple-600 border-solid rounded-full animate-spin"></div>
-    </div>
-  );
+  if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center"><div className="w-16 h-16 skeleton rounded-full"></div></div>;
 
-  if (!movie) return <div className="h-screen flex items-center justify-center text-white font-black uppercase italic">Content Missing</div>;
+  if (!movie) return <div className="h-screen flex items-center justify-center text-white font-black uppercase italic">Content Unavailable</div>;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
-      {/* Background Stretcher */}
-      <div className="absolute top-0 left-0 w-full h-[70vh] overflow-hidden opacity-30 z-0">
-         <img src={movie.backdropUrl || movie.posterUrl} className="w-full h-full object-cover blur-2xl scale-110" alt="" />
-         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a]"></div>
+    <div className="min-h-screen bg-[#050505] text-white">
+      {/* Dynamic Backdrop */}
+      <div className="fixed inset-0 z-0 h-[60vh] w-full overflow-hidden opacity-40">
+         <img src={movie.backdropUrl || movie.posterUrl} className="w-full h-full object-cover blur-3xl scale-125" alt="" />
+         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#050505]/80 to-[#050505]"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 md:gap-24">
 
-          {/* Poster Section */}
+          {/* Visual Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
             className="lg:col-span-4"
           >
             <div className="sticky top-32">
-                <img
-                    src={movie.posterUrl}
-                    alt={movie.title}
-                    className="w-full rounded-[2rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] border-2 border-white/5"
-                />
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
-                        <div className="text-purple-500 font-black text-2xl">{movie.rating?.toFixed(1) || '8.5'}</div>
-                        <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest">IMDb Score</div>
-                    </div>
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
-                        <div className="text-white font-black text-2xl uppercase italic">{movie.quality || '4K'}</div>
-                        <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Master Quality</div>
+                <div className="relative group">
+                    <img
+                        src={movie.posterUrl}
+                        alt={movie.title}
+                        className="w-full rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/10 group-hover:scale-[1.02] transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-t from-purple-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                </div>
+
+                <div className="mt-10 grid grid-cols-1 gap-4">
+                    <div className="glass p-6 rounded-[1.5rem] flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-yellow-400/10 flex items-center justify-center text-yellow-400">
+                                <Star size={20} fill="currentColor" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Global Score</span>
+                        </div>
+                        <div className="text-2xl font-black">{movie.rating?.toFixed(1) || '8.5'}</div>
                     </div>
                 </div>
             </div>
           </motion.div>
 
-          {/* Content Info */}
+          {/* Metadata & Actions */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-8"
+            className="lg:col-span-8 pt-8"
           >
-            <div className="flex items-center space-x-3 mb-6">
-                <div className="bg-purple-600/20 text-purple-500 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-purple-500/30">
-                    {movie.isTvShow ? 'TV Series' : 'Blockbuster'}
+            <div className="flex flex-wrap items-center gap-3 mb-8">
+                <div className="bg-purple-600 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.25em]">
+                    {movie.isTvShow ? 'Premium Series' : 'Cinema Original'}
                 </div>
                 {movie.genre?.map((g, i) => (
-                    <span key={i} className="text-gray-400 text-xs font-bold uppercase tracking-widest">{g}</span>
+                    <span key={i} className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-400">{g}</span>
                 ))}
             </div>
 
-            <h1 className="text-6xl md:text-8xl font-black mb-8 uppercase italic leading-none tracking-tighter">
+            <h1 className="text-6xl md:text-8xl font-black mb-8 leading-[0.9] tracking-tighter uppercase italic">
                 {movie.title}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-8 mb-12 text-sm font-black uppercase tracking-[0.15em] text-gray-400">
+            <div className="flex flex-wrap items-center gap-10 mb-16 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
                 <div className="flex items-center space-x-2">
-                    <Calendar size={18} className="text-purple-500" />
+                    <Calendar size={16} className="text-purple-500" />
                     <span>{movie.year}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                    <Clock size={18} className="text-purple-500" />
+                    <Clock size={16} className="text-purple-500" />
                     <span>{movie.duration}</span>
                 </div>
-                <div className="flex items-center space-x-2 border-2 border-white/20 px-3 py-1 rounded-lg">
+                <div className="flex items-center space-x-2 border border-white/20 px-3 py-1 rounded-md">
                     <span>{movie.ageRating || 'PG-13'}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Shield size={16} className="text-green-500" />
+                    <span className="text-green-500">Licensed</span>
                 </div>
             </div>
 
-            <div className="flex flex-wrap gap-6 mb-16">
+            <div className="flex flex-wrap items-center gap-6 mb-20">
               <button
                 onClick={() => navigate(`/watch/${movie._id}`)}
-                className="flex items-center space-x-4 bg-purple-600 text-white px-12 py-5 rounded-2xl hover:bg-purple-700 transition-all duration-300 font-black uppercase tracking-[0.2em] shadow-[0_20px_50px_rgba(147,51,234,0.3)] hover:scale-105 active:scale-95"
+                className="flex items-center space-x-4 bg-purple-600 text-white px-14 py-6 rounded-2xl hover:bg-purple-700 transition-all duration-300 font-black uppercase tracking-[0.3em] text-sm shadow-[0_20px_50px_rgba(139,92,246,0.3)] hover:scale-105 active:scale-95"
               >
                 <Play fill="currentColor" size={24} />
-                <span>Stream Now</span>
+                <span>Play Now</span>
               </button>
 
               <button
                 onClick={toggleWatchlist}
-                className={`p-5 rounded-2xl border-2 transition-all duration-300 hover:scale-110 ${isInWatchlist ? 'bg-white border-white text-black' : 'border-white/10 text-white hover:bg-white/5'}`}
+                className={`p-6 rounded-2xl border border-white/10 transition-all duration-300 hover:scale-110 ${isInWatchlist ? 'bg-white text-black border-white' : 'glass text-white hover:bg-white/10'}`}
               >
                 {isInWatchlist ? <Check size={28} /> : <Plus size={28} />}
               </button>
 
-              <button className="p-5 rounded-2xl border-2 border-white/10 text-white hover:bg-white/5 hover:scale-110 transition-all">
-                <ThumbsUp size={28} />
+              <button className="p-6 rounded-2xl border border-white/10 glass text-white hover:scale-110 transition-all">
+                <Share2 size={24} />
               </button>
             </div>
 
-            <div className="space-y-8 mb-20">
-                <h3 className="text-2xl font-black uppercase italic tracking-widest text-purple-500">Storyline</h3>
-                <p className="text-xl text-gray-300 leading-relaxed font-medium">
+            <div className="space-y-6 mb-20">
+                <div className="flex items-center space-x-4">
+                    <div className="h-[2px] w-12 bg-purple-600"></div>
+                    <h3 className="text-xs font-black uppercase tracking-[0.4em] text-purple-500">Overview</h3>
+                </div>
+                <p className="text-xl md:text-2xl text-slate-300 leading-relaxed font-light">
                   {movie.description}
                 </p>
             </div>
 
-            {/* Episodes System */}
+            {/* Premium Episode List */}
             {movie.isTvShow && movie.seasons && (
-              <div className="mb-20 bg-white/5 p-10 rounded-[3rem] border border-white/5 backdrop-blur-md">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Episodes</h2>
-                  <div className="flex bg-black/50 p-2 rounded-2xl">
+              <div className="mb-24">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+                  <div>
+                      <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-2">Seasons</h2>
+                      <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Select chapter to browse episodes</p>
+                  </div>
+                  <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5">
                     {movie.seasons.map((season, idx) => (
                         <button
                             key={idx}
                             onClick={() => setSelectedSeason(idx)}
-                            className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all ${selectedSeason === idx ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                            className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all ${selectedSeason === idx ? 'bg-purple-600 text-white shadow-xl' : 'text-slate-500 hover:text-white'}`}
                         >
-                            Season {season.number}
+                            S{season.number}
                         </button>
                     ))}
                   </div>
@@ -169,23 +179,23 @@ const MovieDetails = () => {
                   {movie.seasons[selectedSeason]?.episodes.map((episode, idx) => (
                     <motion.div
                       key={idx}
-                      whileHover={{ x: 10 }}
-                      className="group bg-black/30 hover:bg-purple-600/20 rounded-2xl p-6 flex items-center justify-between cursor-pointer transition-all border border-white/5 hover:border-purple-500/50"
+                      whileHover={{ x: 15 }}
+                      className="group glass-dark hover:bg-purple-600/10 rounded-[1.5rem] p-8 flex items-center justify-between cursor-pointer transition-all border border-white/5 hover:border-purple-500/50"
                       onClick={() => navigate(`/watch/${movie._id}?s=${movie.seasons[selectedSeason].number}&e=${episode.number}`)}
                     >
-                      <div className="flex items-center space-x-8">
-                        <div className="text-3xl font-black italic text-gray-700 group-hover:text-purple-500 transition-colors w-12">{episode.number < 10 ? `0${episode.number}` : episode.number}</div>
+                      <div className="flex items-center space-x-10">
+                        <div className="text-4xl font-black italic text-slate-800 group-hover:text-purple-600 transition-colors">{episode.number < 10 ? `0${episode.number}` : episode.number}</div>
                         <div>
-                            <h4 className="text-xl font-black uppercase tracking-tight group-hover:text-white transition-colors">{episode.title}</h4>
-                            <div className="flex items-center space-x-3 text-xs font-bold text-gray-500 uppercase mt-1">
+                            <h4 className="text-xl font-extrabold uppercase tracking-tight group-hover:text-white transition-colors mb-1">{episode.title}</h4>
+                            <div className="flex items-center space-x-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">
                                 <span>{episode.duration}</span>
-                                <span className="w-1 h-1 bg-gray-700 rounded-full"></span>
-                                <span className="text-purple-500/50">Available in HD</span>
+                                <div className="w-1.5 h-1.5 bg-slate-800 rounded-full"></div>
+                                <span className="text-purple-500/80">Premium Access</span>
                             </div>
                         </div>
                       </div>
-                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-purple-600 group-hover:rotate-[360deg] transition-all duration-700">
-                        <Play size={20} fill="currentColor" className="ml-1" />
+                      <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-purple-600 group-hover:rotate-[15deg] transition-all duration-500 shadow-2xl">
+                        <Play size={20} fill="currentColor" className="ml-1 text-white" />
                       </div>
                     </motion.div>
                   ))}
@@ -193,11 +203,11 @@ const MovieDetails = () => {
               </div>
             )}
 
-            {/* Meta Metadata */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-16 border-t border-white/5">
-              <MetaBlock icon={<Globe size={20} />} label="Country" value={movie.country || 'USA, Canada'} />
-              <MetaBlock icon={<User size={20} />} label="Director" value={movie.director || 'Christopher Nolan'} />
-              <MetaBlock icon={<Globe size={20} />} label="Language" value={movie.language || 'English, French'} />
+            {/* Technical Specs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 pt-16 border-t border-white/5">
+              <Spec icon={<Globe size={20} />} label="Production" value={movie.country || 'Global'} />
+              <Spec icon={<User size={20} />} label="Direction" value={movie.director || 'Studio'} />
+              <Spec icon={<Globe size={20} />} label="Language" value={movie.language || 'English'} />
             </div>
           </motion.div>
         </div>
@@ -206,13 +216,13 @@ const MovieDetails = () => {
   );
 };
 
-const MetaBlock = ({ icon, label, value }) => (
-    <div className="space-y-3">
-        <div className="flex items-center space-x-2 text-purple-500">
+const Spec = ({ icon, label, value }) => (
+    <div className="space-y-4">
+        <div className="flex items-center space-x-3 text-purple-600">
             {icon}
-            <span className="text-xs font-black uppercase tracking-[0.3em]">{label}</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em]">{label}</span>
         </div>
-        <p className="text-sm font-bold text-gray-400">{value}</p>
+        <p className="text-sm font-extrabold text-slate-400">{value}</p>
     </div>
 );
 
