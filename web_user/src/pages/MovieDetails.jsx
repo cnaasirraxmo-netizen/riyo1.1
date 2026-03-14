@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { Play, Plus, ThumbsUp, X, Check } from 'lucide-react';
+import { Play, Plus, ThumbsUp, Check, Star, Clock, Calendar, Globe, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const MovieDetails = () => {
   const { id } = useParams();
@@ -22,7 +23,7 @@ const MovieDetails = () => {
 
         // Check watchlist
         const profileRes = await api.get('/users/profile');
-        setIsInWatchlist(profileRes.data.watchlist.some(m => m._id === id));
+        setIsInWatchlist(profileRes.data.watchlist?.some(m => m._id === id) || false);
       } catch (err) {
         console.error(err);
       } finally {
@@ -41,116 +42,178 @@ const MovieDetails = () => {
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center">
-    <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-  </div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <div className="w-16 h-16 border-t-4 border-purple-600 border-solid rounded-full animate-spin"></div>
+    </div>
+  );
 
-  if (!movie) return <div className="h-screen flex items-center justify-center">Movie not found</div>;
+  if (!movie) return <div className="h-screen flex items-center justify-center text-white font-black uppercase italic">Content Missing</div>;
 
   return (
-    <div className="pt-20 min-h-screen bg-[#141414]">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div className="md:col-span-1">
-            <img
-              src={movie.posterUrl}
-              alt={movie.title}
-              className="w-full rounded-lg shadow-2xl border border-white/5"
-            />
-          </div>
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-20">
+      {/* Background Stretcher */}
+      <div className="absolute top-0 left-0 w-full h-[70vh] overflow-hidden opacity-30 z-0">
+         <img src={movie.backdropUrl || movie.posterUrl} className="w-full h-full object-cover blur-2xl scale-110" alt="" />
+         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a]"></div>
+      </div>
 
-          <div className="md:col-span-2">
-            <h1 className="text-4xl md:text-6xl font-black mb-4 uppercase tracking-tighter">{movie.title}</h1>
+      <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
 
-            <div className="flex items-center space-x-4 mb-8 text-sm md:text-base font-medium">
-              <span className="text-green-500 font-bold">98% Match</span>
-              <span className="text-gray-400">{movie.year}</span>
-              <span className="border border-white/40 px-2 rounded text-xs py-0.5 uppercase tracking-wider">{movie.contentRating || '13+'}</span>
-              <span className="text-gray-400">{movie.duration}</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] font-bold">HD</span>
+          {/* Poster Section */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="lg:col-span-4"
+          >
+            <div className="sticky top-32">
+                <img
+                    src={movie.posterUrl}
+                    alt={movie.title}
+                    className="w-full rounded-[2rem] shadow-[0_0_80px_rgba(0,0,0,0.5)] border-2 border-white/5"
+                />
+                <div className="mt-8 grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                        <div className="text-purple-500 font-black text-2xl">{movie.rating?.toFixed(1) || '8.5'}</div>
+                        <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest">IMDb Score</div>
+                    </div>
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                        <div className="text-white font-black text-2xl uppercase italic">{movie.quality || '4K'}</div>
+                        <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Master Quality</div>
+                    </div>
+                </div>
+            </div>
+          </motion.div>
+
+          {/* Content Info */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-8"
+          >
+            <div className="flex items-center space-x-3 mb-6">
+                <div className="bg-purple-600/20 text-purple-500 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-purple-500/30">
+                    {movie.isTvShow ? 'TV Series' : 'Blockbuster'}
+                </div>
+                {movie.genre?.map((g, i) => (
+                    <span key={i} className="text-gray-400 text-xs font-bold uppercase tracking-widest">{g}</span>
+                ))}
             </div>
 
-            <div className="flex flex-wrap gap-4 mb-10">
+            <h1 className="text-6xl md:text-8xl font-black mb-8 uppercase italic leading-none tracking-tighter">
+                {movie.title}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-8 mb-12 text-sm font-black uppercase tracking-[0.15em] text-gray-400">
+                <div className="flex items-center space-x-2">
+                    <Calendar size={18} className="text-purple-500" />
+                    <span>{movie.year}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Clock size={18} className="text-purple-500" />
+                    <span>{movie.duration}</span>
+                </div>
+                <div className="flex items-center space-x-2 border-2 border-white/20 px-3 py-1 rounded-lg">
+                    <span>{movie.ageRating || 'PG-13'}</span>
+                </div>
+            </div>
+
+            <div className="flex flex-wrap gap-6 mb-16">
               <button
                 onClick={() => navigate(`/watch/${movie._id}`)}
-                className="flex items-center space-x-3 bg-white text-black px-10 py-3 rounded hover:bg-white/90 transition-colors font-bold uppercase tracking-wider"
+                className="flex items-center space-x-4 bg-purple-600 text-white px-12 py-5 rounded-2xl hover:bg-purple-700 transition-all duration-300 font-black uppercase tracking-[0.2em] shadow-[0_20px_50px_rgba(147,51,234,0.3)] hover:scale-105 active:scale-95"
               >
-                <Play fill="black" size={24} />
-                <span>Play</span>
+                <Play fill="currentColor" size={24} />
+                <span>Stream Now</span>
               </button>
 
               <button
                 onClick={toggleWatchlist}
-                className="p-3 border-2 border-white/30 rounded-full hover:border-white transition-colors"
-                title="Add to My List"
+                className={`p-5 rounded-2xl border-2 transition-all duration-300 hover:scale-110 ${isInWatchlist ? 'bg-white border-white text-black' : 'border-white/10 text-white hover:bg-white/5'}`}
               >
-                {isInWatchlist ? <Check /> : <Plus />}
+                {isInWatchlist ? <Check size={28} /> : <Plus size={28} />}
               </button>
 
-              <button className="p-3 border-2 border-white/30 rounded-full hover:border-white transition-colors">
-                <ThumbsUp />
+              <button className="p-5 rounded-2xl border-2 border-white/10 text-white hover:bg-white/5 hover:scale-110 transition-all">
+                <ThumbsUp size={28} />
               </button>
             </div>
 
-            <p className="text-lg text-gray-200 leading-relaxed mb-10 font-medium">
-              {movie.description}
-            </p>
+            <div className="space-y-8 mb-20">
+                <h3 className="text-2xl font-black uppercase italic tracking-widest text-purple-500">Storyline</h3>
+                <p className="text-xl text-gray-300 leading-relaxed font-medium">
+                  {movie.description}
+                </p>
+            </div>
 
+            {/* Episodes System */}
             {movie.isTvShow && movie.seasons && (
-              <div className="mb-12">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Episodes</h2>
-                  <select
-                    className="bg-[#262626] border border-white/10 rounded px-4 py-2 text-sm focus:outline-none"
-                    value={selectedSeason}
-                    onChange={(e) => setSelectedSeason(parseInt(e.target.value))}
-                  >
+              <div className="mb-20 bg-white/5 p-10 rounded-[3rem] border border-white/5 backdrop-blur-md">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                  <h2 className="text-4xl font-black uppercase italic tracking-tighter">Episodes</h2>
+                  <div className="flex bg-black/50 p-2 rounded-2xl">
                     {movie.seasons.map((season, idx) => (
-                      <option key={idx} value={idx}>{season.title}</option>
+                        <button
+                            key={idx}
+                            onClick={() => setSelectedSeason(idx)}
+                            className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all ${selectedSeason === idx ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                        >
+                            Season {season.number}
+                        </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
                   {movie.seasons[selectedSeason]?.episodes.map((episode, idx) => (
-                    <div
+                    <motion.div
                       key={idx}
-                      className="group bg-white/5 hover:bg-white/10 rounded-lg p-4 flex items-center cursor-pointer transition-colors"
-                    onClick={() => navigate(`/watch/${movie._id}?s=${movie.seasons[selectedSeason].number}&e=${episode.number}`)}
+                      whileHover={{ x: 10 }}
+                      className="group bg-black/30 hover:bg-purple-600/20 rounded-2xl p-6 flex items-center justify-between cursor-pointer transition-all border border-white/5 hover:border-purple-500/50"
+                      onClick={() => navigate(`/watch/${movie._id}?s=${movie.seasons[selectedSeason].number}&e=${episode.number}`)}
                     >
-                      <div className="w-10 text-gray-500 font-bold text-xl">{episode.number}</div>
-                      <div className="flex-1">
-                        <h4 className="font-bold group-hover:text-purple-400 transition-colors">{episode.title}</h4>
-                        <p className="text-xs text-gray-500">{episode.duration}</p>
+                      <div className="flex items-center space-x-8">
+                        <div className="text-3xl font-black italic text-gray-700 group-hover:text-purple-500 transition-colors w-12">{episode.number < 10 ? `0${episode.number}` : episode.number}</div>
+                        <div>
+                            <h4 className="text-xl font-black uppercase tracking-tight group-hover:text-white transition-colors">{episode.title}</h4>
+                            <div className="flex items-center space-x-3 text-xs font-bold text-gray-500 uppercase mt-1">
+                                <span>{episode.duration}</span>
+                                <span className="w-1 h-1 bg-gray-700 rounded-full"></span>
+                                <span className="text-purple-500/50">Available in HD</span>
+                            </div>
+                        </div>
                       </div>
-                      <div className="p-2 rounded-full bg-white/10 group-hover:bg-purple-600 transition-all opacity-0 group-hover:opacity-100">
-                        <Play size={16} fill="white" />
+                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-purple-600 group-hover:rotate-[360deg] transition-all duration-700">
+                        <Play size={20} fill="currentColor" className="ml-1" />
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/10">
-              <div>
-                <span className="text-gray-500 block text-xs font-bold uppercase mb-2">Genres</span>
-                <p className="text-sm font-medium">{movie.genre?.join(', ') || 'Action, Drama'}</p>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs font-bold uppercase mb-2">Audio</span>
-                <p className="text-sm font-medium">English, Somali, Arabic</p>
-              </div>
-              <div>
-                <span className="text-gray-500 block text-xs font-bold uppercase mb-2">Subtitles</span>
-                <p className="text-sm font-medium">English, Arabic</p>
-              </div>
+            {/* Meta Metadata */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-16 border-t border-white/5">
+              <MetaBlock icon={<Globe size={20} />} label="Country" value={movie.country || 'USA, Canada'} />
+              <MetaBlock icon={<User size={20} />} label="Director" value={movie.director || 'Christopher Nolan'} />
+              <MetaBlock icon={<Globe size={20} />} label="Language" value={movie.language || 'English, French'} />
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>
   );
 };
+
+const MetaBlock = ({ icon, label, value }) => (
+    <div className="space-y-3">
+        <div className="flex items-center space-x-2 text-purple-500">
+            {icon}
+            <span className="text-xs font-black uppercase tracking-[0.3em]">{label}</span>
+        </div>
+        <p className="text-sm font-bold text-gray-400">{value}</p>
+    </div>
+);
 
 export default MovieDetails;

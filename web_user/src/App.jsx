@@ -1,8 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import { AnimatePresence } from 'framer-motion';
 
-// Lazy load pages for better performance
+// Lazy load pages
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
@@ -11,38 +12,28 @@ const Player = lazy(() => import('./pages/Player'));
 const Search = lazy(() => import('./pages/Search'));
 const MyList = lazy(() => import('./pages/MyList'));
 
-// Loading component
 const PageLoader = () => (
-  <div className="h-screen flex items-center justify-center bg-[#141414]">
+  <div className="h-screen flex items-center justify-center bg-[#0a0a0a]">
     <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
   </div>
 );
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
-  const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Potentially fetch user profile here
-    }
-  }, [isAuthenticated]);
-
-  const handleLogin = (token, userData) => {
+  const handleLogin = (token) => {
     localStorage.setItem('token', token);
     setIsAuthenticated(true);
-    setUser(userData);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
-    setUser(null);
   };
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-[#141414] text-white">
+      <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-purple-600 selection:text-white">
         {isAuthenticated && <Navbar onLogout={handleLogout} />}
         <Suspense fallback={<PageLoader />}>
           <Routes>

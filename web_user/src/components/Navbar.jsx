@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Bell, User, LogOut, Menu, X } from 'lucide-react';
+import { Search, User, LogOut, Menu, X, Bell } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = ({ onLogout }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -8,9 +9,9 @@ const Navbar = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
+      setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -18,81 +19,104 @@ const Navbar = ({ onLogout }) => {
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'TV Shows', path: '/?type=tv' },
     { name: 'Movies', path: '/?type=movie' },
-    { name: 'New & Popular', path: '/' },
+    { name: 'TV Shows', path: '/?type=tv' },
     { name: 'My List', path: '/my-list' },
   ];
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-colors duration-300 ${isScrolled ? 'bg-[#141414]' : 'bg-transparent bg-gradient-to-b from-black/70 to-transparent'}`}>
-      <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between">
-        <div className="flex items-center space-x-8">
-          <Link to="/" className="text-2xl md:text-3xl font-black text-purple-600 tracking-tighter">RIYO</Link>
+    <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 px-6 md:px-12 py-4 ${isScrolled ? 'bg-[#0a0a0a]/90 backdrop-blur-2xl border-b border-white/5 py-3' : 'bg-transparent'}`}>
+      <div className="max-w-[100rem] mx-auto flex items-center justify-between">
 
-          <div className="hidden md:flex space-x-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.path}
-                className={`text-sm transition-colors hover:text-gray-300 ${location.pathname === link.path ? 'font-bold text-white' : 'text-gray-200'}`}
-              >
-                {link.name}
-              </Link>
-            ))}
-          </div>
+        {/* Logo */}
+        <div className="flex items-center space-x-12">
+            <Link to="/" className="flex items-center space-x-2">
+                <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center rotate-12 shadow-[0_0_20px_rgba(147,51,234,0.5)]">
+                    <span className="text-white font-black text-2xl -rotate-12">R</span>
+                </div>
+                <span className="text-2xl font-black italic tracking-tighter uppercase hidden md:block">Riyo<span className="text-purple-600">Box</span></span>
+            </Link>
+
+            {/* Desktop Links */}
+            <div className="hidden lg:flex items-center space-x-8">
+                {navLinks.map((link) => (
+                    <Link
+                        key={link.name}
+                        to={link.path}
+                        className={`text-xs font-black uppercase tracking-[0.2em] transition-all hover:text-purple-500 ${location.pathname === link.path ? 'text-purple-600' : 'text-gray-400'}`}
+                    >
+                        {link.name}
+                    </Link>
+                ))}
+            </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <button onClick={() => navigate('/search')} className="p-1 hover:text-gray-300">
-            <Search size={20} />
-          </button>
-
-          <div className="hidden md:flex items-center space-x-4">
-            <Bell size={20} className="cursor-pointer" />
-            <div className="group relative">
-              <div className="flex items-center space-x-2 cursor-pointer">
-                <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center font-bold">J</div>
-                <span className="border-t-4 border-l-4 border-r-4 border-transparent border-t-white ml-1"></span>
-              </div>
-
-              <div className="absolute right-0 top-full pt-4 hidden group-hover:block">
-                <div className="bg-[#141414] border border-white/10 p-4 w-48 shadow-xl">
-                  <Link to="/my-list" className="flex items-center space-x-3 text-sm py-2 hover:underline">
-                    <User size={16} />
-                    <span>Profile</span>
-                  </Link>
-                  <button onClick={onLogout} className="flex items-center space-x-3 text-sm py-2 w-full text-left hover:underline text-red-500">
-                    <LogOut size={16} />
-                    <span>Sign out of RIYO</span>
-                  </button>
-                </div>
-              </div>
+        {/* Right Section */}
+        <div className="flex items-center space-x-6">
+            <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-2 hover:bg-white/10 transition-all group">
+                <Search size={18} className="text-gray-500 group-hover:text-purple-500 transition-colors" />
+                <input
+                    type="text"
+                    placeholder="Search titles..."
+                    className="bg-transparent border-none focus:ring-0 text-xs font-bold w-40 placeholder:text-gray-600 ml-2"
+                    onFocus={() => navigate('/search')}
+                />
             </div>
-          </div>
 
-          <button className="md:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            {isMobileMenuOpen ? <X /> : <Menu />}
-          </button>
+            <button className="text-gray-400 hover:text-white transition-colors relative">
+                <Bell size={22} />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-600 rounded-full"></span>
+            </button>
+
+            <div className="relative group">
+                <button className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-500 overflow-hidden hover:scale-110 transition-all">
+                    <User size={20} />
+                </button>
+
+                {/* Dropdown */}
+                <div className="absolute right-0 top-full mt-4 w-56 bg-[#111] border border-white/10 rounded-2xl p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-2xl backdrop-blur-3xl">
+                    <button
+                        onClick={onLogout}
+                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-all font-black uppercase tracking-widest text-[10px]"
+                    >
+                        <LogOut size={16} />
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <button
+                className="lg:hidden text-white"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+                {isMobileMenuOpen ? <X /> : <Menu />}
+            </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-[#141414] border-b border-white/10 px-4 py-6 space-y-4">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.path}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block text-lg font-medium"
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="absolute top-full left-0 w-full bg-[#0a0a0a] border-b border-white/10 p-8 flex flex-col space-y-6 lg:hidden"
             >
-              {link.name}
-            </Link>
-          ))}
-          <button onClick={onLogout} className="block text-lg font-medium text-red-500">Sign out</button>
-        </div>
-      )}
+                {navLinks.map((link) => (
+                    <Link
+                        key={link.name}
+                        to={link.path}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-xl font-black uppercase italic tracking-tighter hover:text-purple-600 transition-colors"
+                    >
+                        {link.name}
+                    </Link>
+                ))}
+            </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };
