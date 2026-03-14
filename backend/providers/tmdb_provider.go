@@ -30,6 +30,7 @@ type TMDbMovie struct {
 	VoteAverage      float64  `json:"vote_average"`
 	GenreIDs         []int    `json:"genre_ids"`
 	Runtime          int      `json:"runtime"`
+	Credits          *TMDbCredits `json:"credits"`
 }
 
 type TMDbTVShow struct {
@@ -43,6 +44,15 @@ type TMDbTVShow struct {
 	VoteAverage      float64  `json:"vote_average"`
 	GenreIDs         []int    `json:"genre_ids"`
 	NumberOfSeasons  int      `json:"number_of_seasons"`
+	Credits          *TMDbCredits `json:"credits"`
+}
+
+type TMDbCredits struct {
+	Cast []TMDbCastMember `json:"cast"`
+}
+
+type TMDbCastMember struct {
+	Name string `json:"name"`
 }
 
 type TMDbSeason struct {
@@ -124,7 +134,7 @@ func (p *TMDbProvider) fetchTVShows(url string) ([]TMDbTVShow, error) {
 }
 
 func (p *TMDbProvider) FetchMovieDetails(tmdbID int) (TMDbMovie, error) {
-	url := fmt.Sprintf("%s/movie/%d?api_key=%s", p.BaseURL, tmdbID, p.APIKey)
+	url := fmt.Sprintf("%s/movie/%d?api_key=%s&append_to_response=credits", p.BaseURL, tmdbID, p.APIKey)
 	resp, err := http.Get(url)
 	if err != nil {
 		return TMDbMovie{}, err
@@ -139,7 +149,7 @@ func (p *TMDbProvider) FetchMovieDetails(tmdbID int) (TMDbMovie, error) {
 }
 
 func (p *TMDbProvider) FetchTVShowDetails(tmdbID int) (TMDbTVShow, error) {
-	url := fmt.Sprintf("%s/tv/%d?api_key=%s", p.BaseURL, tmdbID, p.APIKey)
+	url := fmt.Sprintf("%s/tv/%d?api_key=%s&append_to_response=credits", p.BaseURL, tmdbID, p.APIKey)
 	resp, err := http.Get(url)
 	if err != nil {
 		return TMDbTVShow{}, err

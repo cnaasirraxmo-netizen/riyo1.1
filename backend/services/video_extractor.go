@@ -3,15 +3,24 @@ package services
 import (
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/providers"
+	"github.com/riyobox/backend/scrapers"
 )
 
-type VideoExtractor struct{}
+type VideoExtractor struct {
+	client *http.Client
+}
 
 func NewVideoExtractor() *VideoExtractor {
-	return &VideoExtractor{}
+	return &VideoExtractor{
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
 }
 
 func (e *VideoExtractor) ExtractSources(tmdbID int, isTvShow bool, season, episode int) []models.StreamSource {
@@ -23,48 +32,72 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, isTvShow bool, season, episo
 	}
 
 	var allSources []models.StreamSource
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
-	for i, p := range embedProviders {
-		var url string
-		if isTvShow {
-			s := season
-			if s < 1 { s = 1 }
-			ep := episode
-			if ep < 1 { ep = 1 }
-			url = providers.GenerateTVURL(p, tmdbID, s, ep)
-		} else {
-			url = providers.GenerateMovieURL(p, tmdbID)
-		}
+	for _, p := range embedProviders {
+		wg.Add(1)
+		go func(p providers.EmbedProvider) {
+			defer wg.Done()
 
-		// Main server
-		allSources = append(allSources, models.StreamSource{
-			Label:    p.Name + " Server",
-			URL:      url,
-			Type:     "embed",
-			Provider: strings.ToLower(p.Name),
-			Quality:  "1080p",
-		})
+			var url string
+			if isTvShow {
+				s, ep := season, episode
+				if s < 1 { s = 1 }
+				if ep < 1 { ep = 1 }
+				url = providers.GenerateTVURL(p, tmdbID, s, ep)
+			} else {
+				url = providers.GenerateMovieURL(p, tmdbID)
+			}
 
-		// Add a backup/mirror for variety if it's the primary provider
-		if i == 0 {
+			// 1. Add the Embed Source (Reliable fallback)
+			mu.Lock()
 			allSources = append(allSources, models.StreamSource{
-				Label:    p.Name + " Mirror 1",
-				URL:      url + "&mirror=1", // Hypothetical mirror param
+				Label:    p.Name + " (Embed)",
+				URL:      url,
 				Type:     "embed",
 				Provider: strings.ToLower(p.Name),
 				Quality:  "720p",
 			})
-		}
+			mu.Unlock()
+
+			// 2. Try to extract direct .mp4/.m3u8 links (High Quality)
+			html, err := scrapers.FetchHTML(url)
+			if err == nil {
+				directLinks := scrapers.ExtractVideoSources(html)
+				for _, link := range directLinks {
+					if e.ValidateLink(link) {
+						mu.Lock()
+						allSources = append(allSources, models.StreamSource{
+							Label:    p.Name + " (Direct)",
+							URL:      link,
+							Type:     e.DetectType(link),
+							Provider: strings.ToLower(p.Name),
+							Quality:  "1080p",
+						})
+						mu.Unlock()
+					}
+				}
+			}
+		}(p)
 	}
 
+	wg.Wait()
 	return allSources
 }
 
 func (e *VideoExtractor) ValidateLink(url string) bool {
-	resp, err := http.Head(url)
+	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
 		return false
 	}
+
+	resp, err := e.client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
 	return resp.StatusCode == http.StatusOK
 }
 

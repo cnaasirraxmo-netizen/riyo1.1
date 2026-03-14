@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api';
-import { ArrowLeft, Play, Pause, Volume2, Maximize, Settings, RotateCcw, RotateCw, Monitor, Subtitles, Zap, Info } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Volume2, Maximize, Settings, RotateCcw, RotateCw, Monitor, Subtitles, Zap, Info, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Player = () => {
@@ -16,6 +16,7 @@ const Player = () => {
   const [sources, setSources] = useState([]);
   const [subtitles, setSubtitles] = useState([]);
   const [selectedSource, setSelectedSource] = useState(null);
+  const [sourceIndex, setSourceIndex] = useState(0);
   const [selectedSubtitle, setSelectedSubtitle] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -23,6 +24,7 @@ const Player = () => {
   const [showControls, setShowControls] = useState(true);
   const [showSourceSelector, setShowSourceSelector] = useState(false);
   const [showSubtitleSelector, setShowSubtitleSelector] = useState(false);
+  const [isError, setIsError] = useState(false);
   const videoRef = useRef(null);
   const controlsTimerRef = useRef(null);
 
@@ -45,9 +47,11 @@ const Player = () => {
 
         if (sourcesData.length > 0) {
           setSelectedSource(sourcesData[0]);
+          setSourceIndex(0);
         }
       } catch (err) {
         console.error(err);
+        setIsError(true);
       }
     };
     fetchData();
@@ -69,6 +73,18 @@ const Player = () => {
     } else {
       videoRef.current.pause();
       setIsPlaying(false);
+    }
+  };
+
+  const handleVideoError = () => {
+    console.warn(`Source ${sourceIndex} failed: ${selectedSource?.label}. Trying next...`);
+    if (sourceIndex + 1 < sources.length) {
+      const nextIndex = sourceIndex + 1;
+      setSourceIndex(nextIndex);
+      setSelectedSource(sources[nextIndex]);
+      setIsError(false);
+    } else {
+      setIsError(true);
     }
   };
 
@@ -96,6 +112,17 @@ const Player = () => {
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
+
+  if (isError) return (
+      <div className="h-screen bg-[#050505] flex flex-col items-center justify-center space-y-6">
+          <AlertTriangle size={64} className="text-red-600 animate-bounce" />
+          <div className="text-white font-black uppercase italic tracking-widest text-2xl text-center">
+              All Stream Links Failed<br/>
+              <span className="text-slate-500 text-sm font-bold uppercase mt-4 block">Please try again later or contact support.</span>
+          </div>
+          <button onClick={() => navigate(-1)} className="bg-purple-600 px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs">Return Home</button>
+      </div>
+  );
 
   if (!movie) return (
     <div className="h-screen bg-[#050505] flex flex-col items-center justify-center space-y-8">
@@ -138,7 +165,7 @@ const Player = () => {
 
                 <div className="pointer-events-auto glass px-6 py-3 rounded-2xl flex items-center space-x-4 border border-white/10">
                     <Zap size={18} className="text-purple-500 fill-purple-500" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Stream: {selectedSource?.provider || 'Secure Server'}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Stream: {selectedSource?.label || 'Secure Server'}</span>
                 </div>
             </motion.div>
         )}
@@ -148,7 +175,7 @@ const Player = () => {
       <div className="w-full h-full bg-[#000]">
         {isEmbed ? (
           <iframe
-            src={selectedSource.url}
+            src={selectedSource?.url}
             className="w-full h-full border-none pointer-events-auto"
             allowFullScreen
             title="Video Player"
@@ -160,6 +187,7 @@ const Player = () => {
             className="w-full h-full object-contain pointer-events-auto"
             onTimeUpdate={onTimeUpdate}
             onLoadedMetadata={onLoadedMetadata}
+            onError={handleVideoError}
             onClick={togglePlay}
             autoPlay
           >
@@ -285,10 +313,12 @@ const Player = () => {
                 title={showSourceSelector ? "Select Mirror" : "Subtitles"}
                 items={showSourceSelector ? sources : [{language: 'Off'}, ...subtitles]}
                 selectedItem={showSourceSelector ? selectedSource : (selectedSubtitle || {language: 'Off'})}
-                onSelect={(item) => {
+                onSelect={(item, index) => {
                     if (showSourceSelector) {
                         setSelectedSource(item);
+                        setSourceIndex(index);
                         setShowSourceSelector(false);
+                        setIsError(false);
                     } else {
                         setSelectedSubtitle(item.language === 'Off' ? null : item);
                         setShowSubtitleSelector(false);
@@ -338,7 +368,7 @@ const SelectionModal = ({ title, items, selectedItem, onSelect, onClose, renderI
                 {items.map((item, index) => (
                     <button
                         key={index}
-                        onClick={() => onSelect(item)}
+                        onClick={() => onSelect(item, index)}
                         className={`p-10 rounded-[2.5rem] transition-all transform hover:scale-[1.03] active:scale-95 ${
                             (selectedItem?.label === item.label || selectedItem?.language === item.language)
                             ? 'bg-purple-600 shadow-[0_0_80px_rgba(139,92,246,0.4)] border-transparent'

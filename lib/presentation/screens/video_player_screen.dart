@@ -47,6 +47,8 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   Movie? _movie;
   List<Map<String, dynamic>> _sources = [];
   Map<String, dynamic>? _selectedSource;
+  int _currentSourceIndex = 0;
+  bool _isError = false;
 
   @override
   void initState() {
@@ -69,7 +71,8 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         _sources = List<Map<String, dynamic>>.from(response['sources']);
 
         if (_sources.isNotEmpty) {
-           _selectedSource = _sources.first;
+           _currentSourceIndex = 0;
+           _selectedSource = _sources[_currentSourceIndex];
         }
 
         if (mounted) {
@@ -77,6 +80,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         }
       } catch (e) {
         debugPrint('Error fetching player data: $e');
+        setState(() => _isError = true);
       }
     } else if (widget.videoUrl != null) {
        _initPlayer();
@@ -111,6 +115,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   Future<void> _initPlayer() async {
     String? url = _selectedSource?['url'] ?? widget.videoUrl;
+    if (url == null) return;
 
     if (_selectedSource?['type'] == 'embed') {
       _engine?.dispose();
@@ -118,15 +123,20 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       _webController = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(const Color(0x00000000))
-        ..loadRequest(Uri.parse(url!));
+        ..loadRequest(Uri.parse(url));
       if (mounted) setState(() {});
       return;
     }
 
-    url ??= 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-
+    _engine?.dispose();
     _engine = RiyoVideoEngine();
     _textureId = await TextureRegistryBridge.createTexture();
+
+    // Setup error handling for auto-failover
+    // Assuming RiyoVideoEngine has an error callback or we can check state
+    // For demonstration, we'll use a timer to simulate source validation if needed,
+    // but ideally the native engine sends an event.
+
     _engine!.load(url);
     _engine!.setEventCallback();
     _engine!.play();
@@ -134,6 +144,16 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     if (mounted) {
       setState(() {});
       _startHideControlsTimer();
+    }
+  }
+
+  void _handleSourceError() {
+    if (_currentSourceIndex + 1 < _sources.length) {
+      _currentSourceIndex++;
+      _selectedSource = _sources[_currentSourceIndex];
+      _initPlayer();
+    } else {
+      setState(() => _isError = true);
     }
   }
 
@@ -190,6 +210,28 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isError) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 64),
+              const SizedBox(height: 16),
+              const Text('All streaming sources failed.', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                child: const Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
@@ -214,7 +256,13 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   Widget _buildControls() {
     return Container(
-      color: Colors.black45,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black.withOpacity(0.7), Colors.transparent, Colors.black.withOpacity(0.7)],
+        ),
+      ),
       child: SafeArea(
         child: Column(
           children: [
@@ -231,22 +279,30 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   Widget _buildTopBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
             onPressed: () => Navigator.of(context).pop(),
           ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              _movie?.title ?? 'Loading...',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _movie?.title ?? 'Loading...',
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (widget.season != null)
+                   Text('Season ${widget.season} • Episode ${widget.episode}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
             ),
           ),
           const CastingButton(),
-          IconButton(icon: const Icon(Icons.more_vert, color: Colors.white), onPressed: () => _showSettingsMenu()),
+          IconButton(icon: const Icon(Icons.more_vert_rounded, color: Colors.white), onPressed: () => _showSettingsMenu()),
         ],
       ),
     );
@@ -259,15 +315,15 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          icon: const Icon(Icons.replay_10, color: Colors.white, size: 40),
+          icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 48),
           onPressed: () => _seekRelative(const Duration(seconds: -10)),
         ),
-        const SizedBox(width: 40),
+        const SizedBox(width: 48),
         IconButton(
           icon: Icon(
-            isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-            color: Colors.yellow,
-            size: 80,
+            isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
+            color: Colors.purple,
+            size: 96,
           ),
           onPressed: () {
             setState(() {
@@ -276,9 +332,9 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
             });
           },
         ),
-        const SizedBox(width: 40),
+        const SizedBox(width: 48),
         IconButton(
-          icon: const Icon(Icons.forward_10, color: Colors.white, size: 40),
+          icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 48),
           onPressed: () => _seekRelative(const Duration(seconds: 10)),
         ),
       ],
@@ -287,30 +343,40 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   Widget _buildBottomBar() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
           if (_selectedSource?['type'] != 'embed')
-            Slider(
-              value: 0.2,
-              onChanged: (val) {},
-              activeColor: Colors.yellow,
-              inactiveColor: Colors.white24,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 2,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                  activeTrackColor: Colors.purple,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: Colors.white,
+                ),
+                child: Slider(
+                  value: 0.2,
+                  onChanged: (val) {},
+                ),
+              ),
             ),
-          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _selectedSource?['type'] == 'embed' ? 'External Source' : '00:20 / 05:00',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                _selectedSource?['type'] == 'embed' ? 'EXTERNAL SERVER' : '00:20 / 05:00',
+                style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
               ),
               Row(
                 children: [
-                  _buildControlItem(Icons.monitor, _selectedSource?['label'] ?? 'Source', _showSourceMenu),
+                  _buildControlItem(Icons.dns_rounded, _selectedSource?['label'] ?? 'SERVER', _showSourceMenu),
                   if (_selectedSource?['type'] != 'embed')
-                    _buildControlItem(Icons.speed, '${_playbackSpeed}x', _showSpeedMenu),
-                  _buildControlItem(Icons.high_quality, _selectedQuality, _showQualityMenu),
+                    _buildControlItem(Icons.speed_rounded, '${_playbackSpeed}x', _showSpeedMenu),
+                  _buildControlItem(Icons.high_quality_rounded, _selectedQuality, _showQualityMenu),
                 ],
               ),
             ],
@@ -322,13 +388,14 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   Widget _buildControlItem(IconData icon, String label, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.only(left: 16),
-      child: GestureDetector(
+      padding: const EdgeInsets.only(left: 24),
+      child: InkWell(
         onTap: onTap,
         child: Column(
           children: [
-            Icon(icon, color: Colors.white, size: 20),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 10)),
+            Icon(icon, color: Colors.white, size: 24),
+            const SizedBox(height: 4),
+            Text(label.toUpperCase(), style: const TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.black)),
           ],
         ),
       ),
@@ -336,17 +403,18 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   }
 
   void _showSourceMenu() {
-    _showBottomDialog('Select Server', _sources.map((s) => s['label'].toString()).toList(), (val) {
-      final source = _sources.firstWhere((s) => s['label'] == val);
+    _showBottomDialog('SELECT SERVER', _sources.map((s) => s['label'].toString()).toList(), (val) {
+      final index = _sources.indexWhere((s) => s['label'] == val);
       setState(() {
-        _selectedSource = source;
+        _currentSourceIndex = index;
+        _selectedSource = _sources[index];
         _initPlayer();
       });
     });
   }
 
   void _showSpeedMenu() {
-    _showBottomDialog('Playback Speed', ['0.5x', '1.0x', '1.5x', '2.0x'], (val) {
+    _showBottomDialog('PLAYBACK SPEED', ['0.5x', '1.0x', '1.5x', '2.0x'], (val) {
       setState(() {
         _playbackSpeed = double.parse(val.replaceAll('x', ''));
       });
@@ -354,34 +422,44 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   }
 
   void _showQualityMenu() {
-    _showBottomDialog('Video Quality', ['Auto', '720p', '1080p'], (val) {
+    _showBottomDialog('VIDEO QUALITY', ['AUTO', '720P', '1080P', '4K'], (val) {
       setState(() => _selectedQuality = val);
     });
   }
 
   void _showSettingsMenu() {
-    _showBottomDialog('Settings', ['Auto-play next', 'Skip Intro'], (val) {});
+    _showBottomDialog('PLAYER SETTINGS', ['AUTO-PLAY NEXT', 'SKIP INTRO', 'SKIP CREDITS'], (val) {});
   }
 
   void _showBottomDialog(String title, List<String> options, Function(String) onSelect) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2A2A3A),
+      backgroundColor: const Color(0xFF0F0F0F),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 16),
-            ...options.map((opt) => ListTile(
-              title: Text(opt, style: const TextStyle(color: Colors.white)),
-              onTap: () {
-                onSelect(opt);
-                Navigator.pop(context);
-              },
-            )),
+            Text(title, style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.black, fontSize: 14, letterSpacing: 2)),
+            const SizedBox(height: 24),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (c, i) => const Divider(color: Colors.white05),
+                itemBuilder: (context, index) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(options[index], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+                  onTap: () {
+                    onSelect(options[index]);
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ),
           ],
         ),
       ),

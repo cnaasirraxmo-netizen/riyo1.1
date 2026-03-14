@@ -30,7 +30,7 @@ func (s *MetadataService) SyncTrendingMovies() error {
 	}
 
 	for _, tm := range tmdbMovies {
-		s.saveMovie(tm, true, false)
+		s.SyncMovieFull(tm.ID, true, false)
 	}
 	return nil
 }
@@ -42,7 +42,7 @@ func (s *MetadataService) SyncPopularMovies() error {
 	}
 
 	for _, tm := range tmdbMovies {
-		s.saveMovie(tm, false, false)
+		s.SyncMovieFull(tm.ID, false, false)
 	}
 	return nil
 }
@@ -69,11 +69,17 @@ func (s *MetadataService) getGenreNames(ids []int) []string {
 	return names
 }
 
-func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isFeatured bool) {
+func (s *MetadataService) SyncMovieFull(tmdbID int, isTrending bool, isFeatured bool) {
+	tm, err := s.TMDB.FetchMovieDetails(tmdbID)
+	if err != nil {
+		log.Printf("Error fetching movie details for %d: %v", tmdbID, err)
+		return
+	}
+
 	collection := db.DB.Collection("movies")
 
 	var existing models.Movie
-	err := collection.FindOne(context.TODO(), bson.M{"tmdbId": tm.ID}).Decode(&existing)
+	err = collection.FindOne(context.TODO(), bson.M{"tmdbId": tmdbID}).Decode(&existing)
 
 	posterURL := "https://image.tmdb.org/t/p/w500" + tm.PosterPath
 	bannerURL := "https://image.tmdb.org/t/p/original" + tm.BackdropPath
@@ -84,11 +90,18 @@ func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isF
 	}
 
 	genres := s.getGenreNames(tm.GenreIDs)
+	cast := []string{}
+	if tm.Credits != nil {
+		for i, c := range tm.Credits.Cast {
+			if i >= 10 { break }
+			cast = append(cast, c.Name)
+		}
+	}
 
 	if err == mongo.ErrNoDocuments {
 		movie := models.Movie{
 			ID:           bson.NewObjectID(),
-			TMDbID:       tm.ID,
+			TMDbID:       tmdbID,
 			Title:        tm.Title,
 			Description:  tm.Overview,
 			PosterURL:    posterURL,
@@ -96,6 +109,7 @@ func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isF
 			Rating:       tm.VoteAverage,
 			Year:         year,
 			Genre:        genres,
+			Cast:         cast,
 			Duration:     tm.Runtime,
 			IsTrending:   isTrending,
 			IsFeatured:   isFeatured,
@@ -117,12 +131,13 @@ func (s *MetadataService) saveMovie(tm providers.TMDbMovie, isTrending bool, isF
 				"rating":      tm.VoteAverage,
 				"year":        year,
 				"genre":       genres,
+				"cast":        cast,
 				"duration":    tm.Runtime,
 				"isTrending":  isTrending || existing.IsTrending,
 				"updatedAt":   time.Now(),
 			},
 		}
-		_, _ = collection.UpdateOne(context.TODO(), bson.M{"tmdbId": tm.ID}, update)
+		_, _ = collection.UpdateOne(context.TODO(), bson.M{"tmdbId": tmdbID}, update)
 	}
 }
 
@@ -146,6 +161,13 @@ func (s *MetadataService) SyncTVShowFull(tmdbID int, isTrending bool, isFeatured
 	}
 
 	genres := s.getGenreNames(tt.GenreIDs)
+	cast := []string{}
+	if tt.Credits != nil {
+		for i, c := range tt.Credits.Cast {
+			if i >= 10 { break }
+			cast = append(cast, c.Name)
+		}
+	}
 
 	seasons := []models.Season{}
 	for i := 1; i <= tt.NumberOfSeasons; i++ {
@@ -181,6 +203,7 @@ func (s *MetadataService) SyncTVShowFull(tmdbID int, isTrending bool, isFeatured
 			Rating:       tt.VoteAverage,
 			Year:         year,
 			Genre:        genres,
+			Cast:         cast,
 			IsTrending:   isTrending,
 			IsFeatured:   isFeatured,
 			IsTvShow:     true,
@@ -202,6 +225,7 @@ func (s *MetadataService) SyncTVShowFull(tmdbID int, isTrending bool, isFeatured
 				"rating":      tt.VoteAverage,
 				"year":        year,
 				"genre":       genres,
+				"cast":        cast,
 				"isTrending":  isTrending || existing.IsTrending,
 				"seasons":     seasons,
 				"updatedAt":   time.Now(),
