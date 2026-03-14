@@ -12,11 +12,8 @@ class AccountSettingsScreen extends StatelessWidget {
     final user = auth.user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Account', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Account'),
       ),
       body: ListView(
         children: [
@@ -24,23 +21,23 @@ class AccountSettingsScreen extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 40,
-                  backgroundColor: Colors.deepPurple,
-                  child: Icon(Icons.person, size: 50, color: Colors.white),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  child: const Icon(Icons.person, size: 50, color: Colors.white),
                 ),
                 const SizedBox(height: 12),
-                Text(user?.name ?? 'User', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                Text(user?.email ?? '', style: const TextStyle(color: Colors.grey)),
+                Text(user?.name ?? 'User', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text(user?.email ?? '', style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.deepPurple.withValues(alpha: 0.2),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.deepPurple),
+                    border: Border.all(color: Theme.of(context).colorScheme.primary),
                   ),
-                  child: const Text('Premium Member', style: TextStyle(color: Colors.deepPurple, fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: Text('Premium Member', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

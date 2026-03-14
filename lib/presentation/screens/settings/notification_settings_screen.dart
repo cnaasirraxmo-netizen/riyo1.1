@@ -11,11 +11,8 @@ class NotificationSettingsScreen extends StatelessWidget {
     final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Notifications', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Notifications'),
       ),
       body: ListView(
         children: [

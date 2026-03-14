@@ -11,11 +11,8 @@ class DataSaverSettingsScreen extends StatelessWidget {
     final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Data Saver', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Data Saver'),
       ),
       body: ListView(
         children: [
@@ -24,18 +21,18 @@ class DataSaverSettingsScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withValues(alpha: 0.1),
+                color: Colors.blueAccent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+                border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blueAccent),
-                  SizedBox(width: 12),
+                  const Icon(Icons.info_outline, color: Colors.blueAccent),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Data Saver mode automatically adjusts settings to reduce data usage while streaming.',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                      style: TextStyle(color: Theme.of(context).textTheme.labelSmall?.color, fontSize: 13),
                     ),
                   ),
                 ],
@@ -48,7 +45,7 @@ class DataSaverSettingsScreen extends StatelessWidget {
             value: settings.dataSaverMode,
             onChanged: (val) => settings.setDataSaverMode(val),
           ),
-          const Divider(color: Colors.white10),
+          const Divider(height: 1),
           const SettingsHeader(title: 'Manual Controls'),
           SettingsToggle(
             icon: Icons.image_outlined,

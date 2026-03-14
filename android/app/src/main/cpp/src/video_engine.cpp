@@ -6,7 +6,7 @@
 
 namespace riyo {
 
-VideoEngine::VideoEngine() : m_state(PlayerState::IDLE), m_isRunning(false) {
+VideoEngine::VideoEngine() : m_state(PlayerState::IDLE), m_isRunning(false), m_position(0.0), m_duration(0.0) {
     LOGI("VideoEngine initialized");
 }
 
@@ -20,8 +20,15 @@ VideoEngine::~VideoEngine() {
 void VideoEngine::load(const std::string& url) {
     std::lock_guard<std::mutex> lock(m_stateMutex);
     m_url = url;
+    m_position = 0.0;
+    m_duration = 300.0; // Mock 5 minutes for demonstration
     updateState(PlayerState::LOADING);
     LOGI("Loading URL: %s", url.c_str());
+
+    if (m_isRunning) {
+        m_isRunning = false;
+        if (m_engineThread && m_engineThread->joinable()) m_engineThread->join();
+    }
 
     m_isRunning = true;
     m_engineThread = std::make_unique<std::thread>(&VideoEngine::engineThread, this);
@@ -44,6 +51,8 @@ void VideoEngine::pause() {
 }
 
 void VideoEngine::seek(double time_seconds) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    m_position = time_seconds;
     LOGI("Seeking to: %f", time_seconds);
     emitEvent(Event::SEEK, std::to_string(time_seconds));
 }
@@ -58,14 +67,33 @@ PlayerState VideoEngine::getState() const {
     return m_state;
 }
 
+double VideoEngine::getPosition() const {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    return m_position;
+}
+
+double VideoEngine::getDuration() const {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    return m_duration;
+}
+
 void VideoEngine::setEventCallback(EventCallback callback) {
     m_eventCallback = callback;
 }
 
 void VideoEngine::engineThread() {
     LOGI("Engine thread started");
-    // Placeholder for pipeline implementation
     while (m_isRunning) {
+        {
+            std::lock_guard<std::mutex> lock(m_stateMutex);
+            if (m_state == PlayerState::PLAYING) {
+                m_position += 0.1;
+                if (m_position >= m_duration) {
+                    m_position = m_duration;
+                    updateState(PlayerState::ENDED);
+                }
+            }
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     LOGI("Engine thread stopped");

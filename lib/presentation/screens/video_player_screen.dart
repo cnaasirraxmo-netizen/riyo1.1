@@ -42,13 +42,18 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   String _selectedQuality = 'Auto';
   String _selectedAudio = 'English';
   String _selectedSubtitle = 'Off';
-  bool _isBuffering = false;
 
   Movie? _movie;
   List<Map<String, dynamic>> _sources = [];
   Map<String, dynamic>? _selectedSource;
   int _currentSourceIndex = 0;
   bool _isError = false;
+
+  // Real-time tracking
+  double _position = 0;
+  double _duration = 1;
+  double _bufferPosition = 0;
+  Timer? _playbackTimer;
 
   @override
   void initState() {
@@ -58,6 +63,20 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     _initVolume();
     _initBrightness();
     _initCastListener();
+    _startPlaybackTimer();
+  }
+
+  void _startPlaybackTimer() {
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (_engine != null && _engine!.getState() == 2) {
+         setState(() {
+           // These values would normally come from the native engine
+           _position = _engine!.getPosition();
+           _duration = _engine!.getDuration();
+           if (_duration <= 0) _duration = 1;
+         });
+      }
+    });
   }
 
   Future<void> _fetchData() async {
@@ -132,11 +151,6 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     _engine = RiyoVideoEngine();
     _textureId = await TextureRegistryBridge.createTexture();
 
-    // Setup error handling for auto-failover
-    // Assuming RiyoVideoEngine has an error callback or we can check state
-    // For demonstration, we'll use a timer to simulate source validation if needed,
-    // but ideally the native engine sends an event.
-
     _engine!.load(url);
     _engine!.setEventCallback();
     _engine!.play();
@@ -193,6 +207,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    _playbackTimer?.cancel();
     WakelockPlus.disable();
     _engine?.dispose();
     if (_textureId != null) {
@@ -204,7 +219,8 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   void _seekRelative(Duration duration) {
     if (_engine == null) return;
-    _engine!.seek(duration.inSeconds.toDouble());
+    final target = (_position + duration.inSeconds).clamp(0, _duration);
+    _engine!.seek(target.toDouble());
     _startHideControlsTimer();
   }
 
@@ -349,26 +365,34 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           if (_selectedSource?['type'] != 'embed')
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 2,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                  activeTrackColor: Colors.purple,
-                  inactiveTrackColor: Colors.white24,
-                  thumbColor: Colors.white,
-                ),
-                child: Slider(
-                  value: 0.2,
-                  onChanged: (val) {},
-                ),
+              child: Column(
+                children: [
+                   SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 2,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                      activeTrackColor: Colors.purple,
+                      inactiveTrackColor: Colors.white24,
+                      thumbColor: Colors.white,
+                    ),
+                    child: Slider(
+                      value: _position,
+                      max: _duration,
+                      onChanged: (val) {
+                        setState(() => _position = val);
+                        _engine!.seek(val);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _selectedSource?['type'] == 'embed' ? 'EXTERNAL SERVER' : '00:20 / 05:00',
+                _selectedSource?['type'] == 'embed' ? 'EXTERNAL SERVER' : '${_formatDuration(Duration(seconds: _position.toInt()))} / ${_formatDuration(Duration(seconds: _duration.toInt()))}',
                 style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
               ),
               Row(
@@ -384,6 +408,12 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         ],
       ),
     );
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return "${d.inHours > 0 ? '${d.inHours}:' : ''}$minutes:$seconds";
   }
 
   Widget _buildControlItem(IconData icon, String label, VoidCallback onTap) {
@@ -434,7 +464,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   void _showBottomDialog(String title, List<String> options, Function(String) onSelect) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (context) => Container(
         padding: const EdgeInsets.all(32),
@@ -442,17 +472,17 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2)),
+            Text(title, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2)),
             const SizedBox(height: 24),
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: options.length,
-                separatorBuilder: (c, i) => Divider(color: Colors.white.withOpacity(0.05)),
+                separatorBuilder: (c, i) => Divider(color: Theme.of(context).dividerColor),
                 itemBuilder: (context, index) => ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(options[index], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+                  title: Text(options[index], style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold)),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
                   onTap: () {
                     onSelect(options[index]);
                     Navigator.pop(context);

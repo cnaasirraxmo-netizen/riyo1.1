@@ -6,24 +6,21 @@ class ContactsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF141414),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF141414),
         title: const Text('CONTACTS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Need help? Get in touch with us.', style: TextStyle(color: Colors.white, fontSize: 16)),
+          Text('Need help? Get in touch with us.', style: Theme.of(context).textTheme.bodyLarge),
           const SizedBox(height: 30),
-          _buildContactItem(Icons.email_outlined, 'Email Support', 'support@riyo.com'),
-          _buildContactItem(Icons.phone_outlined, 'Call Us', '+1 234 567 890'),
-          _buildContactItem(Icons.language_outlined, 'Website', 'www.riyo.com'),
+          _buildContactItem(context, Icons.email_outlined, 'Email Support', 'support@riyo.com'),
+          _buildContactItem(context, Icons.phone_outlined, 'Call Us', '+1 234 567 890'),
+          _buildContactItem(context, Icons.language_outlined, 'Website', 'www.riyo.com'),
           const SizedBox(height: 50),
-          const Text(
+          Text(
             'Our support team is available 24/7 to assist you with any questions or issues.',
-            style: TextStyle(color: Colors.grey, fontSize: 14),
+            style: Theme.of(context).textTheme.labelSmall,
             textAlign: TextAlign.center,
           ),
         ],
@@ -31,25 +28,25 @@ class ContactsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactItem(IconData icon, String label, String value) {
+  Widget _buildContactItem(BuildContext context, IconData icon, String label, String value) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1C),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.deepPurpleAccent, size: 28),
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(label, style: Theme.of(context).textTheme.labelSmall),
               const SizedBox(height: 4),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
         ],

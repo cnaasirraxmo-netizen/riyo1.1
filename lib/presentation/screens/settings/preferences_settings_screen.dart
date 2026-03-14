@@ -11,11 +11,8 @@ class PreferencesSettingsScreen extends StatelessWidget {
     final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Preferences', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Preferences'),
       ),
       body: ListView(
         children: [
@@ -68,12 +65,11 @@ class PreferencesSettingsScreen extends StatelessWidget {
         builder: (context, setState) {
           final current = List<String>.from(settings.favoriteGenres);
           return AlertDialog(
-            backgroundColor: const Color(0xFF1C1C1C),
-            title: const Text('Favorite Genres', style: TextStyle(color: Colors.white)),
+            title: const Text('Favorite Genres'),
             content: SingleChildScrollView(
               child: Column(
                 children: genres.map((g) => CheckboxListTile(
-                  title: Text(g, style: const TextStyle(color: Colors.white)),
+                  title: Text(g),
                   value: current.contains(g),
                   onChanged: (val) {
                     if (val!) {
@@ -84,7 +80,7 @@ class PreferencesSettingsScreen extends StatelessWidget {
                     settings.setFavoriteGenres(current);
                     setState(() {});
                   },
-                  activeColor: Theme.of(context).primaryColor,
+                  activeColor: Theme.of(context).colorScheme.primary,
                 )).toList(),
               ),
             ),

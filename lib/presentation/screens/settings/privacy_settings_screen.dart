@@ -11,11 +11,8 @@ class PrivacySettingsScreen extends StatelessWidget {
     final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Privacy & Security', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Privacy & Security'),
       ),
       body: ListView(
         children: [
@@ -41,7 +38,7 @@ class PrivacySettingsScreen extends StatelessWidget {
 
           const SettingsHeader(title: 'Security'),
           SettingsToggle(
-            icon: Icons.vibration, // Using vibration icon as placeholder for 2fa
+            icon: Icons.security,
             title: 'Two-factor Authentication',
             value: settings.twoFactorAuth,
             onChanged: (val) => settings.setTwoFactorAuth(val),
@@ -69,9 +66,8 @@ class PrivacySettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1C),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: Text(content, style: const TextStyle(color: Colors.grey)),
+        title: Text(title),
+        content: Text(content),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('CLEAR', style: TextStyle(color: Colors.red))),

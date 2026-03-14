@@ -11,11 +11,8 @@ class DownloadSettingsScreen extends StatelessWidget {
     final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Downloads', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Downloads'),
       ),
       body: ListView(
         children: [
@@ -81,19 +78,18 @@ class DownloadSettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1C),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
+        title: Text(title),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: options.map((opt) => RadioListTile<String>(
-            title: Text(opt, style: const TextStyle(color: Colors.white)),
+            title: Text(opt),
             value: opt,
             groupValue: current,
             onChanged: (val) {
               onSelected(val!);
               Navigator.pop(context);
             },
-            activeColor: Theme.of(context).primaryColor,
+            activeColor: Theme.of(context).colorScheme.primary,
           )).toList(),
         ),
       ),

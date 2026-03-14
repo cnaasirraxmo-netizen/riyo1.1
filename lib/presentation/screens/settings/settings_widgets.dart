@@ -25,13 +25,17 @@ class SettingsItem extends StatelessWidget {
       button: true,
       child: ListTile(
         leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: AppTypography.titleMedium),
+        title: Text(title, style: AppTypography.titleMedium.copyWith(
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        )),
         subtitle: subtitle != null
-            ? Text(subtitle!, style: AppTypography.labelSmall)
+            ? Text(subtitle!, style: AppTypography.labelSmall.copyWith(
+              color: Theme.of(context).textTheme.labelSmall?.color,
+            ))
             : null,
         trailing: trailing ??
             (onTap != null
-                ? const Icon(Icons.chevron_right_rounded, size: 24)
+                ? Icon(Icons.chevron_right_rounded, size: 24, color: Theme.of(context).iconTheme.color?.withOpacity(0.3))
                 : null),
         onTap: onTap,
       ),
@@ -62,9 +66,13 @@ class SettingsToggle extends StatelessWidget {
       value: value ? 'enabled' : 'disabled',
       child: SwitchListTile(
         secondary: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: AppTypography.titleMedium),
+        title: Text(title, style: AppTypography.titleMedium.copyWith(
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        )),
         subtitle: subtitle != null
-            ? Text(subtitle!, style: AppTypography.labelSmall)
+            ? Text(subtitle!, style: AppTypography.labelSmall.copyWith(
+              color: Theme.of(context).textTheme.labelSmall?.color,
+            ))
             : null,
         value: value,
         onChanged: onChanged,

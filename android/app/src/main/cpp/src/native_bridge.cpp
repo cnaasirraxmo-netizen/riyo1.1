@@ -48,6 +48,16 @@ int player_get_state(void* handle) {
     return static_cast<int>(player->getState());
 }
 
+double player_get_position(void* handle) {
+    auto player = static_cast<VideoEngine*>(handle);
+    return player->getPosition();
+}
+
+double player_get_duration(void* handle) {
+    auto player = static_cast<VideoEngine*>(handle);
+    return player->getDuration();
+}
+
 typedef void (*NativeEventCallback)(int event, const char* data);
 
 void player_set_event_callback(void* handle, NativeEventCallback callback) {

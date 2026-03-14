@@ -11,11 +11,8 @@ class DeveloperSettingsScreen extends StatelessWidget {
     final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
-        title: const Text('Developer Options', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Developer Options'),
       ),
       body: ListView(
         children: [
@@ -41,13 +38,13 @@ class DeveloperSettingsScreen extends StatelessWidget {
             value: settings.simulateSlowNetwork,
             onChanged: (val) => settings.setSimulateSlowNetwork(val),
           ),
-          const Divider(color: Colors.white10),
+          const Divider(),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
               onPressed: () => settings.setDeveloperMode(false),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-              child: const Text('Disable Developer Mode', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+              child: const Text('Disable Developer Mode'),
             ),
           ),
         ],

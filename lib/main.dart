@@ -50,7 +50,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase initialization (requires google-services.json in real apps)
   try {
     await Firebase.initializeApp();
     await NotificationService.initialize();
@@ -63,169 +62,181 @@ void main() async {
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
-GoRouter _createRouter(AuthProvider authProvider) {
-  return GoRouter(
-    navigatorKey: _rootNavigatorKey,
-    initialLocation: '/splash',
-    refreshListenable: authProvider,
-    redirect: (context, state) {
-      final bool loggingIn = state.uri.path == '/login';
-      final bool signingUp = state.uri.path == '/signup';
-      final bool splash = state.uri.path == '/splash';
-      final bool welcome = state.uri.path == '/welcome';
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
 
-      if (splash) return null;
-
-      if (!authProvider.isOnboardingComplete) {
-        return welcome ? null : '/welcome';
-      }
-
-      if (!authProvider.isAuthenticated) {
-        return (loggingIn || signingUp || welcome) ? null : '/login';
-      }
-
-      if (loggingIn || signingUp || welcome) {
-        return '/home';
-      }
-
-      return null;
-    },
-    routes: [
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: '/welcome',
-        builder: (context, state) => const WelcomeScreen(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/signup',
-        builder: (context, state) => const SignUpScreen(),
-      ),
-      ShellRoute(
-        navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) {
-          return MainScreen(child: child);
-        },
-        routes: [
-          GoRoute(
-            path: '/home',
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: '/category',
-            builder: (context, state) => const CategoriesScreen(),
-          ),
-          GoRoute(
-            path: '/downloads',
-            builder: (context, state) => const DownloadsScreen(),
-          ),
-          GoRoute(
-            path: '/search',
-            builder: (context, state) => const SearchScreen(),
-          ),
-          GoRoute(
-            path: '/my-riyo',
-            builder: (context, state) => const MyRiyoScreen(),
-          ),
-          GoRoute(
-            path: '/coming-soon',
-            builder: (context, state) => const ComingSoonScreen(),
-          ),
-          GoRoute(
-            path: '/genre/:name',
-            builder: (context, state) {
-              final name = state.pathParameters['name']!;
-              return GenreMoviesScreen(genreName: name);
-            },
-          ),
-        ],
-      ),
-      GoRoute(
-        path: '/movie/:id',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final id = state.pathParameters['id']!;
-          return MovieDetailsScreen(movieId: id);
-        },
-      ),
-      GoRoute(
-        path: '/movie/:id/play',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final id = state.pathParameters['id'];
-          final url = state.uri.queryParameters['url'];
-          final s = state.uri.queryParameters['s'];
-          final e = state.uri.queryParameters['e'];
-          return VideoPlayerScreen(
-            movieId: id,
-            videoUrl: url,
-            season: s != null ? int.tryParse(s) : null,
-            episode: e != null ? int.tryParse(e) : null,
-          );
-        },
-      ),
-      GoRoute(
-        path: '/settings',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const SettingsScreen(),
-        routes: [
-          GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
-          GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
-          GoRoute(path: 'notifications', builder: (context, state) => const NotificationSettingsScreen()),
-          GoRoute(path: 'playback', builder: (context, state) => const PlaybackSettingsScreen()),
-          GoRoute(path: 'downloads', builder: (context, state) => const ds.DownloadSettingsScreen()),
-          GoRoute(path: 'data-saver', builder: (context, state) => const DataSaverSettingsScreen()),
-          GoRoute(path: 'language', builder: (context, state) => const LanguageSettingsScreen()),
-          GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
-          GoRoute(path: 'preferences', builder: (context, state) => const PreferencesSettingsScreen()),
-          GoRoute(path: 'storage', builder: (context, state) => const StorageSettingsScreen()),
-          GoRoute(path: 'support', builder: (context, state) => const SupportSettingsScreen()),
-          GoRoute(path: 'about', builder: (context, state) => const about.AboutSettingsScreen()),
-          GoRoute(path: 'developer', builder: (context, state) => const DeveloperSettingsScreen()),
-        ],
-      ),
-      GoRoute(
-        path: '/download-settings',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const DownloadSettingsScreen(),
-      ),
-      GoRoute(
-        path: '/contacts',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const ContactsScreen(),
-      ),
-      GoRoute(
-        path: '/terms',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const TermsScreen(),
-      ),
-      GoRoute(
-        path: '/privacy',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const PrivacyScreen(),
-      ),
-      GoRoute(
-        path: '/about',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AboutScreen(),
-      ),
-    GoRoute(
-      path: '/admin',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const AdminPanelScreen(),
-    ),
-    ],
-  );
+  @override
+  State<MyApp> createState() => _MyAppState();
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _MyAppState extends State<MyApp> {
+  GoRouter? _router;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  void _initRouter(AuthProvider authProvider) {
+    _router ??= GoRouter(
+      navigatorKey: _rootNavigatorKey,
+      initialLocation: '/splash',
+      refreshListenable: authProvider,
+      redirect: (context, state) {
+        final bool loggingIn = state.uri.path == '/login';
+        final bool signingUp = state.uri.path == '/signup';
+        final bool splash = state.uri.path == '/splash';
+        final bool welcome = state.uri.path == '/welcome';
+
+        if (splash) return null;
+
+        if (!authProvider.isOnboardingComplete) {
+          return welcome ? null : '/welcome';
+        }
+
+        if (!authProvider.isAuthenticated) {
+          return (loggingIn || signingUp || welcome) ? null : '/login';
+        }
+
+        if (loggingIn || signingUp || welcome) {
+          return '/home';
+        }
+
+        return null;
+      },
+      routes: [
+        GoRoute(
+          path: '/splash',
+          builder: (context, state) => const SplashScreen(),
+        ),
+        GoRoute(
+          path: '/welcome',
+          builder: (context, state) => const WelcomeScreen(),
+        ),
+        GoRoute(
+          path: '/login',
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: '/signup',
+          builder: (context, state) => const SignUpScreen(),
+        ),
+        ShellRoute(
+          navigatorKey: _shellNavigatorKey,
+          builder: (context, state, child) {
+            return MainScreen(child: child);
+          },
+          routes: [
+            GoRoute(
+              path: '/home',
+              builder: (context, state) => const HomeScreen(),
+            ),
+            GoRoute(
+              path: '/category',
+              builder: (context, state) => const CategoriesScreen(),
+            ),
+            GoRoute(
+              path: '/downloads',
+              builder: (context, state) => const DownloadsScreen(),
+            ),
+            GoRoute(
+              path: '/search',
+              builder: (context, state) => const SearchScreen(),
+            ),
+            GoRoute(
+              path: '/my-riyo',
+              builder: (context, state) => const MyRiyoScreen(),
+            ),
+            GoRoute(
+              path: '/coming-soon',
+              builder: (context, state) => const ComingSoonScreen(),
+            ),
+            GoRoute(
+              path: '/genre/:name',
+              builder: (context, state) {
+                final name = state.pathParameters['name']!;
+                return GenreMoviesScreen(genreName: name);
+              },
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/movie/:id',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return MovieDetailsScreen(movieId: id);
+          },
+        ),
+        GoRoute(
+          path: '/movie/:id/play',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) {
+            final id = state.pathParameters['id'];
+            final url = state.uri.queryParameters['url'];
+            final s = state.uri.queryParameters['s'];
+            final e = state.uri.queryParameters['e'];
+            return VideoPlayerScreen(
+              movieId: id,
+              videoUrl: url,
+              season: s != null ? int.tryParse(s) : null,
+              episode: e != null ? int.tryParse(e) : null,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/settings',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const SettingsScreen(),
+          routes: [
+            GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
+            GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
+            GoRoute(path: 'notifications', builder: (context, state) => const NotificationSettingsScreen()),
+            GoRoute(path: 'playback', builder: (context, state) => const PlaybackSettingsScreen()),
+            GoRoute(path: 'downloads', builder: (context, state) => const ds.DownloadSettingsScreen()),
+            GoRoute(path: 'data-saver', builder: (context, state) => const DataSaverSettingsScreen()),
+            GoRoute(path: 'language', builder: (context, state) => const LanguageSettingsScreen()),
+            GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
+            GoRoute(path: 'preferences', builder: (context, state) => const PreferencesSettingsScreen()),
+            GoRoute(path: 'storage', builder: (context, state) => const StorageSettingsScreen()),
+            GoRoute(path: 'support', builder: (context, state) => const SupportSettingsScreen()),
+            GoRoute(path: 'about', builder: (context, state) => const about.AboutSettingsScreen()),
+            GoRoute(path: 'developer', builder: (context, state) => const DeveloperSettingsScreen()),
+          ],
+        ),
+        GoRoute(
+          path: '/download-settings',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const DownloadSettingsScreen(),
+        ),
+        GoRoute(
+          path: '/contacts',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const ContactsScreen(),
+        ),
+        GoRoute(
+          path: '/terms',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const TermsScreen(),
+        ),
+        GoRoute(
+          path: '/privacy',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const PrivacyScreen(),
+        ),
+        GoRoute(
+          path: '/about',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const AboutScreen(),
+        ),
+        GoRoute(
+          path: '/admin',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const AdminPanelScreen(),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -240,9 +251,9 @@ class MyApp extends StatelessWidget {
       ],
       child: DynamicColorBuilder(
         builder: (lightDynamic, darkDynamic) {
-          return Consumer<SettingsProvider>(
-            builder: (context, settings, child) {
-              final auth = Provider.of<AuthProvider>(context, listen: false);
+          return Consumer2<SettingsProvider, AuthProvider>(
+            builder: (context, settings, auth, child) {
+              _initRouter(auth);
 
               final lightTheme = AppTheme.getLightTheme(
                 settings.dynamicColor ? lightDynamic : null,
@@ -254,7 +265,7 @@ class MyApp extends StatelessWidget {
               );
 
               return MaterialApp.router(
-                routerConfig: _createRouter(auth),
+                routerConfig: _router!,
                 title: 'RIYO',
                 themeMode: settings.themeMode,
                 locale: settings.language == 'Arabic'

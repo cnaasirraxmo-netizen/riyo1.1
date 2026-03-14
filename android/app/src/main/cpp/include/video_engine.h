@@ -28,7 +28,9 @@ enum class Event {
     ERROR,
     QUALITY_CHANGE,
     SEEK,
-    ENDED
+    ENDED,
+    POSITION_UPDATE,
+    DURATION_UPDATE
 };
 
 using EventCallback = std::function<void(Event, const std::string&)>;
@@ -44,6 +46,8 @@ public:
     void seek(double time_seconds);
     void setQuality(int level);
     PlayerState getState() const;
+    double getPosition() const;
+    double getDuration() const;
 
     void setEventCallback(EventCallback callback);
 
@@ -56,6 +60,9 @@ private:
     PlayerState m_state;
     EventCallback m_eventCallback;
     mutable std::mutex m_stateMutex;
+
+    double m_position;
+    double m_duration;
 
     bool m_isRunning;
     std::unique_ptr<std::thread> m_engineThread;
