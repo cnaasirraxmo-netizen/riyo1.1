@@ -23,5 +23,13 @@ func GetAllProviders() []Provider {
 		modules.NewRidoMoviesProvider(),
 		modules.NewFlixHQProvider(),
 		modules.NewPrimeWireProvider(),
+		modules.NewHiAnimeProvider(),
+		modules.NewAnimetsuProvider(),
+		modules.NewTokyoInsiderProvider(),
+		modules.NewKissKhProvider(),
+		modules.NewRogMoviesProvider(),
+		modules.NewTopMoviesProvider(),
+		modules.NewGuardaHDProvider(),
+		modules.NewJoya9tvProvider(),
 	}
 }
