@@ -176,7 +176,7 @@ class AuthProvider with ChangeNotifier {
     if (e is http.ClientException || e.toString().contains('SocketException')) {
       throw Exception('Unable to connect to the server. Please check your internet connection.');
     }
-    rethrow;
+    throw e;
   }
 
   Future<void> logout() async {
