@@ -91,12 +91,13 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         _sources = sourceData.map((s) => StreamSource.fromJson(s)).toList();
 
         // 5. SOURCE HANDLING - Implement Source priority system
-        // Priority order: 1. Direct MP4 (direct), 2. M3U8 HLS (hls), 3. Embed (embed)
+        // Priority order: 1. Direct MP4 (direct), 2. M3U8 HLS (hls), 3. DASH (dash), 4. Embed (embed)
         // Also sort by quality if type is same
         _sources.sort((a, b) {
           int typeScore(String type) {
-            if (type == 'direct') return 3;
-            if (type == 'hls') return 2;
+            if (type == 'direct') return 4;
+            if (type == 'hls') return 3;
+            if (type == 'dash') return 2;
             if (type == 'embed') return 1;
             return 0;
           }

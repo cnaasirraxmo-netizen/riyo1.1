@@ -130,6 +130,9 @@ func (e *VideoExtractor) DetectType(url string) string {
 	if strings.Contains(url, ".m3u8") {
 		return "hls"
 	}
+	if strings.Contains(url, ".mpd") {
+		return "dash"
+	}
 	if strings.Contains(url, ".mp4") {
 		return "direct"
 	}

@@ -17,60 +17,69 @@ func (f *UniversalFinder) FindSources(url string) []string {
 	var allSources []string
 	var mu sync.Mutex
 
-	html, err := scrapers.FetchHTML(url)
+	// METHOD 6 – REDIRECT EXTRACTION (initial)
+	finalURL, _ := scrapers.FollowRedirects(url)
+	html, err := scrapers.FetchHTML(finalURL)
 	if err != nil {
 		return nil
 	}
 
-	// 1. Try HTML parsing
+	// 1. Try HTML parsing (METHOD 1)
 	htmlSources := scrapers.ExtractVideoSources(html)
 	mu.Lock()
 	allSources = append(allSources, htmlSources...)
 	mu.Unlock()
 
-	// 2. Try iframe extraction
+	// 2. Try iframe extraction (METHOD 2)
 	iframes := scrapers.ExtractIframes(html)
 	var wg sync.WaitGroup
 	for _, iframe := range iframes {
 		wg.Add(1)
 		go func(iframeURL string) {
 			defer wg.Done()
-			// Recursively try to find sources in iframes (depth 1)
+			// Recursive discovery (depth 1)
 			iframeHTML, err := scrapers.FetchHTML(iframeURL)
 			if err == nil {
 				s := scrapers.ExtractVideoSources(iframeHTML)
 				js := scrapers.ExtractJSVariables(iframeHTML)
+				json := scrapers.ExtractJSONConfig(iframeHTML)
 				mu.Lock()
 				allSources = append(allSources, s...)
 				allSources = append(allSources, js...)
+				allSources = append(allSources, json...)
 				mu.Unlock()
 			}
 		}(iframe)
 	}
 
-	// 3. Try JavaScript parsing
+	// 3. Try JavaScript parsing (METHOD 3)
 	jsSources := scrapers.ExtractJSVariables(html)
 	mu.Lock()
 	allSources = append(allSources, jsSources...)
 	mu.Unlock()
 
-	// 4. Try JSON config parsing
+	// 4. Try JSON config parsing (METHOD 4)
 	jsonSources := scrapers.ExtractJSONConfig(html)
 	mu.Lock()
 	allSources = append(allSources, jsonSources...)
 	mu.Unlock()
 
-	// 5. Try embed extraction
+	// 5. Try embed extraction (METHOD 7)
 	embeds := scrapers.ExtractEmbeds(html)
 	mu.Lock()
 	allSources = append(allSources, embeds...)
 	mu.Unlock()
 
-	// 6. Try redirect detection (handled by FetchHTML/FollowRedirects if needed)
-
 	wg.Wait()
 
-	return f.uniqueSources(allSources)
+	// METHOD 6 – REDIRECT EXTRACTION (for all found sources)
+	var finalSources []string
+	for _, s := range allSources {
+		fSource, _ := scrapers.FollowRedirects(s)
+		finalSources = append(finalSources, fSource)
+	}
+
+	return f.uniqueSources(finalSources)
 }
 
 func (f *UniversalFinder) uniqueSources(sources []string) []string {
@@ -86,14 +95,18 @@ func (f *UniversalFinder) uniqueSources(sources []string) []string {
 }
 
 func (f *UniversalFinder) DetectQuality(url string) string {
-	if strings.Contains(url, "1080") {
+	lowerURL := strings.ToLower(url)
+	if strings.Contains(lowerURL, "2160") || strings.Contains(lowerURL, "4k") {
+		return "4K"
+	}
+	if strings.Contains(lowerURL, "1080") {
 		return "1080p"
 	}
-	if strings.Contains(url, "720") {
+	if strings.Contains(lowerURL, "720") {
 		return "720p"
 	}
-	if strings.Contains(url, "480") {
+	if strings.Contains(lowerURL, "480") {
 		return "480p"
 	}
-	return "720p" // Default
+	return "720p"
 }
