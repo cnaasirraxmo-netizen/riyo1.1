@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:riyo/core/video_engine/riyo_video_engine.dart';
 import 'package:riyo/core/video_engine/texture_bridge.dart';
 import 'package:screen_brightness/screen_brightness.dart';
@@ -57,6 +58,10 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     WakelockPlus.enable();
     _fetchData();
     _initVolume();
@@ -274,6 +279,12 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _playbackTimer?.cancel();
     _eventSubscription?.cancel();
     WakelockPlus.disable();
@@ -331,16 +342,41 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
                       ? Texture(textureId: _textureId!)
                       : const CircularProgressIndicator(color: Colors.purple),
             ),
-            if (_isLoadingSource)
+            // Subtitle Overlay
+            if (_selectedSubtitle != 'Off')
+              Positioned(
+                bottom: _isControlsVisible ? 100 : 40,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Subtitles are currently being processed...',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+            // Loading and Buffering Indicator
+            if (_isLoadingSource || (_engine != null && _engine!.getState() == 4))
               Container(
-                color: Colors.black54,
-                child: const Center(
+                color: Colors.black26,
+                child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(color: Colors.purple),
-                      SizedBox(height: 16),
-                      Text('Finding best stream...', style: TextStyle(color: Colors.white)),
+                      const CircularProgressIndicator(color: Colors.purple),
+                      const SizedBox(height: 16),
+                      Text(
+                        _isLoadingSource ? 'Finding best stream...' : 'Buffering...',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
