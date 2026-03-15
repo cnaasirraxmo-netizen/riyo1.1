@@ -62,7 +62,7 @@ I will follow a clean and scalable architecture to ensure the app is maintainabl
 ## 5. Recent Fixes and Improvements
 
 ### 1. Unified Backend API URL
-- Centralized the backend API URL to `https://riyobox1-1.onrender.com` across all components:
+- Centralized the backend API URL to `https://riyo1-1.onrender.com` across all components:
   - **Flutter App**: Updated `lib/core/constants.dart`.
   - **Web Admin**: Updated `web_admin/src/utils/api.js`.
   - **Web User**: Updated `web_user/src/utils/api.js`.

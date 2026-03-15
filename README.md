@@ -33,7 +33,7 @@ The backend is configured for easy deployment on [Render](https://render.com).
     *   `R2_BUCKET_NAME`: Cloudflare R2 Bucket Name.
     *   `R2_S3_ENDPOINT`: Cloudflare R2 S3 Endpoint.
     *   `PORT`: `5000` (Render will set this automatically).
-3.  **Update Frontend:** The frontend is currently pointing to `https://riyo-2.onrender.com`. You can change this in `lib/core/constants.dart`.
+3.  **Update Frontend:** The frontend is currently pointing to `https://riyo1-1.onrender.com`. You can change this in `lib/core/constants.dart`.
 
 ## 📂 Project Structure
 
