@@ -37,4 +37,4 @@ A high-performance web application for users to stream movies and TV shows from 
 
 ## ⚙️ Configuration
 
-The app is pre-configured to connect to the production backend at `https://riyobox1-1.onrender.com`. To change this, edit `web_user/src/utils/api.js`.
+The app is pre-configured to connect to the production backend at `https://riyo1-1.onrender.com`. To change this, edit `web_user/src/utils/api.js`.

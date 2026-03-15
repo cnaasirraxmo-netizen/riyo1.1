@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Centralized Backend API URL
-const API_URL = 'https://riyo-2.onrender.com';
+const API_URL = 'https://riyo1-1.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://riyo-2.onrender.com';
+const API_BASE_URL = 'https://riyo1-1.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
