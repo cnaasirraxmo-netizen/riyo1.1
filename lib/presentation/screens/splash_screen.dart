@@ -41,9 +41,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _controller.forward().then((_) => _navigateToNext());
   }
 
-  void _navigateToNext() {
+  Future<void> _navigateToNext() async {
     if (!mounted) return;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Give it a bit more time to ensure all providers are initialized
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) return;
 
     if (!authProvider.isOnboardingComplete) {
       context.go('/welcome');

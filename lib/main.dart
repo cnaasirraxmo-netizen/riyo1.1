@@ -54,8 +54,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
   try {
-    await Firebase.initializeApp();
-    await NotificationService.initialize();
+    await Firebase.initializeApp().timeout(const Duration(seconds: 5));
+    await NotificationService.initialize().timeout(const Duration(seconds: 5));
   } catch (e) {
     debugPrint('Firebase/Notification Init Error: $e');
   }
