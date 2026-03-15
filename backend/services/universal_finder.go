@@ -14,65 +14,86 @@ func NewUniversalFinder() *UniversalFinder {
 }
 
 func (f *UniversalFinder) FindSources(url string) []string {
+	return f.recursiveFind(url, 0)
+}
+
+func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
+	if depth > 2 {
+		return nil
+	}
+
 	var allSources []string
 	var mu sync.Mutex
 
-	// METHOD 6 – REDIRECT EXTRACTION (initial)
+	// 1. REDIRECT EXTRACTION (METHOD 6)
 	finalURL, _ := scrapers.FollowRedirects(url)
 	html, err := scrapers.FetchHTML(finalURL)
 	if err != nil {
 		return nil
 	}
 
-	// 1. Try HTML parsing (METHOD 1)
-	htmlSources := scrapers.ExtractVideoSources(html)
+	// 2. EMBED PROVIDER EXTRACTION (METHOD 7)
+	embeds := scrapers.ExtractEmbeds(html)
 	mu.Lock()
-	allSources = append(allSources, htmlSources...)
+	allSources = append(allSources, embeds...)
 	mu.Unlock()
 
-	// 2. Try iframe extraction (METHOD 2)
+	// 3. IFRAME EXTRACTION (METHOD 2) - Recursive discovery
 	iframes := scrapers.ExtractIframes(html)
 	var wg sync.WaitGroup
 	for _, iframe := range iframes {
 		wg.Add(1)
 		go func(iframeURL string) {
 			defer wg.Done()
-			// Recursive discovery (depth 1)
-			iframeHTML, err := scrapers.FetchHTML(iframeURL)
+			discovered := f.recursiveFind(iframeURL, depth+1)
+			mu.Lock()
+			allSources = append(allSources, discovered...)
+			mu.Unlock()
+		}(iframe)
+	}
+
+	// 4. HTML PARSING (METHOD 1)
+	htmlSources := scrapers.ExtractVideoSources(html)
+	mu.Lock()
+	allSources = append(allSources, htmlSources...)
+	mu.Unlock()
+
+	// 5. JAVASCRIPT VARIABLE PARSING (METHOD 3)
+	jsSources := scrapers.ExtractJSVariables(html)
+	mu.Lock()
+	allSources = append(allSources, jsSources...)
+	mu.Unlock()
+
+	// 6. PLAYER CONFIG PARSING (METHOD 4)
+	jsonSources := scrapers.ExtractJSONConfig(html)
+	mu.Lock()
+	allSources = append(allSources, jsonSources...)
+	mu.Unlock()
+
+	// 7. NETWORK REQUEST DISCOVERY (METHOD 5)
+	networkEndpoints := scrapers.ExtractNetworkDiscovery(html)
+	for _, endpoint := range networkEndpoints {
+		wg.Add(1)
+		go func(ep string) {
+			defer wg.Done()
+			// Fetch the endpoint and extract potential video links from it
+			respHTML, err := scrapers.FetchHTML(ep)
 			if err == nil {
-				s := scrapers.ExtractVideoSources(iframeHTML)
-				js := scrapers.ExtractJSVariables(iframeHTML)
-				json := scrapers.ExtractJSONConfig(iframeHTML)
+				s := scrapers.ExtractVideoSources(respHTML)
+				js := scrapers.ExtractJSVariables(respHTML)
+				json := scrapers.ExtractJSONConfig(respHTML)
 				mu.Lock()
 				allSources = append(allSources, s...)
 				allSources = append(allSources, js...)
 				allSources = append(allSources, json...)
 				mu.Unlock()
 			}
-		}(iframe)
+		}(endpoint)
 	}
-
-	// 3. Try JavaScript parsing (METHOD 3)
-	jsSources := scrapers.ExtractJSVariables(html)
-	mu.Lock()
-	allSources = append(allSources, jsSources...)
-	mu.Unlock()
-
-	// 4. Try JSON config parsing (METHOD 4)
-	jsonSources := scrapers.ExtractJSONConfig(html)
-	mu.Lock()
-	allSources = append(allSources, jsonSources...)
-	mu.Unlock()
-
-	// 5. Try embed extraction (METHOD 7)
-	embeds := scrapers.ExtractEmbeds(html)
-	mu.Lock()
-	allSources = append(allSources, embeds...)
-	mu.Unlock()
 
 	wg.Wait()
 
-	// METHOD 6 – REDIRECT EXTRACTION (for all found sources)
+	// Final Step: Follow redirects for all found sources
 	var finalSources []string
 	for _, s := range allSources {
 		fSource, _ := scrapers.FollowRedirects(s)

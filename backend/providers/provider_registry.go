@@ -9,6 +9,8 @@ func GetAllProviders() []Provider {
 		modules.NewUHDMoviesProvider(),
 		modules.NewProtonMoviesProvider(),
 		modules.NewFilmyFlyProvider(),
+		modules.NewKatMovieHDProvider(),
+		modules.NewDotMoviesProvider(),
 		modules.NewMovieBoxProvider(),
 		modules.NewMovies4UProvider(),
 		modules.NewKmMoviesProvider(),

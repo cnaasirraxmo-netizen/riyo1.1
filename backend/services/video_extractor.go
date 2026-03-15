@@ -27,9 +27,30 @@ func NewVideoExtractor() *VideoExtractor {
 func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool, season, episode int) []models.StreamSource {
 	var allSources []models.StreamSource
 	var mu sync.Mutex
-	var wg sync.WaitGroup
 
-	// --- 1. EXISTING EMBED PROVIDERS ---
+	// --- 1. SEQUENTIAL FALLBACK WITH NEW SCRAPING PROVIDERS ---
+	if title != "" {
+		newProviders := providers.GetAllProviders()
+		for _, p := range newProviders {
+			sources, err := p.Search(title, isTvShow, season, episode)
+			if err == nil {
+				var validSourcesFromProvider []models.StreamSource
+				for _, s := range sources {
+					if e.ValidateLink(s.URL) {
+						validSourcesFromProvider = append(validSourcesFromProvider, s)
+					}
+				}
+				if len(validSourcesFromProvider) > 0 {
+					allSources = append(allSources, validSourcesFromProvider...)
+					// Sequential fallback: if we found valid sources from this provider, we stop.
+					return e.deduplicateSources(allSources)
+				}
+			}
+		}
+	}
+
+	// --- 2. FALLBACK TO EXISTING EMBED PROVIDERS IF NO SOURCES FOUND ---
+	var wg sync.WaitGroup
 	var embedProviders []providers.EmbedProvider
 	if isTvShow {
 		embedProviders = providers.GetTVEmbedProviders()
@@ -45,8 +66,12 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 			var url string
 			if isTvShow {
 				s, ep := season, episode
-				if s < 1 { s = 1 }
-				if ep < 1 { ep = 1 }
+				if s < 1 {
+					s = 1
+				}
+				if ep < 1 {
+					ep = 1
+				}
 				url = providers.GenerateTVURL(p, tmdbID, s, ep)
 			} else {
 				url = providers.GenerateMovieURL(p, tmdbID)
@@ -81,28 +106,6 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 		}(p)
 	}
 
-	// --- 2. NEW SCRAPING PROVIDERS ---
-	if title != "" {
-		newProviders := providers.GetAllProviders()
-		for _, p := range newProviders {
-			wg.Add(1)
-			go func(p providers.Provider) {
-				defer wg.Done()
-
-				sources, err := p.Search(title, isTvShow, season, episode)
-				if err == nil {
-					for _, s := range sources {
-						if e.ValidateLink(s.URL) {
-							mu.Lock()
-							allSources = append(allSources, s)
-							mu.Unlock()
-						}
-					}
-				}
-			}(p)
-		}
-	}
-
 	wg.Wait()
 	return e.deduplicateSources(allSources)
 }
@@ -111,6 +114,8 @@ func (e *VideoExtractor) ValidateLink(url string) bool {
 	if url == "" {
 		return false
 	}
+
+	// Try HEAD request first
 	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
 		return false
@@ -118,12 +123,45 @@ func (e *VideoExtractor) ValidateLink(url string) bool {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
 	resp, err := e.client.Do(req)
+	if err == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			contentType := strings.ToLower(resp.Header.Get("Content-Type"))
+			if strings.Contains(contentType, "video/") ||
+				strings.Contains(contentType, "application/x-mpegurl") ||
+				strings.Contains(contentType, "application/dash+xml") ||
+				strings.Contains(contentType, "application/octet-stream") ||
+				strings.Contains(contentType, "application/vnd.apple.mpegurl") {
+				return true
+			}
+		}
+	}
+
+	// Fallback to GET request with Range header if HEAD fails or is inconclusive
+	req, err = http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("Range", "bytes=0-0")
+
+	resp, err = e.client.Do(req)
 	if err != nil {
 		return false
 	}
 	defer resp.Body.Close()
 
-	return resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusForbidden // Some servers block HEAD but work for GET
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
+		contentType := strings.ToLower(resp.Header.Get("Content-Type"))
+		return strings.Contains(contentType, "video/") ||
+			strings.Contains(contentType, "application/x-mpegurl") ||
+			strings.Contains(contentType, "application/dash+xml") ||
+			strings.Contains(contentType, "application/octet-stream") ||
+			strings.Contains(contentType, "application/vnd.apple.mpegurl") ||
+			resp.StatusCode == http.StatusPartialContent // Range request success is a good sign
+	}
+
+	return false
 }
 
 func (e *VideoExtractor) DetectType(url string) string {
