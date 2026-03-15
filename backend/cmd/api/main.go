@@ -29,6 +29,7 @@ func main() {
 	}
 
 	db.ConnectDB()
+	utils.InitFirebase()
 	cache.InitRedis()
 	utils.InitR2()
 
@@ -89,6 +90,7 @@ func main() {
 	{
 		auth.POST("/register", handlers.Register)
 		auth.POST("/login", handlers.Login)
+		auth.POST("/google", handlers.GoogleLogin)
 	}
 
 	movies := r.Group("/movies")

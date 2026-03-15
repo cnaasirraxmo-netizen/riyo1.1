@@ -18,6 +18,7 @@ func GetAllProviders() []Provider {
 		modules.NewRingzProvider(),
 		modules.NewHdHub4uProvider(),
 		modules.NewOgomoviesProvider(),
+		modules.NewA111477Provider(),
 		modules.NewMoviezWapProvider(),
 		modules.NewShowBoxProvider(),
 		modules.NewRidoMoviesProvider(),

@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: RiyoButton(
                   text: 'Forgot password?',
                   isPrimary: false,
-                  onPressed: () {},
+                  onPressed: () => context.push('/forgot-password'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -102,7 +102,21 @@ class _LoginScreenState extends State<LoginScreen> {
               RiyoSocialButton(
                 text: 'Continue with Google',
                 icon: Image.network('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg', height: 24, errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 28)),
-                onPressed: () {},
+                onPressed: () async {
+                  setState(() => _isLoading = true);
+                  try {
+                    await Provider.of<AuthProvider>(context, listen: false).loginWithGoogle();
+                    if (mounted) context.go('/home');
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Google login failed: ${e.toString().replaceAll('Exception: ', '')}')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _isLoading = false);
+                  }
+                },
               ),
               const SizedBox(height: 16),
               RiyoSocialButton(

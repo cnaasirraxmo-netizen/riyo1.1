@@ -15,6 +15,7 @@ import 'package:riyo/presentation/screens/splash_screen.dart';
 import 'package:riyo/presentation/screens/onboarding_screen.dart';
 import 'package:riyo/presentation/screens/auth/login_screen.dart';
 import 'package:riyo/presentation/screens/auth/signup_screen.dart';
+import 'package:riyo/presentation/screens/auth/forgot_password_screen.dart';
 import 'package:riyo/presentation/screens/home_screen.dart';
 import 'package:riyo/presentation/screens/movie_details_screen.dart';
 import 'package:riyo/presentation/screens/video_player_screen.dart';
@@ -129,6 +130,10 @@ class _MyAppState extends State<MyApp> {
         GoRoute(
           path: '/signup',
           builder: (context, state) => const SignUpScreen(),
+        ),
+        GoRoute(
+          path: '/forgot-password',
+          builder: (context, state) => const ForgotPasswordScreen(),
         ),
         ShellRoute(
           navigatorKey: _shellNavigatorKey,
