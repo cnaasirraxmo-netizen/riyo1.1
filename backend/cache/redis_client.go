@@ -22,47 +22,56 @@ var (
 )
 
 func InitRedis() {
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		redisURL = os.Getenv("REDIS_PUBLIC_URL")
+	urls := []string{
+		os.Getenv("REDIS_URL"),
+		os.Getenv("REDIS_PUBLIC_URL"),
 	}
 
-	var opts *redis.Options
-	var err error
+	for _, redisURL := range urls {
+		if redisURL == "" {
+			continue
+		}
 
-	if redisURL != "" {
-		opts, err = redis.ParseURL(redisURL)
+		opts, err := redis.ParseURL(redisURL)
 		if err != nil {
-			log.Printf("Failed to parse Redis URL: %v", err)
+			log.Printf("Failed to parse Redis URL %s: %v", redisURL, err)
+			continue
+		}
+
+		if tryConnect(opts, "URL") {
+			return
 		}
 	}
 
-	if opts == nil {
-		host := os.Getenv("REDISHOST")
-		port := os.Getenv("REDISPORT")
-		user := os.Getenv("REDISUSER")
-		pass := os.Getenv("REDISPASSWORD")
+	host := os.Getenv("REDISHOST")
+	port := os.Getenv("REDISPORT")
+	user := os.Getenv("REDISUSER")
+	pass := os.Getenv("REDISPASSWORD")
 
-		if host != "" && port != "" {
-			opts = &redis.Options{
-				Addr:     fmt.Sprintf("%s:%s", host, port),
-				Username: user,
-				Password: pass,
-			}
+	if host != "" && port != "" {
+		opts := &redis.Options{
+			Addr:     fmt.Sprintf("%s:%s", host, port),
+			Username: user,
+			Password: pass,
+		}
+		if tryConnect(opts, "Host/Port") {
+			return
 		}
 	}
 
-	if opts == nil {
-		log.Println("Redis environment variables not set, caching disabled")
-		return
-	}
+	log.Println("Redis environment variables not set or all connections failed, caching disabled")
+}
 
+func tryConnect(opts *redis.Options, source string) bool {
 	// Connection pooling and optimization
 	opts.PoolSize = 100
 	opts.MinIdleConns = 10
 	opts.DialTimeout = 5 * time.Second
 	opts.ReadTimeout = 3 * time.Second
 	opts.WriteTimeout = 3 * time.Second
+	opts.MaxRetries = 3
+	opts.MinRetryBackoff = 8 * time.Millisecond
+	opts.MaxRetryBackoff = 512 * time.Millisecond
 
 	if dbStr := os.Getenv("REDIS_DB"); dbStr != "" {
 		if db, err := strconv.Atoi(dbStr); err == nil {
@@ -70,16 +79,17 @@ func InitRedis() {
 		}
 	}
 
-	RedisClient = redis.NewClient(opts)
-
-	// Automatic reconnect is handled by go-redis, but we'll do a Ping to verify
-	_, err = RedisClient.Ping(Ctx).Result()
+	client := redis.NewClient(opts)
+	_, err := client.Ping(Ctx).Result()
 	if err != nil {
-		log.Printf("Warning: Redis connection failed: %v. System will fallback to database/scrapers.", err)
-		RedisClient = nil
-	} else {
-		log.Println("Connected to Redis successfully")
+		log.Printf("Warning: Redis connection via %s failed: %v", source, err)
+		client.Close()
+		return false
 	}
+
+	RedisClient = client
+	log.Printf("Connected to Redis successfully via %s", source)
+	return true
 }
 
 func GetOrSetCache(key string, ttl time.Duration, fetchFunc func() (interface{}, error)) (interface{}, error) {
@@ -92,16 +102,22 @@ func GetOrSetCache(key string, ttl time.Duration, fetchFunc func() (interface{},
 	// 1. Check Redis for the key
 	val, err := RedisClient.Get(Ctx, key).Bytes()
 	if err == nil {
-		// Decompress
-		decompressed, err := decoder.DecodeAll(val, nil)
-		if err == nil {
-			var data interface{}
-			if err := json.Unmarshal(decompressed, &data); err == nil {
-				// Cache Hit
-				latency := time.Since(start)
-				log.Printf("[CACHE HIT] Key: %s | Latency: %v", key, latency)
-				return data, nil
+		// Check if data is compressed (zstd magic number is \x28\xb5\x2f\xfd)
+		var decompressed []byte = val
+		if len(val) > 4 && val[0] == 0x28 && val[1] == 0xb5 && val[2] == 0x2f && val[3] == 0xfd {
+			decompressed, err = decoder.DecodeAll(val, nil)
+			if err != nil {
+				log.Printf("[CACHE ERROR] Decompression failed for %s: %v", key, err)
+				return fetchFunc()
 			}
+		}
+
+		var data interface{}
+		if err := json.Unmarshal(decompressed, &data); err == nil {
+			// Cache Hit
+			latency := time.Since(start)
+			log.Printf("[CACHE HIT] Key: %s | Latency: %v", key, latency)
+			return data, nil
 		}
 		log.Printf("[CACHE ERROR] Failed to process cached data for %s: %v", key, err)
 	}
@@ -124,10 +140,13 @@ func GetOrSetCache(key string, ttl time.Duration, fetchFunc func() (interface{},
 			return
 		}
 
-		// Compress
-		compressed := encoder.EncodeAll(data, nil)
+		// Compress large responses (> 1KB)
+		var finalData []byte = data
+		if len(data) > 1024 {
+			finalData = encoder.EncodeAll(data, nil)
+		}
 
-		err = RedisClient.Set(Ctx, key, compressed, ttl).Err()
+		err = RedisClient.Set(Ctx, key, finalData, ttl).Err()
 		if err != nil {
 			log.Printf("[CACHE SET ERROR] Key: %s | Error: %v", key, err)
 		}
@@ -181,9 +200,9 @@ func InvalidateSearchCache(query string) {
 
 // Configurable TTLs
 var (
-	MetadataTTL      = 24 * time.Hour
-	TrendingTTL      = 6 * time.Hour
-	SearchTTL        = 1 * time.Hour
-	SourcesTTL       = 1 * time.Hour
-	ProviderTTL      = 30 * time.Minute
+	MetadataTTL = 24 * time.Hour
+	TrendingTTL = 6 * time.Hour
+	SearchTTL   = 1 * time.Hour
+	SourcesTTL  = 1 * time.Hour
+	ProviderTTL = 30 * time.Minute
 )
