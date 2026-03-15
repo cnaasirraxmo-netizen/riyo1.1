@@ -1,10 +1,8 @@
-package services
+package scrapers
 
 import (
 	"strings"
 	"sync"
-
-	"github.com/riyobox/backend/scrapers"
 )
 
 type UniversalFinder struct{}
@@ -26,20 +24,20 @@ func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 	var mu sync.Mutex
 
 	// 1. REDIRECT EXTRACTION (METHOD 6)
-	finalURL, _ := scrapers.FollowRedirects(url)
-	html, err := scrapers.FetchHTML(finalURL)
+	finalURL, _ := FollowRedirects(url)
+	html, err := FetchHTML(finalURL)
 	if err != nil {
 		return nil
 	}
 
 	// 2. EMBED PROVIDER EXTRACTION (METHOD 7)
-	embeds := scrapers.ExtractEmbeds(html)
+	embeds := ExtractEmbeds(html)
 	mu.Lock()
 	allSources = append(allSources, embeds...)
 	mu.Unlock()
 
 	// 3. IFRAME EXTRACTION (METHOD 2) - Recursive discovery
-	iframes := scrapers.ExtractIframes(html)
+	iframes := ExtractIframes(html)
 	var wg sync.WaitGroup
 	for _, iframe := range iframes {
 		wg.Add(1)
@@ -53,35 +51,35 @@ func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 	}
 
 	// 4. HTML PARSING (METHOD 1)
-	htmlSources := scrapers.ExtractVideoSources(html)
+	htmlSources := ExtractVideoSources(html)
 	mu.Lock()
 	allSources = append(allSources, htmlSources...)
 	mu.Unlock()
 
 	// 5. JAVASCRIPT VARIABLE PARSING (METHOD 3)
-	jsSources := scrapers.ExtractJSVariables(html)
+	jsSources := ExtractJSVariables(html)
 	mu.Lock()
 	allSources = append(allSources, jsSources...)
 	mu.Unlock()
 
 	// 6. PLAYER CONFIG PARSING (METHOD 4)
-	jsonSources := scrapers.ExtractJSONConfig(html)
+	jsonSources := ExtractJSONConfig(html)
 	mu.Lock()
 	allSources = append(allSources, jsonSources...)
 	mu.Unlock()
 
 	// 7. NETWORK REQUEST DISCOVERY (METHOD 5)
-	networkEndpoints := scrapers.ExtractNetworkDiscovery(html)
+	networkEndpoints := ExtractNetworkDiscovery(html)
 	for _, endpoint := range networkEndpoints {
 		wg.Add(1)
 		go func(ep string) {
 			defer wg.Done()
 			// Fetch the endpoint and extract potential video links from it
-			respHTML, err := scrapers.FetchHTML(ep)
+			respHTML, err := FetchHTML(ep)
 			if err == nil {
-				s := scrapers.ExtractVideoSources(respHTML)
-				js := scrapers.ExtractJSVariables(respHTML)
-				json := scrapers.ExtractJSONConfig(respHTML)
+				s := ExtractVideoSources(respHTML)
+				js := ExtractJSVariables(respHTML)
+				json := ExtractJSONConfig(respHTML)
 				mu.Lock()
 				allSources = append(allSources, s...)
 				allSources = append(allSources, js...)
@@ -96,7 +94,7 @@ func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 	// Final Step: Follow redirects for all found sources
 	var finalSources []string
 	for _, s := range allSources {
-		fSource, _ := scrapers.FollowRedirects(s)
+		fSource, _ := FollowRedirects(s)
 		finalSources = append(finalSources, fSource)
 	}
 

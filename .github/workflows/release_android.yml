@@ -38,14 +38,14 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          printf "%s" "$KEYSTORE_BASE64" | base64 --decode > android/release.keystore
+          printf "%s" "$KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
       - name: Build Release APK
         run: flutter build apk --release --no-shrink
         env:
-          KEYSTORE_FILE: android/release.keystore
+          KEYSTORE_FILE: release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}

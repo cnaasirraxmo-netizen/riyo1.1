@@ -8,11 +8,12 @@ import (
 
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/providers"
+	"github.com/riyobox/backend/scrapers"
 )
 
 type VideoExtractor struct {
 	client *http.Client
-	finder *UniversalFinder
+	finder *scrapers.UniversalFinder
 }
 
 func NewVideoExtractor() *VideoExtractor {
@@ -20,7 +21,7 @@ func NewVideoExtractor() *VideoExtractor {
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		finder: NewUniversalFinder(),
+		finder: scrapers.NewUniversalFinder(),
 	}
 }
 

@@ -19,6 +19,19 @@ func (p *BaseProvider) GetName() string {
 	return p.Name
 }
 
+func (p *BaseProvider) detectType(url string, isEmbed bool) string {
+	if isEmbed {
+		return "embed"
+	}
+	if strings.Contains(url, ".m3u8") {
+		return "hls"
+	}
+	if strings.Contains(url, ".mpd") {
+		return "dash"
+	}
+	return "direct"
+}
+
 func (p *BaseProvider) Search(query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
 	searchQuery := query
 	if isTvShow {
@@ -41,34 +54,18 @@ func (p *BaseProvider) Search(query string, isTvShow bool, season, episode int) 
 			continue
 		}
 
-		contentHTML, err := scrapers.FetchHTML(contentURL)
-		if err != nil {
-			continue
-		}
+		// Use Universal Finder for comprehensive extraction
+		finder := scrapers.NewUniversalFinder()
+		discovered := finder.FindSources(contentURL)
 
-		// Extract using all methods
-		links := scrapers.ExtractVideoSources(contentHTML)
-		links = append(links, scrapers.ExtractJSVariables(contentHTML)...)
-		links = append(links, scrapers.ExtractJSONConfig(contentHTML)...)
-
-		embeds := scrapers.ExtractEmbeds(contentHTML)
-		for _, embed := range embeds {
-			allSources = append(allSources, models.StreamSource{
-				Label:    p.Name + " (Embed)",
-				URL:      embed,
-				Type:     "embed",
-				Provider: strings.ToLower(p.Name),
-				Quality:  "720p",
-			})
-		}
-
-		for _, link := range links {
+		for _, link := range discovered {
+			isEmbed := strings.Contains(link, "embed") || strings.Contains(link, "player")
 			allSources = append(allSources, models.StreamSource{
 				Label:    p.Name,
 				URL:      link,
-				Type:     "direct",
+				Type:     p.detectType(link, isEmbed),
 				Provider: strings.ToLower(p.Name),
-				Quality:  "1080p",
+				Quality:  finder.DetectQuality(link),
 			})
 		}
 
