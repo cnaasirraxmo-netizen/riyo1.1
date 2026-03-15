@@ -36,34 +36,19 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Create key.properties
-        run: |
-          echo "storePassword=${{ secrets.RELEASE_STORE_PASSWORD }}" > android/key.properties
-          echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=release.keystore" >> android/key.properties
-
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          printf "%s" "$KEYSTORE_BASE64" | base64 --decode > android/release.keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
       - name: Build Release APK
-        run: flutter build apk --release
-
-      - name: Extract SHA-1
-        run: |
-          if [ -f "android/app/release.keystore" ]; then
-            keytool -list -v -keystore android/app/release.keystore -alias ${{ secrets.RELEASE_KEY_ALIAS }} -storepass ${{ secrets.RELEASE_STORE_PASSWORD }} > key_info.txt || true
-            grep "SHA1:" key_info.txt | head -n 1 | cut -d ' ' -f 12 > sha1.txt || echo "Unknown" > sha1.txt
-          else
-            echo "Unknown" > sha1.txt
-          fi
-          echo "SHA-1: $(cat sha1.txt)"
-
-      - name: Add SHA-1 to APK
-        run: |
-          zip -j build/app/outputs/flutter-apk/app-release.apk sha1.txt
-        continue-on-error: true
+        run: flutter build apk --release --no-shrink
+        env:
+          KEYSTORE_FILE: android/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Get Version from pubspec
         id: get_version
@@ -74,12 +59,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            build/app/outputs/flutter-apk/app-release.apk
-            sha1.txt
+          files: build/app/outputs/flutter-apk/app-release.apk
           tag_name: v${{ steps.get_version.outputs.version }}
           name: Release v${{ steps.get_version.outputs.version }}
-          body: "Automated production release for RIYO BOX. SHA-1 Fingerprint included inside APK."
+          body: "Automated production release for RIYO BOX."
           draft: false
           prerelease: false
         env:
