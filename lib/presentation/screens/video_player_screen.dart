@@ -52,6 +52,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   double _duration = 1;
   double _bufferPosition = 0;
   Timer? _playbackTimer;
+  StreamSubscription? _eventSubscription;
 
   @override
   void initState() {
@@ -91,33 +92,60 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
         // 5. SOURCE HANDLING - Implement Source priority system
         // Priority order: 1. Direct MP4 (direct), 2. M3U8 HLS (hls), 3. Embed (embed)
+        // Also sort by quality if type is same
         _sources.sort((a, b) {
-          int score(String type) {
+          int typeScore(String type) {
             if (type == 'direct') return 3;
             if (type == 'hls') return 2;
             if (type == 'embed') return 1;
             return 0;
           }
-          return score(b.type).compareTo(score(a.type));
+          int qualityScore(String q) {
+            final lowerQ = q.toLowerCase();
+            if (lowerQ.contains('4k')) return 4;
+            if (lowerQ.contains('1080')) return 3;
+            if (lowerQ.contains('720')) return 2;
+            if (lowerQ.contains('480')) return 1;
+            return 0;
+          }
+
+          final ts = typeScore(b.type).compareTo(typeScore(a.type));
+          if (ts != 0) return ts;
+          return qualityScore(b.quality).compareTo(qualityScore(a.quality));
         });
 
         if (_sources.isNotEmpty) {
-           _currentSourceIndex = 0;
-           _selectedSource = _sources[_currentSourceIndex];
-        }
-
-        if (mounted) {
-          _initPlayer();
+          _currentSourceIndex = 0;
+          _selectedSource = _sources[_currentSourceIndex];
+          if (mounted) _initPlayer();
+        } else if (widget.videoUrl != null) {
+          if (mounted) _initPlayer();
+        } else {
+          if (mounted) {
+            setState(() {
+              _isError = true;
+              _isLoadingSource = false;
+            });
+          }
         }
       } catch (e) {
         debugPrint('Error fetching player data: $e');
+        if (mounted) {
+          setState(() {
+            _isError = true;
+            _isLoadingSource = false;
+          });
+        }
+      }
+    } else if (widget.videoUrl != null) {
+      if (mounted) _initPlayer();
+    } else {
+      if (mounted) {
         setState(() {
           _isError = true;
           _isLoadingSource = false;
         });
       }
-    } else if (widget.videoUrl != null) {
-       _initPlayer();
     }
   }
 
@@ -175,11 +203,17 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
     // 2. IMPROVE THE VIDEO PLAYER - Integrate ExoPlayer (via native engine)
     _engine!.load(url);
-
-    // Automatic switch to another source if one fails
     _engine!.setEventCallback();
-    // Note: In a real app, the native engine would trigger an error event
-    // which we would catch and call _handleSourceError().
+
+    // 6. ERROR HANDLING - Improve reliability of streaming
+    // Automatic switch to another source if one fails
+    _eventSubscription?.cancel();
+    _eventSubscription = _engine!.eventStream.listen((event) {
+      if (event['event'] == 3) { // Assume 3 is ERROR event from native engine
+        debugPrint('Native player error received, switching source...');
+        _handleSourceError();
+      }
+    });
 
     _engine!.play();
 
@@ -240,6 +274,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   @override
   void dispose() {
     _playbackTimer?.cancel();
+    _eventSubscription?.cancel();
     WakelockPlus.disable();
     _engine?.dispose();
     if (_textureId != null) {
