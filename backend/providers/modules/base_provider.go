@@ -1,11 +1,13 @@
 package modules
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"net/url"
 	"strings"
 
+	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/scrapers"
 )
@@ -33,6 +35,33 @@ func (p *BaseProvider) detectType(url string, isEmbed bool) string {
 }
 
 func (p *BaseProvider) Search(query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
+	// METHOD 9 - PROVIDER RESPONSE CACHE
+	cacheKey := fmt.Sprintf("provider_%s_%s_%v_%v_%v", strings.ToLower(p.Name), strings.ReplaceAll(strings.ToLower(query), " ", "_"), isTvShow, season, episode)
+	cached, err := cache.GetOrSetCache(cacheKey, cache.ProviderTTL, func() (interface{}, error) {
+		return p.searchInternal(query, isTvShow, season, episode)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Type assertion back to models.StreamSource list
+	// Note: JSON deserialization might return map[string]interface{} for structs
+	// We handle conversion in handlers or use a more specific wrapper if needed.
+	// For now, let's keep it simple as the requirement asks for GetOrSetCache returning interface{}
+
+	if sources, ok := cached.([]models.StreamSource); ok {
+		return sources, nil
+	}
+
+	// Handle case where it's generic data from Redis
+	var sources []models.StreamSource
+	data, _ := json.Marshal(cached)
+	json.Unmarshal(data, &sources)
+	return sources, nil
+}
+
+func (p *BaseProvider) searchInternal(query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
 	searchQuery := query
 	if isTvShow {
 		searchQuery = fmt.Sprintf("%s S%02dE%02d", query, season, episode)

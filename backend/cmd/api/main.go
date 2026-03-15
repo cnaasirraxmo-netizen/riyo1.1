@@ -10,6 +10,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/handlers"
 	"github.com/riyobox/backend/internal/middleware"
@@ -28,6 +29,7 @@ func main() {
 	}
 
 	db.ConnectDB()
+	cache.InitRedis()
 	utils.InitR2()
 
 	// Initialize New Services

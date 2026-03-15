@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -94,16 +96,28 @@ func GetComingSoonMovies(c *gin.Context) {
 
 func GetMovieByID(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := bson.ObjectIDFromHex(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid movie ID"})
-		return
-	}
 
-	collection := db.DB.Collection("movies")
-	var movie models.Movie
-	err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&movie)
+	cacheKey := fmt.Sprintf("movie_%s", idStr)
+	cached, err := cache.GetOrSetCache(cacheKey, cache.MetadataTTL, func() (interface{}, error) {
+		id, err := bson.ObjectIDFromHex(idStr)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid movie ID")
+		}
+
+		collection := db.DB.Collection("movies")
+		var movie models.Movie
+		err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&movie)
+		if err != nil {
+			return nil, err
+		}
+		return movie, nil
+	})
+
 	if err != nil {
+		if err.Error() == "Invalid movie ID" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
+		}
 		if err == mongo.ErrNoDocuments {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Movie not found"})
 			return
@@ -112,5 +126,5 @@ func GetMovieByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, movie)
+	c.JSON(http.StatusOK, cached)
 }
