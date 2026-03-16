@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -74,6 +76,50 @@ func GetHome(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, cached)
+}
+
+func ProxyStream(c *gin.Context) {
+	encodedURL := c.Param("id")
+	decodedURLBytes, err := base64.URLEncoding.DecodeString(encodedURL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid stream ID"})
+		return
+	}
+	targetURL := string(decodedURLBytes)
+
+	// Create request to original source
+	req, err := http.NewRequest("GET", targetURL, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create stream request"})
+		return
+	}
+
+	// Forward important headers from the client (like Range for seeking)
+	for name, values := range c.Request.Header {
+		if name == "Range" || name == "User-Agent" {
+			for _, value := range values {
+				req.Header.Add(name, value)
+			}
+		}
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach source domain"})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy headers back to the client
+	for name, values := range resp.Header {
+		for _, value := range values {
+			c.Header(name, value)
+		}
+	}
+
+	c.Status(resp.StatusCode)
+	io.Copy(c.Writer, resp.Body)
 }
 
 func GetMoviesByFilter(filter bson.M) gin.HandlerFunc {

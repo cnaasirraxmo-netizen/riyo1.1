@@ -1,7 +1,10 @@
 package services
 
 import (
+	"encoding/base64"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -108,7 +111,24 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 	}
 
 	wg.Wait()
-	return e.rankSources(e.deduplicateSources(allSources))
+	deduped := e.deduplicateSources(allSources)
+
+	// Convert direct sources to proxy URLs and remove embeds
+	var finalSources []models.StreamSource
+	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+
+	for _, s := range deduped {
+		if s.Type != "embed" {
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
+			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+			finalSources = append(finalSources, s)
+		}
+	}
+
+	return e.rankSources(finalSources)
 }
 
 func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.StreamSource {
