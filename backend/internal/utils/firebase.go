@@ -14,25 +14,32 @@ var FirebaseApp *firebase.App
 var FirebaseAuth *auth.Client
 
 func InitFirebase() {
-	// Akhri path ka JSON file-ka laga keenay env variable
-	credentialsFile := os.Getenv("FIREBASE_CREDENTIALS_FILE")
-	if credentialsFile == "" {
-		log.Println("FIREBASE_CREDENTIALS_FILE environment variable not set")
-		return
+	var app *firebase.App
+	var err error
+
+	// 1️⃣ Hubi haddii environment variable uu hayo file path
+	if credentialsFile := os.Getenv("FIREBASE_CREDENTIALS_FILE"); credentialsFile != "" {
+		log.Println("Initializing Firebase using credentials file path")
+		opt := option.WithCredentialsFile(credentialsFile)
+		app, err = firebase.NewApp(context.Background(), nil, opt)
+	} else if credentialsJSON := os.Getenv("FIREBASE_CREDENTIALS_JSON"); credentialsJSON != "" {
+		// 2️⃣ Haddii file path uusan jirin, isku day JSON raw
+		log.Println("Initializing Firebase using raw JSON from environment variable")
+		opt := option.WithCredentialsJSON([]byte(credentialsJSON))
+		app, err = firebase.NewApp(context.Background(), nil, opt)
+	} else {
+		// 3️⃣ Haddii labaduba maqan yihiin, isku day default credentials
+		log.Println("Initializing Firebase using default credentials")
+		app, err = firebase.NewApp(context.Background(), nil)
 	}
 
-	// Isticmaal file path si aad u abuurto Firebase app
-	opt := option.WithCredentialsFile(credentialsFile)
-	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
-		log.Printf("error initializing firebase app: %v", err)
-		return
+		log.Fatalf("error initializing firebase app: %v", err)
 	}
 
 	client, err := app.Auth(context.Background())
 	if err != nil {
-		log.Printf("error getting firebase auth client: %v", err)
-		return
+		log.Fatalf("error getting firebase auth client: %v", err)
 	}
 
 	FirebaseApp = app
@@ -40,9 +47,10 @@ func InitFirebase() {
 	log.Println("Firebase initialized successfully")
 }
 
+// VerifyFirebaseToken verifies the Firebase ID token
 func VerifyFirebaseToken(idToken string) (*auth.Token, error) {
 	if FirebaseAuth == nil {
-		return nil, nil // ama handle error sida aad rabto
+		return nil, nil // ama ka handle error sidaad rabto
 	}
 	return FirebaseAuth.VerifyIDToken(context.Background(), idToken)
 }
