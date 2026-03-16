@@ -8,12 +8,15 @@ import 'package:riyo/core/constants.dart';
 import 'package:riyo/models/user.dart';
 
 class AuthProvider with ChangeNotifier {
-  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  late final fb.FirebaseAuth _auth;
+  late final GoogleSignIn _googleSignIn;
 
   static const String _backendUrl = Constants.apiBaseUrl;
   bool _isAuthenticated = false;
   bool _isOnboardingComplete = false;
+  bool _isInitialized = false;
+
+  bool get isInitialized => _isInitialized;
   String? _token;
   String? _role;
   User? _user;
@@ -25,6 +28,12 @@ class AuthProvider with ChangeNotifier {
   User? get user => _user;
 
   AuthProvider() {
+    try {
+      _auth = fb.FirebaseAuth.instance;
+      _googleSignIn = GoogleSignIn();
+    } catch (e) {
+      debugPrint('Error initializing AuthProvider dependencies: $e');
+    }
     _loadState();
   }
 
@@ -40,6 +49,7 @@ class AuthProvider with ChangeNotifier {
       _user = User.fromJson(jsonDecode(userJson));
     }
 
+    _isInitialized = true;
     notifyListeners();
   }
 
