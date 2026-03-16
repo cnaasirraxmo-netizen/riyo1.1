@@ -45,8 +45,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // Give it a bit more time to ensure all providers are initialized
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Wait for auth provider to be initialized
+    int attempts = 0;
+    while (!authProvider.isInitialized && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      attempts++;
+      debugPrint('Waiting for AuthProvider initialization... attempt $attempts');
+    }
 
     if (!mounted) return;
 

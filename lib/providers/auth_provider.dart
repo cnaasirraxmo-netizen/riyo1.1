@@ -8,8 +8,8 @@ import 'package:riyo/core/constants.dart';
 import 'package:riyo/models/user.dart';
 
 class AuthProvider with ChangeNotifier {
-  late final fb.FirebaseAuth _auth;
-  late final GoogleSignIn _googleSignIn;
+  fb.FirebaseAuth? _auth;
+  GoogleSignIn? _googleSignIn;
 
   static const String _backendUrl = Constants.apiBaseUrl;
   bool _isAuthenticated = false;
@@ -34,7 +34,11 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error initializing AuthProvider dependencies: $e');
     }
-    _loadState();
+    _loadState().catchError((e) {
+      debugPrint('Error loading AuthProvider state: $e');
+      _isInitialized = true;
+      notifyListeners();
+    });
   }
 
   Future<void> _loadState() async {
@@ -54,9 +58,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> login(String email, String password) async {
+    if (_auth == null) throw Exception("Firebase Auth not initialized");
     try {
       // 1. Firebase Login
-      final fb.UserCredential credential = await _auth.signInWithEmailAndPassword(
+      final fb.UserCredential credential = await _auth!.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -78,7 +83,7 @@ class AuthProvider with ChangeNotifier {
         final data = jsonDecode(response.body);
         await _handleLoginSuccess(data);
       } else {
-        await _auth.signOut();
+        await _auth?.signOut();
         throw Exception(_parseErrorMessage(response));
       }
     } catch (e) {
@@ -87,9 +92,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> signup(String name, String email, String password) async {
+    if (_auth == null) throw Exception("Firebase Auth not initialized");
     try {
       // 1. Firebase Signup
-      final fb.UserCredential credential = await _auth.createUserWithEmailAndPassword(
+      final fb.UserCredential credential = await _auth!.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -122,8 +128,9 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> loginWithGoogle() async {
+    if (_googleSignIn == null || _auth == null) throw Exception("Google Sign-In/Firebase not initialized");
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
       if (googleUser == null) return;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -132,7 +139,7 @@ class AuthProvider with ChangeNotifier {
         idToken: googleAuth.idToken,
       );
 
-      final fb.UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final fb.UserCredential userCredential = await _auth!.signInWithCredential(credential);
       final String? idToken = await userCredential.user?.getIdToken();
 
       final response = await http.post(
@@ -149,8 +156,8 @@ class AuthProvider with ChangeNotifier {
         final data = jsonDecode(response.body);
         await _handleLoginSuccess(data);
       } else {
-        await _auth.signOut();
-        await _googleSignIn.signOut();
+        await _auth?.signOut();
+        await _googleSignIn?.signOut();
         throw Exception(_parseErrorMessage(response));
       }
     } catch (e) {
@@ -159,8 +166,9 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
+    if (_auth == null) throw Exception("Firebase Auth not initialized");
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      await _auth!.sendPasswordResetEmail(email: email);
     } catch (e) {
       _handleError(e);
     }
@@ -190,8 +198,8 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+    await _auth?.signOut();
+    await _googleSignIn?.signOut();
     _isAuthenticated = false;
     _token = null;
     _role = null;

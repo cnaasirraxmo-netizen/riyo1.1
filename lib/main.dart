@@ -97,28 +97,40 @@ void main() async {
 
   try {
     debugPrint('Starting EasyLocalization initialization...');
-    await EasyLocalization.ensureInitialized();
+    await EasyLocalization.ensureInitialized().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        debugPrint('EasyLocalization initialization timed out after 5 seconds');
+      },
+    );
 
     debugPrint('Starting Firebase initialization...');
-    await Firebase.initializeApp().timeout(
-      const Duration(seconds: 10),
-      onTimeout: () {
-        debugPrint('Firebase initialization timed out after 10 seconds');
-        return Firebase.app(); // Return default app if already initialized, or throw
-      },
-    );
+    try {
+      await Firebase.initializeApp().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('Firebase initialization timed out after 10 seconds');
+          return Firebase.app(); // Return default app if already initialized, or throw
+        },
+      );
+    } catch (e) {
+      debugPrint('Firebase initialization error (might already be initialized): $e');
+    }
 
     debugPrint('Starting NotificationService initialization...');
-    await NotificationService.initialize().timeout(
-      const Duration(seconds: 10),
-      onTimeout: () {
-        debugPrint('NotificationService initialization timed out after 10 seconds');
-      },
-    );
+    try {
+      await NotificationService.initialize().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('NotificationService initialization timed out after 10 seconds');
+        },
+      );
+    } catch (e) {
+      debugPrint('NotificationService initialization error: $e');
+    }
     debugPrint('All critical initializations complete.');
   } catch (e) {
     debugPrint('CRITICAL APP INIT ERROR: $e');
-    // We don't rethrow here to allow the app to potentially show the error UI or splash screen
   }
 
   runApp(
