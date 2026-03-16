@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:riyo/core/constants.dart';
 import 'package:riyo/models/user.dart';
+import 'package:riyo/services/notification_service.dart';
 
 class AuthProvider with ChangeNotifier {
   fb.FirebaseAuth? _auth;
@@ -68,6 +69,7 @@ class AuthProvider with ChangeNotifier {
 
       final String? idToken = await credential.user?.getIdToken();
       if (idToken == null) throw Exception("Failed to get ID Token from Firebase");
+      final String? fcmToken = await NotificationService.getToken();
 
       // 2. Backend Sync/Login
       final response = await http.post(
@@ -76,6 +78,7 @@ class AuthProvider with ChangeNotifier {
         body: jsonEncode({
           'email': email,
           'firebaseToken': idToken,
+          'fcmToken': fcmToken,
         }),
       ).timeout(const Duration(seconds: 30));
 
@@ -103,6 +106,7 @@ class AuthProvider with ChangeNotifier {
 
       final String? idToken = await credential.user?.getIdToken();
       if (idToken == null) throw Exception("Failed to get ID Token from Firebase");
+      final String? fcmToken = await NotificationService.getToken();
 
       // 2. Backend Signup
       final response = await http.post(
@@ -112,6 +116,7 @@ class AuthProvider with ChangeNotifier {
           'name': name,
           'email': email,
           'firebaseToken': idToken,
+          'fcmToken': fcmToken,
         }),
       ).timeout(const Duration(seconds: 30));
 
@@ -141,6 +146,7 @@ class AuthProvider with ChangeNotifier {
 
       final fb.UserCredential userCredential = await _auth!.signInWithCredential(credential);
       final String? idToken = await userCredential.user?.getIdToken();
+      final String? fcmToken = await NotificationService.getToken();
 
       final response = await http.post(
         Uri.parse('$_backendUrl/auth/google'),
@@ -149,6 +155,7 @@ class AuthProvider with ChangeNotifier {
           'name': userCredential.user?.displayName,
           'email': userCredential.user?.email,
           'firebaseToken': idToken,
+          'fcmToken': fcmToken,
         }),
       ).timeout(const Duration(seconds: 30));
 

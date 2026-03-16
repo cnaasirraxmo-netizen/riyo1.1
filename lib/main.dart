@@ -125,6 +125,7 @@ void main() async {
           debugPrint('NotificationService initialization timed out after 10 seconds');
         },
       );
+      await NotificationService.setupInteractedMessage();
     } catch (e) {
       debugPrint('NotificationService initialization error: $e');
     }

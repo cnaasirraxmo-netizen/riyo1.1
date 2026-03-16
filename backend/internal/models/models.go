@@ -24,6 +24,7 @@ type User struct {
 	Password  string          `bson:"password" json:"-"`
 	Role      string          `bson:"role" json:"role"`
 	Watchlist []bson.ObjectID `bson:"watchlist" json:"watchlist"`
+	FCMTokens []string        `bson:"fcmTokens" json:"fcmTokens"`
 	Settings  UserSettings    `bson:"settings" json:"settings"`
 	CreatedAt time.Time       `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time       `bson:"updatedAt" json:"updatedAt"`
@@ -133,11 +134,13 @@ type HomeSection struct {
 
 type Notification struct {
 	ID        bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
-	User      bson.ObjectID `bson:"user" json:"user"`
+	User      bson.ObjectID `bson:"user,omitempty" json:"user,omitempty"` // If empty, it's a broadcast
 	Title     string        `bson:"title" json:"title"`
 	Message   string        `bson:"message" json:"message"`
 	Movie     bson.ObjectID `bson:"movie,omitempty" json:"movie,omitempty"`
 	IsRead    bool          `bson:"isRead" json:"isRead"`
+	Type      string        `bson:"type" json:"type"` // e.g., "welcome", "admin", "movie_release"
+	Status    string        `bson:"status" json:"status"` // "sent", "failed"
 	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
