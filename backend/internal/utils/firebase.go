@@ -14,19 +14,16 @@ var FirebaseApp *firebase.App
 var FirebaseAuth *auth.Client
 
 func InitFirebase() {
-	// Attempt to initialize from credentials file if it exists, otherwise use default
-	var app *firebase.App
-	var err error
-
+	// Akhri path ka JSON file-ka laga keenay env variable
 	credentialsFile := os.Getenv("FIREBASE_CREDENTIALS_FILE")
-	if credentialsFile != "" {
-		opt := option.WithCredentialsFile(credentialsFile)
-		app, err = firebase.NewApp(context.Background(), nil, opt)
-	} else {
-		// Fallback to environment variables or local ADC
-		app, err = firebase.NewApp(context.Background(), nil)
+	if credentialsFile == "" {
+		log.Println("FIREBASE_CREDENTIALS_FILE environment variable not set")
+		return
 	}
 
+	// Isticmaal file path si aad u abuurto Firebase app
+	opt := option.WithCredentialsFile(credentialsFile)
+	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		log.Printf("error initializing firebase app: %v", err)
 		return
@@ -45,7 +42,7 @@ func InitFirebase() {
 
 func VerifyFirebaseToken(idToken string) (*auth.Token, error) {
 	if FirebaseAuth == nil {
-		return nil, nil // Or handle error
+		return nil, nil // ama handle error sida aad rabto
 	}
 	return FirebaseAuth.VerifyIDToken(context.Background(), idToken)
 }
