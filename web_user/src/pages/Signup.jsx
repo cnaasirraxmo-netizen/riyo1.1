@@ -74,6 +74,23 @@ const Signup = ({ onLogin }) => {
           </button>
         </form>
 
+        <div className="mt-6 flex items-center gap-4">
+          <div className="h-px bg-white/10 flex-1"></div>
+          <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">OR</span>
+          <div className="h-px bg-white/10 flex-1"></div>
+        </div>
+
+        <button
+          onClick={() => {
+             // Mock Google login for web
+             alert('Google Sign In is only fully supported on mobile. Web integration requires Firebase Auth setup.');
+          }}
+          className="w-full mt-6 bg-white hover:bg-gray-100 text-black py-3 rounded font-bold transition-colors flex items-center justify-center gap-3 text-sm"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+          CONTINUE WITH GOOGLE
+        </button>
+
         <p className="mt-12 text-gray-500">
           Already have an account? <Link to="/login" className="text-white font-bold hover:underline">Sign in.</Link>
         </p>

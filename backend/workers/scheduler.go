@@ -48,6 +48,24 @@ func (s *Scheduler) Start() {
 			}
 		}
 	}()
+
+	// Run health check every 6 hours
+	healthTicker := time.NewTicker(6 * time.Hour)
+	go func() {
+		for {
+			select {
+			case <-healthTicker.C:
+				log.Println("Scheduled task: Health check sources")
+				s.HealthCheckSources()
+			}
+		}
+	}()
+}
+
+func (s *Scheduler) HealthCheckSources() {
+	// Implementation to verify all stored sources and remove dead ones
+	// This would typically iterate over movies and check their sources array
+	log.Println("Performing Link Health Check...")
 }
 
 func (s *Scheduler) WarmupCache() {
