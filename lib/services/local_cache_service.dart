@@ -34,6 +34,10 @@ class LocalCacheService {
       _isOnline = !result.contains(ConnectivityResult.none);
       _connectivityController.add(_isOnline);
       debugPrint('Connectivity changed: \$_isOnline');
+
+      if (_isOnline) {
+        syncOfflineData();
+      }
     });
 
     // Initial check
@@ -67,6 +71,9 @@ class LocalCacheService {
   // Playback Progress
   Future<void> saveProgress(String movieId, int positionMillis) async {
     await _progressBox.put(movieId, positionMillis);
+
+    // Also add to watch history
+    await addToHistory(movieId);
   }
 
   int getProgress(String movieId) {
@@ -79,5 +86,38 @@ class LocalCacheService {
       progress[key.toString()] = _progressBox.get(key);
     }
     return progress;
+  }
+
+  // Watch History
+  Future<void> addToHistory(String movieId) async {
+    final List<String> history = List<String>.from(_historyBox.get('movie_ids', defaultValue: <String>[]));
+    if (history.contains(movieId)) {
+      history.remove(movieId);
+    }
+    history.insert(0, movieId);
+
+    // Keep only last 50 items
+    if (history.length > 50) {
+      history.removeLast();
+    }
+
+    await _historyBox.put('movie_ids', history);
+  }
+
+  List<String> getHistory() {
+    return List<String>.from(_historyBox.get('movie_ids', defaultValue: <String>[]));
+  }
+
+  // Synchronization Logic
+  Future<void> syncOfflineData() async {
+    if (!_isOnline) return;
+
+    debugPrint('Syncing offline data...');
+    // In a real app, you would send watch progress and history to the backend here
+    // Example:
+    // final progress = getAllProgress();
+    // await _apiService.syncWatchProgress(progress);
+
+    debugPrint('Offline sync completed.');
   }
 }

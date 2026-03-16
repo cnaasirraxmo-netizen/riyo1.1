@@ -57,11 +57,14 @@ class ApiService {
 
   // RESTORED METHODS TO FIX CI COMPILATION ERRORS
 
-  Future<List<Movie>> getTrendingMovies({String? token, String? genre, bool isFeatured = false}) async {
+  Future<List<Movie>> getTrendingMovies({String? token, String? genre, bool isFeatured = false, int page = 1, int limit = 20}) async {
     String url = '$_backendUrl/movies';
     final List<String> params = [];
     if (genre != null) params.add('genre=$genre');
     if (isFeatured) params.add('isFeatured=true');
+    params.add('page=$page');
+    params.add('limit=$limit');
+
     if (params.isNotEmpty) url += '?${params.join('&')}';
 
     final response = await http.get(
@@ -74,12 +77,12 @@ class ApiService {
     return [];
   }
 
-  Future<List<Movie>> getTopRatedMovies({String? token}) async {
-    return getTrendingMovies(token: token);
+  Future<List<Movie>> getTopRatedMovies({String? token, int page = 1, int limit = 20}) async {
+    return getTrendingMovies(token: token, page: page, limit: limit);
   }
 
-  Future<List<Movie>> getNowPlayingMovies({String? token}) async {
-    return getTrendingMovies(token: token);
+  Future<List<Movie>> getNowPlayingMovies({String? token, int page = 1, int limit = 20}) async {
+    return getTrendingMovies(token: token, page: page, limit: limit);
   }
 
   Future<Movie> getMovieDetails(String movieId, {String? token}) async {

@@ -29,7 +29,21 @@ func GetHome(c *gin.Context) {
 		topRatedMovies := []models.Movie{}
 		trendingTV := []models.Movie{}
 
-		opts := options.Find().SetLimit(10).SetSort(bson.M{"createdAt": -1})
+		projection := bson.M{
+			"title":       1,
+			"posterUrl":   1,
+			"backdropUrl": 1,
+			"year":        1,
+			"rating":      1,
+			"genre":       1,
+			"contentType": 1,
+			"isTvShow":    1,
+			"isPublished": 1,
+			"status":      1,
+			"accessType":  1,
+		}
+
+		opts := options.Find().SetLimit(10).SetSort(bson.M{"createdAt": -1}).SetProjection(projection)
 
 		cursor, _ := collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": false, "isPublished": true}, opts)
 		cursor.All(context.TODO(), &trendingMovies)
@@ -37,7 +51,7 @@ func GetHome(c *gin.Context) {
 		cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, opts)
 		cursor.All(context.TODO(), &popularMovies)
 
-		optsRating := options.Find().SetLimit(10).SetSort(bson.M{"rating": -1})
+		optsRating := options.Find().SetLimit(10).SetSort(bson.M{"rating": -1}).SetProjection(projection)
 		cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, optsRating)
 		cursor.All(context.TODO(), &topRatedMovies)
 

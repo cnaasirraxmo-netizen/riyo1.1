@@ -55,7 +55,19 @@ func GetMovies(c *gin.Context) {
 		opts := options.Find().
 			SetSort(bson.M{"createdAt": -1}).
 			SetSkip(skip).
-			SetLimit(int64(limit))
+			SetLimit(int64(limit)).
+			SetProjection(bson.M{
+				"title":       1,
+				"posterUrl":   1,
+				"year":        1,
+				"rating":      1,
+				"genre":       1,
+				"contentType": 1,
+				"isTvShow":    1,
+				"isPublished": 1,
+				"status":      1,
+				"accessType":  1,
+			})
 
 		collection := db.DB.Collection("movies")
 		cursor, err := collection.Find(context.TODO(), query, opts)
