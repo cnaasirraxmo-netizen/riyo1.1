@@ -172,6 +172,42 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<void> forgotPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_backendUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        throw Exception(_parseErrorMessage(response));
+      }
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> resetPassword(String email, String code, String newPassword) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_backendUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'code': code,
+          'newPassword': newPassword,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        throw Exception(_parseErrorMessage(response));
+      }
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
   Future<void> sendPasswordResetEmail(String email) async {
     if (_auth == null) throw Exception("Firebase Auth not initialized");
     try {

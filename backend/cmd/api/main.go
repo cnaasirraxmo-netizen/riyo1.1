@@ -92,6 +92,8 @@ func main() {
 		auth.POST("/login", handlers.Login)
 		auth.POST("/google", handlers.GoogleLogin)
 		auth.POST("/verify", handlers.VerifyToken)
+		auth.POST("/forgot-password", handlers.ForgotPassword)
+		auth.POST("/reset-password", handlers.ResetPassword)
 	}
 
 	movies := r.Group("/movies")

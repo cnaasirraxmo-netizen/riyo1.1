@@ -53,6 +53,15 @@ type VideoJob struct {
 	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
 
+type PasswordReset struct {
+	ID        bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	Email     string        `bson:"email" json:"email"`
+	Code      string        `bson:"code" json:"code"`
+	ExpiresAt time.Time     `bson:"expiresAt" json:"expiresAt"`
+	IsUsed    bool          `bson:"isUsed" json:"isUsed"`
+	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
+}
+
 type Episode struct {
 	Number   int            `bson:"number" json:"number"`
 	Title    string         `bson:"title" json:"title"`
