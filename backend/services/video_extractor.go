@@ -1,7 +1,10 @@
 package services
 
 import (
+	"encoding/base64"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -28,30 +31,30 @@ func NewVideoExtractor() *VideoExtractor {
 func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool, season, episode int) []models.StreamSource {
 	var allSources []models.StreamSource
 	var mu sync.Mutex
+	var wg sync.WaitGroup
 
-	// --- 1. SEQUENTIAL FALLBACK WITH NEW SCRAPING PROVIDERS ---
+	// --- 1. CONCURRENT SCRAPING WITH SEARCH PROVIDERS ---
 	if title != "" {
 		newProviders := providers.GetAllProviders()
 		for _, p := range newProviders {
-			sources, err := p.Search(title, isTvShow, season, episode)
-			if err == nil {
-				var validSourcesFromProvider []models.StreamSource
-				for _, s := range sources {
-					if e.ValidateLink(s.URL) {
-						validSourcesFromProvider = append(validSourcesFromProvider, s)
+			wg.Add(1)
+			go func(p providers.Provider) {
+				defer wg.Done()
+				sources, err := p.Search(title, isTvShow, season, episode)
+				if err == nil {
+					for _, s := range sources {
+						if e.ValidateLink(s.URL) {
+							mu.Lock()
+							allSources = append(allSources, s)
+							mu.Unlock()
+						}
 					}
 				}
-				if len(validSourcesFromProvider) > 0 {
-					allSources = append(allSources, validSourcesFromProvider...)
-					// Sequential fallback: if we found valid sources from this provider, we stop.
-					return e.deduplicateSources(allSources)
-				}
-			}
+			}(p)
 		}
 	}
 
-	// --- 2. FALLBACK TO EXISTING EMBED PROVIDERS IF NO SOURCES FOUND ---
-	var wg sync.WaitGroup
+	// --- 2. CONCURRENT SCRAPING WITH EMBED PROVIDERS ---
 	var embedProviders []providers.EmbedProvider
 	if isTvShow {
 		embedProviders = providers.GetTVEmbedProviders()
@@ -108,7 +111,57 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 	}
 
 	wg.Wait()
-	return e.deduplicateSources(allSources)
+	deduped := e.deduplicateSources(allSources)
+
+	// Convert direct sources to proxy URLs and remove embeds
+	var finalSources []models.StreamSource
+	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+
+	for _, s := range deduped {
+		if s.Type != "embed" {
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
+			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+			finalSources = append(finalSources, s)
+		}
+	}
+
+	return e.rankSources(finalSources)
+}
+
+func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.StreamSource {
+	// Simple ranking based on quality and provider reliability
+	// 4K > 1080p > 720p > 480p > 360p
+	qualityMap := map[string]int{
+		"4K":    5,
+		"1080p": 4,
+		"720p":  3,
+		"480p":  2,
+		"360p":  1,
+	}
+
+	// Stability/Reliability heuristic: direct links are better than embeds
+	providerRank := func(s models.StreamSource) int {
+		if s.Type != "embed" {
+			return 10
+		}
+		return 1
+	}
+
+	for i := 0; i < len(sources); i++ {
+		for j := i + 1; j < len(sources); j++ {
+			scoreI := qualityMap[sources[i].Quality]*10 + providerRank(sources[i])
+			scoreJ := qualityMap[sources[j].Quality]*10 + providerRank(sources[j])
+
+			if scoreJ > scoreI {
+				sources[i], sources[j] = sources[j], sources[i]
+			}
+		}
+	}
+
+	return sources
 }
 
 func (e *VideoExtractor) ValidateLink(url string) bool {

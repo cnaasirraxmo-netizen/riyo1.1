@@ -50,9 +50,20 @@ import 'package:riyo/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:riyo/services/local_cache_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Hive
+  try {
+    await Hive.initFlutter();
+    await LocalCacheService().init();
+    debugPrint('Hive initialized successfully.');
+  } catch (e) {
+    debugPrint('Hive initialization error: $e');
+  }
 
   // Global Error Handler for UI errors
   ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -125,6 +136,7 @@ void main() async {
           debugPrint('NotificationService initialization timed out after 10 seconds');
         },
       );
+      await NotificationService.setupInteractedMessage();
     } catch (e) {
       debugPrint('NotificationService initialization error: $e');
     }

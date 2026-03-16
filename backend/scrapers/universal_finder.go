@@ -115,17 +115,20 @@ func (f *UniversalFinder) uniqueSources(sources []string) []string {
 
 func (f *UniversalFinder) DetectQuality(url string) string {
 	lowerURL := strings.ToLower(url)
-	if strings.Contains(lowerURL, "2160") || strings.Contains(lowerURL, "4k") {
+	if strings.Contains(lowerURL, "2160") || strings.Contains(lowerURL, "4k") || strings.Contains(lowerURL, "uhd") {
 		return "4K"
 	}
-	if strings.Contains(lowerURL, "1080") {
+	if strings.Contains(lowerURL, "1080") || strings.Contains(lowerURL, "fhd") {
 		return "1080p"
 	}
-	if strings.Contains(lowerURL, "720") {
+	if strings.Contains(lowerURL, "720") || strings.Contains(lowerURL, "hd") {
 		return "720p"
 	}
-	if strings.Contains(lowerURL, "480") {
+	if strings.Contains(lowerURL, "480") || strings.Contains(lowerURL, "sd") {
 		return "480p"
+	}
+	if strings.Contains(lowerURL, "360") {
+		return "360p"
 	}
 	return "720p"
 }

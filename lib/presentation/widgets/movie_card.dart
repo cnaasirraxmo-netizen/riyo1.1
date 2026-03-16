@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:riyo/core/design_system.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/services/local_cache_service.dart';
 
 class MovieCard extends StatelessWidget {
   final Movie movie;
@@ -71,7 +72,7 @@ class MovieCard extends StatelessWidget {
                 ),
               ),
             ),
-          if (movie.isDownloaded)
+          if (movie.isDownloaded || LocalCacheService().getCachedMovie(movie.backendId ?? movie.id.toString()) != null)
             Positioned(
               top: 10,
               right: 10,
@@ -81,8 +82,11 @@ class MovieCard extends StatelessWidget {
                   color: Colors.black54,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle,
-                    color: Colors.green, size: 18),
+                child: Icon(
+                  movie.isDownloaded ? Icons.check_circle : Icons.offline_pin_rounded,
+                  color: movie.isDownloaded ? Colors.green : Colors.blueAccent,
+                  size: 18,
+                ),
               ),
             ),
           if (movie.isDownloading)

@@ -31,11 +31,33 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      Provider.of<HomeProvider>(context, listen: false)
-          .loadConfig(token: auth.token);
+      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+      await homeProvider.loadConfig(token: auth.token);
+      if (mounted) {
+        _precacheHomeImages();
+      }
     });
+  }
+
+  void _precacheHomeImages() {
+    final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+    // Precache first few images from each section
+    for (var entry in homeProvider.sections) {
+      final title = entry['title'] as String;
+      homeProvider.getSectionFuture(title, '').then((movies) {
+        if (!mounted) return;
+        for (var movie in movies.take(5)) {
+          if (movie.posterPath.isNotEmpty) {
+            final url = movie.posterPath.startsWith('http')
+                ? movie.posterPath
+                : 'https://image.tmdb.org/t/p/w500${movie.posterPath}';
+            precacheImage(CachedNetworkImageProvider(url), context);
+          }
+        }
+      });
+    }
   }
 
   Future<List<Movie>> _getFilteredMovies(

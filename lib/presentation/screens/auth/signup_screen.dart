@@ -82,6 +82,40 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 isLoading: _isLoading,
                 onPressed: _handleSignUp,
               ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR',
+                      style: AppTypography.labelSmall,
+                    ),
+                  ),
+                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              RiyoSocialButton(
+                text: 'Continue with Google',
+                icon: Image.network('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg', height: 24, errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 28)),
+                onPressed: () async {
+                  setState(() => _isLoading = true);
+                  try {
+                    await Provider.of<AuthProvider>(context, listen: false).loginWithGoogle();
+                    if (mounted) context.go('/home');
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Google login failed: ${e.toString().replaceAll('Exception: ', '')}')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _isLoading = false);
+                  }
+                },
+              ),
               const SizedBox(height: 40),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

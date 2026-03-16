@@ -92,6 +92,8 @@ func main() {
 		auth.POST("/login", handlers.Login)
 		auth.POST("/google", handlers.GoogleLogin)
 		auth.POST("/verify", handlers.VerifyToken)
+		auth.POST("/forgot-password", handlers.ForgotPassword)
+		auth.POST("/reset-password", handlers.ResetPassword)
 	}
 
 	movies := r.Group("/movies")
@@ -143,6 +145,8 @@ func main() {
 		admin.DELETE("/movies/:id", handlers.AdminDeleteMovie)
 		admin.GET("/users", handlers.AdminGetUsers)
 		admin.PUT("/system-config", handlers.AdminUpdateSystemConfig)
+		admin.POST("/notifications", handlers.SendAdminNotification)
+		admin.GET("/notifications/history", handlers.GetNotificationHistory)
 	}
 
 	upload := r.Group("/upload")

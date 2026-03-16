@@ -24,6 +24,7 @@ type User struct {
 	Password  string          `bson:"password" json:"-"`
 	Role      string          `bson:"role" json:"role"`
 	Watchlist []bson.ObjectID `bson:"watchlist" json:"watchlist"`
+	FCMTokens []string        `bson:"fcmTokens" json:"fcmTokens"`
 	Settings  UserSettings    `bson:"settings" json:"settings"`
 	CreatedAt time.Time       `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time       `bson:"updatedAt" json:"updatedAt"`
@@ -50,6 +51,15 @@ type VideoJob struct {
 	Progress  int           `bson:"progress" json:"progress"`
 	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
+}
+
+type PasswordReset struct {
+	ID        bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	Email     string        `bson:"email" json:"email"`
+	Code      string        `bson:"code" json:"code"`
+	ExpiresAt time.Time     `bson:"expiresAt" json:"expiresAt"`
+	IsUsed    bool          `bson:"isUsed" json:"isUsed"`
+	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
 }
 
 type Episode struct {
@@ -133,11 +143,13 @@ type HomeSection struct {
 
 type Notification struct {
 	ID        bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
-	User      bson.ObjectID `bson:"user" json:"user"`
+	User      bson.ObjectID `bson:"user,omitempty" json:"user,omitempty"` // If empty, it's a broadcast
 	Title     string        `bson:"title" json:"title"`
 	Message   string        `bson:"message" json:"message"`
 	Movie     bson.ObjectID `bson:"movie,omitempty" json:"movie,omitempty"`
 	IsRead    bool          `bson:"isRead" json:"isRead"`
+	Type      string        `bson:"type" json:"type"` // e.g., "welcome", "admin", "movie_release"
+	Status    string        `bson:"status" json:"status"` // "sent", "failed"
 	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
 }

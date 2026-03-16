@@ -18,31 +18,102 @@ class GenreMoviesScreen extends StatefulWidget {
 
 class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
   final ApiService _apiService = ApiService();
-  Future<List<Movie>>? _moviesFuture;
+  final ScrollController _scrollController = ScrollController();
+
+  final List<Movie> _movies = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadMovies();
-    });
+    _loadInitialData();
+    _scrollController.addListener(_onScroll);
   }
 
-  void _loadMovies() {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    setState(() {
-      if (widget.genreName == 'Watchlist' || widget.genreName == 'MY WATCHLIST') {
-        _moviesFuture = _apiService.getWatchlist(auth.token ?? "");
-      } else if (widget.genreName == 'Trending Now') {
-        _moviesFuture = _apiService.getTrendingMovies(token: auth.token);
-      } else if (widget.genreName == 'Popular on RIYO') {
-        _moviesFuture = _apiService.getTopRatedMovies(token: auth.token);
-      } else if (widget.genreName == 'New Releases') {
-        _moviesFuture = _apiService.getNowPlayingMovies(token: auth.token);
-      } else {
-        _moviesFuture = _apiService.getTrendingMovies(token: auth.token, genre: widget.genreName);
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && _hasMore) {
+        _loadMoreMovies();
       }
+    }
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _movies.clear();
+      _currentPage = 1;
+      _hasMore = true;
     });
+
+    try {
+      final movies = await _fetchPage(1);
+      setState(() {
+        _movies.addAll(movies);
+        _isLoading = false;
+        if (movies.length < 20) {
+          _hasMore = false;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = e.toString();
+      });
+    }
+  }
+
+  Future<void> _loadMoreMovies() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final nextPage = _currentPage + 1;
+      final movies = await _fetchPage(nextPage);
+
+      setState(() {
+        _currentPage = nextPage;
+        _movies.addAll(movies);
+        _isLoading = false;
+        if (movies.length < 20) {
+          _hasMore = false;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<List<Movie>> _fetchPage(int page) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    if (widget.genreName == 'Watchlist' || widget.genreName == 'MY WATCHLIST') {
+      // Watchlist usually doesn't have offset pagination in this backend yet,
+      // but we'll fetch all or just one page for now.
+      if (page > 1) return [];
+      return _apiService.getWatchlist(auth.token ?? "");
+    } else if (widget.genreName == 'Trending Now') {
+      return _apiService.getTrendingMovies(token: auth.token, page: page);
+    } else if (widget.genreName == 'Popular on RIYO') {
+      return _apiService.getTopRatedMovies(token: auth.token, page: page);
+    } else if (widget.genreName == 'New Releases') {
+      return _apiService.getNowPlayingMovies(token: auth.token, page: page);
+    } else {
+      return _apiService.getTrendingMovies(token: auth.token, genre: widget.genreName, page: page);
+    }
   }
 
   @override
@@ -52,41 +123,61 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
         title: Text(widget.genreName, style: AppTypography.titleLarge),
         surfaceTintColor: Colors.transparent,
       ),
-      body: FutureBuilder<List<Movie>>(
-        future: _moviesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildLoadingGrid();
-          }
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.movie_filter_rounded,
-                      size: 80, color: Theme.of(context).colorScheme.primary.withAlpha(50)),
-                  const SizedBox(height: 16),
-                  Text('No movies found', style: AppTypography.bodyMedium),
-                ],
-              ),
-            );
-          }
+      body: _movies.isEmpty && _isLoading
+        ? _buildLoadingGrid()
+        : _error != null
+          ? _buildErrorView()
+          : _movies.isEmpty
+            ? _buildEmptyView()
+            : _buildMovieGrid(),
+    );
+  }
 
-          final movies = snapshot.data!;
-          return GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: movies.length,
-            itemBuilder: (context, index) {
-              return MovieCard(movie: movies[index]);
-            },
-          );
-        },
+  Widget _buildMovieGrid() {
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.65,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: _movies.length + (_hasMore ? 3 : 0),
+      itemBuilder: (context, index) {
+        if (index < _movies.length) {
+          return MovieCard(movie: _movies[index]);
+        } else {
+          return const ShimmerLoading.rectangular(height: 160);
+        }
+      },
+    );
+  }
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
+          const SizedBox(height: 16),
+          Text('Failed to load movies', style: AppTypography.bodyMedium),
+          TextButton(onPressed: _loadInitialData, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.movie_filter_rounded,
+              size: 80, color: Theme.of(context).colorScheme.primary.withAlpha(50)),
+          const SizedBox(height: 16),
+          Text('No movies found', style: AppTypography.bodyMedium),
+        ],
       ),
     );
   }
@@ -100,7 +191,7 @@ class _GenreMoviesScreenState extends State<GenreMoviesScreen> {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      itemCount: 9,
+      itemCount: 12,
       itemBuilder: (context, index) => const ShimmerLoading.rectangular(height: 160),
     );
   }

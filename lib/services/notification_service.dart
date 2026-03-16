@@ -31,7 +31,7 @@ class NotificationService {
     await _localNotificationsPlugin.initialize(
       settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Handle notification tap
+        _handleNotificationTap(response.payload);
       },
     );
 
@@ -98,5 +98,30 @@ class NotificationService {
 
   static Future<String?> getToken() async {
     return await FirebaseMessaging.instance.getToken();
+  }
+
+  static void _handleNotificationTap(String? payload) {
+    if (payload != null) {
+      // Handle navigation based on payload
+      debugPrint("Notification tapped with payload: $payload");
+    }
+  }
+
+  static Future<void> setupInteractedMessage() async {
+    // Get any messages which caused the application to open from a terminated state.
+    RemoteMessage? initialMessage =
+        await FirebaseMessaging.instance.getInitialMessage();
+
+    if (initialMessage != null) {
+      _handleMessage(initialMessage);
+    }
+
+    // Also handle any interaction when the app is in the background via a listener
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+  }
+
+  static void _handleMessage(RemoteMessage message) {
+    debugPrint("Handling message: ${message.data}");
+    // Navigate based on message.data['type'] or other keys
   }
 }

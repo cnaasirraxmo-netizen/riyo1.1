@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -29,7 +31,21 @@ func GetHome(c *gin.Context) {
 		topRatedMovies := []models.Movie{}
 		trendingTV := []models.Movie{}
 
-		opts := options.Find().SetLimit(10).SetSort(bson.M{"createdAt": -1})
+		projection := bson.M{
+			"title":       1,
+			"posterUrl":   1,
+			"backdropUrl": 1,
+			"year":        1,
+			"rating":      1,
+			"genre":       1,
+			"contentType": 1,
+			"isTvShow":    1,
+			"isPublished": 1,
+			"status":      1,
+			"accessType":  1,
+		}
+
+		opts := options.Find().SetLimit(10).SetSort(bson.M{"createdAt": -1}).SetProjection(projection)
 
 		cursor, _ := collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": false, "isPublished": true}, opts)
 		cursor.All(context.TODO(), &trendingMovies)
@@ -37,7 +53,7 @@ func GetHome(c *gin.Context) {
 		cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, opts)
 		cursor.All(context.TODO(), &popularMovies)
 
-		optsRating := options.Find().SetLimit(10).SetSort(bson.M{"rating": -1})
+		optsRating := options.Find().SetLimit(10).SetSort(bson.M{"rating": -1}).SetProjection(projection)
 		cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, optsRating)
 		cursor.All(context.TODO(), &topRatedMovies)
 
@@ -60,6 +76,50 @@ func GetHome(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, cached)
+}
+
+func ProxyStream(c *gin.Context) {
+	encodedURL := c.Param("id")
+	decodedURLBytes, err := base64.URLEncoding.DecodeString(encodedURL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid stream ID"})
+		return
+	}
+	targetURL := string(decodedURLBytes)
+
+	// Create request to original source
+	req, err := http.NewRequest("GET", targetURL, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create stream request"})
+		return
+	}
+
+	// Forward important headers from the client (like Range for seeking)
+	for name, values := range c.Request.Header {
+		if name == "Range" || name == "User-Agent" {
+			for _, value := range values {
+				req.Header.Add(name, value)
+			}
+		}
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach source domain"})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy headers back to the client
+	for name, values := range resp.Header {
+		for _, value := range values {
+			c.Header(name, value)
+		}
+	}
+
+	c.Status(resp.StatusCode)
+	io.Copy(c.Writer, resp.Body)
 }
 
 func GetMoviesByFilter(filter bson.M) gin.HandlerFunc {

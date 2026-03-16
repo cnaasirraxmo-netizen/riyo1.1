@@ -13,6 +13,7 @@ func RegisterNewRoutes(r *gin.Engine) {
 		api.GET("/search", SearchMovies)
 		api.GET("/movie/:id/sources", GetMovieSources)
 		api.GET("/tv/:id/sources/:season/:episode", GetTVSources)
+		api.GET("/stream/:id", ProxyStream)
 	}
 }
 

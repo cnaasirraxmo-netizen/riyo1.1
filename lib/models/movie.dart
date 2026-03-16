@@ -22,6 +22,26 @@ class StreamSource {
       quality: json['quality'] ?? '720p',
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'label': label,
+      'url': url,
+      'type': type,
+      'provider': provider,
+      'quality': quality,
+    };
+  }
+
+  factory StreamSource.fromMap(Map<String, dynamic> map) {
+    return StreamSource(
+      label: map['label'] ?? '',
+      url: map['url'] ?? '',
+      type: map['type'] ?? 'direct',
+      provider: map['provider'] ?? 'url',
+      quality: map['quality'] ?? '720p',
+    );
+  }
 }
 
 class Movie {
@@ -138,6 +158,44 @@ class Movie {
       'videoUrl': videoUrl,
       'trailerUrl': trailerUrl,
     };
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      '_id': backendId,
+      'title': title,
+      'shortDesc': shortDesc,
+      'description': overview,
+      'posterUrl': posterPath,
+      'bannerUrl': bannerUrl,
+      'backdropUrl': backdropPath,
+      'thumbnailUrl': thumbnailUrl,
+      'year': releaseDate,
+      'rating': voteAverage,
+      'duration': runtime,
+      'genre': genres,
+      'director': director,
+      'cast': cast,
+      'ageRating': ageRating,
+      'contentRating': contentRating,
+      'language': language,
+      'country': country,
+      'quality': quality,
+      'status': status,
+      'accessType': accessType,
+      'isTvShow': isTvShow,
+      'videoUrl': videoUrl,
+      'trailerUrl': trailerUrl,
+      'trailerType': trailerType,
+      'seasons': seasons?.map((s) => s.toMap()).toList(),
+      'sources': sources?.map((s) => s.toMap()).toList(),
+      'notifyUsers': notifyUsers,
+    };
+  }
+
+  factory Movie.fromMap(Map<String, dynamic> map) {
+    return Movie.fromJson(map);
   }
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -274,6 +332,22 @@ class Season {
       episodes: json['episodes'] != null ? (json['episodes'] as List).map((e) => Episode.fromJson(e)).toList() : [],
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'number': number,
+      'title': title,
+      'episodes': episodes.map((e) => e.toMap()).toList(),
+    };
+  }
+
+  factory Season.fromMap(Map<String, dynamic> map) {
+    return Season(
+      number: map['number'] ?? 0,
+      title: map['title'] ?? '',
+      episodes: map['episodes'] != null ? (map['episodes'] as List).map((e) => Episode.fromMap(Map<String, dynamic>.from(e))).toList() : [],
+    );
+  }
 }
 
 class Episode {
@@ -290,6 +364,24 @@ class Episode {
       title: json['title'] ?? '',
       duration: json['duration'] ?? '',
       videoUrl: json['videoUrl'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'number': number,
+      'title': title,
+      'duration': duration,
+      'videoUrl': videoUrl,
+    };
+  }
+
+  factory Episode.fromMap(Map<String, dynamic> map) {
+    return Episode(
+      number: map['number'] ?? 0,
+      title: map['title'] ?? '',
+      duration: map['duration'] ?? '',
+      videoUrl: map['videoUrl'],
     );
   }
 }
