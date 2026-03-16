@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:riyo/services/local_cache_service.dart';
 
 class SafeScreen extends StatelessWidget {
   final Widget child;
@@ -12,6 +13,50 @@ class SafeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _buildContent(context),
+        _buildConnectivityBanner(),
+      ],
+    );
+  }
+
+  Widget _buildConnectivityBanner() {
+    return StreamBuilder<bool>(
+      stream: LocalCacheService().connectivityStream,
+      initialData: LocalCacheService().isOnline,
+      builder: (context, snapshot) {
+        final isOnline = snapshot.data ?? true;
+        if (isOnline) return const SizedBox.shrink();
+
+        return Positioned(
+          top: MediaQuery.of(context).padding.top,
+          left: 0,
+          right: 0,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              color: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.wifi_off_rounded, color: Colors.white, size: 14),
+                  SizedBox(width: 8),
+                  Text(
+                    'Offline Mode - Using Cached Content',
+                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     return _SafeErrorBoundary(
       errorWidget: errorWidget,
       child: child,
@@ -38,6 +83,10 @@ class _SafeErrorBoundaryState extends State<_SafeErrorBoundary> {
 
   @override
   Widget build(BuildContext context) {
+    return _buildContent(context);
+  }
+
+  Widget _buildContent(BuildContext context) {
     if (_hasError) {
       return widget.errorWidget ??
           Scaffold(

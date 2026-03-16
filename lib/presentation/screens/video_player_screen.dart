@@ -10,6 +10,7 @@ import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
@@ -86,6 +87,12 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           _duration = dur <= 0 ? 1 : dur;
         });
         _updateSubtitles(pos);
+
+        // Save progress to provider (and Hive) every 5 seconds
+        if (timer.tick % 10 == 0 && widget.movieId != null) {
+          Provider.of<PlaybackProvider>(context, listen: false)
+              .updateProgress(widget.movieId!, Duration(seconds: pos.toInt()));
+        }
       }
     });
   }
@@ -262,6 +269,15 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     });
 
     _engine!.play();
+
+    // 4. RESUME PLAYBACK - Seek to saved position
+    if (widget.movieId != null) {
+      final savedPos = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId!);
+      if (savedPos > Duration.zero) {
+        debugPrint('Resuming playback at: ${savedPos.inSeconds}s');
+        _engine!.seek(savedPos.inSeconds.toDouble());
+      }
+    }
 
     if (mounted) {
       setState(() => _isLoadingSource = false);

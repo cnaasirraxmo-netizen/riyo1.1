@@ -58,7 +58,11 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoadingSources = false);
+      debugPrint('Error fetching sources: $e');
+      if (mounted) {
+        // Use cached sources if available in movie object from Snapshot
+        setState(() => _isLoadingSources = false);
+      }
     }
   }
 
