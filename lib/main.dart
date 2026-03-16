@@ -96,9 +96,39 @@ void main() async {
   };
 
   try {
-    await EasyLocalization.ensureInitialized();
-    await Firebase.initializeApp().timeout(const Duration(seconds: 5));
-    await NotificationService.initialize().timeout(const Duration(seconds: 5));
+    debugPrint('Starting EasyLocalization initialization...');
+    await EasyLocalization.ensureInitialized().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        debugPrint('EasyLocalization initialization timed out after 5 seconds');
+      },
+    );
+
+    debugPrint('Starting Firebase initialization...');
+    try {
+      await Firebase.initializeApp().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('Firebase initialization timed out after 10 seconds');
+          return Firebase.app(); // Return default app if already initialized, or throw
+        },
+      );
+    } catch (e) {
+      debugPrint('Firebase initialization error (might already be initialized): $e');
+    }
+
+    debugPrint('Starting NotificationService initialization...');
+    try {
+      await NotificationService.initialize().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('NotificationService initialization timed out after 10 seconds');
+        },
+      );
+    } catch (e) {
+      debugPrint('NotificationService initialization error: $e');
+    }
+    debugPrint('All critical initializations complete.');
   } catch (e) {
     debugPrint('CRITICAL APP INIT ERROR: $e');
   }
@@ -148,6 +178,11 @@ class _MyAppState extends State<MyApp> {
           final bool welcome = state.uri.path == '/welcome';
 
           if (splash) return null;
+
+          // Ensure state is loaded before making redirection decisions
+          if (!authProvider.isInitialized) {
+            return null; // Stay on splash while initializing
+          }
 
           if (!authProvider.isOnboardingComplete) {
             return welcome ? null : '/welcome';
