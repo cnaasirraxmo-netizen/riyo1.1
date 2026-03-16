@@ -18,6 +18,10 @@ WORKDIR /app
 
 COPY --from=builder /app/main .
 COPY .env* ./
+COPY firebase-credentials.json* ./
+
+# Set environment variable for Firebase credentials
+ENV FIREBASE_CREDENTIALS_FILE=/app/firebase-credentials.json
 
 EXPOSE 5000
 

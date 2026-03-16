@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 
@@ -17,14 +18,14 @@ func InitFirebase() {
 	var app *firebase.App
 	var err error
 
-	// Akhri JSON credentials ka env variable
+	// Load Firebase credentials from JSON file
 	jsonCreds := os.Getenv("FIREBASE_CREDENTIALS_FILE")
 	if jsonCreds != "" {
-		opt := option.WithCredentialsJSON([]byte(jsonCreds)) // ✅ Isticmaal JSON content
+		opt := option.WithCredentialsFile(jsonCreds)
 		app, err = firebase.NewApp(context.Background(), nil, opt)
-		log.Println("Initializing Firebase using credentials JSON from environment")
+		log.Printf("Initializing Firebase using credentials file: %s\n", jsonCreds)
 	} else {
-		// Fallback to default credentials (ADC) ama local file
+		// Fallback to default credentials (ADC)
 		app, err = firebase.NewApp(context.Background(), nil)
 		log.Println("Initializing Firebase using default credentials")
 	}
@@ -47,7 +48,7 @@ func InitFirebase() {
 
 func VerifyFirebaseToken(idToken string) (*auth.Token, error) {
 	if FirebaseAuth == nil {
-		return nil, nil // ama error gaar ah
+		return nil, errors.New("firebase auth client not initialized")
 	}
 	return FirebaseAuth.VerifyIDToken(context.Background(), idToken)
 }
