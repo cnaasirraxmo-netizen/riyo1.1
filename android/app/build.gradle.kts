@@ -44,10 +44,14 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String?
-            keyPassword = keystoreProperties["keyPassword"] as String?
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String?
+            keyAlias = (System.getenv("KEY_ALIAS") ?: keystoreProperties["keyAlias"]) as String?
+            keyPassword = (System.getenv("KEY_PASSWORD") ?: keystoreProperties["keyPassword"]) as String?
+            val storeFilePath = (System.getenv("KEYSTORE_FILE") ?: keystoreProperties["storeFile"]) as String?
+            storeFile = storeFilePath?.let {
+                val f = file(it)
+                if (f.exists()) f else rootProject.file(it)
+            }
+            storePassword = (System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties["storePassword"]) as String?
             enableV1Signing = true
             enableV2Signing = true
         }
@@ -55,7 +59,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystoreProperties.containsKey("storeFile")) {
+            signingConfig = if (System.getenv("KEYSTORE_FILE") != null || keystoreProperties.containsKey("storeFile")) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")

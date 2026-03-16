@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "852765331585",
+    "project_id": "riyo-5446c",
+    "storage_bucket": "riyo-5446c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:852765331585:android:c17580b03f962df2edfd80",
+        "android_client_info": {
+          "package_name": "com.riyo.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "852765331585-r63qkb2opnip1vff16ttoeeks6m0o765.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.riyo.app",
+            "certificate_hash": "bce5c90a215d1324a15610d27775ef99314cf4bd"
+          }
+        },
+        {
+          "client_id": "852765331585-rl8hm5srje3qj7p9qidsvi6vv85kmks0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSXCKYTQt9VPpM3mX5JIbb4wCJV6T9ohI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "852765331585-rl8hm5srje3qj7p9qidsvi6vv85kmks0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

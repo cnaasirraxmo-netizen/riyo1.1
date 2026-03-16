@@ -1,11 +1,13 @@
 package modules
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"net/url"
 	"strings"
 
+	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/scrapers"
 )
@@ -19,7 +21,47 @@ func (p *BaseProvider) GetName() string {
 	return p.Name
 }
 
+func (p *BaseProvider) detectType(url string, isEmbed bool) string {
+	if isEmbed {
+		return "embed"
+	}
+	if strings.Contains(url, ".m3u8") {
+		return "hls"
+	}
+	if strings.Contains(url, ".mpd") {
+		return "dash"
+	}
+	return "direct"
+}
+
 func (p *BaseProvider) Search(query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
+	// METHOD 9 - PROVIDER RESPONSE CACHE
+	cacheKey := fmt.Sprintf("provider_%s_%s_%v_%v_%v", strings.ToLower(p.Name), strings.ReplaceAll(strings.ToLower(query), " ", "_"), isTvShow, season, episode)
+	cached, err := cache.GetOrSetCache(cacheKey, cache.ProviderTTL, func() (interface{}, error) {
+		return p.searchInternal(query, isTvShow, season, episode)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Type assertion back to models.StreamSource list
+	// Note: JSON deserialization might return map[string]interface{} for structs
+	// We handle conversion in handlers or use a more specific wrapper if needed.
+	// For now, let's keep it simple as the requirement asks for GetOrSetCache returning interface{}
+
+	if sources, ok := cached.([]models.StreamSource); ok {
+		return sources, nil
+	}
+
+	// Handle case where it's generic data from Redis
+	var sources []models.StreamSource
+	data, _ := json.Marshal(cached)
+	json.Unmarshal(data, &sources)
+	return sources, nil
+}
+
+func (p *BaseProvider) searchInternal(query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
 	searchQuery := query
 	if isTvShow {
 		searchQuery = fmt.Sprintf("%s S%02dE%02d", query, season, episode)
@@ -41,34 +83,18 @@ func (p *BaseProvider) Search(query string, isTvShow bool, season, episode int) 
 			continue
 		}
 
-		contentHTML, err := scrapers.FetchHTML(contentURL)
-		if err != nil {
-			continue
-		}
+		// Use Universal Finder for comprehensive extraction
+		finder := scrapers.NewUniversalFinder()
+		discovered := finder.FindSources(contentURL)
 
-		// Extract using all methods
-		links := scrapers.ExtractVideoSources(contentHTML)
-		links = append(links, scrapers.ExtractJSVariables(contentHTML)...)
-		links = append(links, scrapers.ExtractJSONConfig(contentHTML)...)
-
-		embeds := scrapers.ExtractEmbeds(contentHTML)
-		for _, embed := range embeds {
-			allSources = append(allSources, models.StreamSource{
-				Label:    p.Name + " (Embed)",
-				URL:      embed,
-				Type:     "embed",
-				Provider: strings.ToLower(p.Name),
-				Quality:  "720p",
-			})
-		}
-
-		for _, link := range links {
+		for _, link := range discovered {
+			isEmbed := strings.Contains(link, "embed") || strings.Contains(link, "player")
 			allSources = append(allSources, models.StreamSource{
 				Label:    p.Name,
 				URL:      link,
-				Type:     "direct",
+				Type:     p.detectType(link, isEmbed),
 				Provider: strings.ToLower(p.Name),
-				Quality:  "1080p",
+				Quality:  finder.DetectQuality(link),
 			})
 		}
 

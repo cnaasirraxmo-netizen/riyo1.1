@@ -16,6 +16,40 @@ var client = &http.Client{
 	},
 }
 
+var (
+	iframeRe         = regexp.MustCompile(`(?i)<iframe.*?src=["'](.*?)["']`)
+	videoSourceRes   = []*regexp.Regexp{
+		regexp.MustCompile(`https?://[^\s"']+\.m3u8[^\s"']*`),
+		regexp.MustCompile(`https?://[^\s"']+\.mp4[^\s"']*`),
+		regexp.MustCompile(`https?://[^\s"']+\.webm[^\s"']*`),
+		regexp.MustCompile(`https?://[^\s"']+\.mkv[^\s"']*`),
+		regexp.MustCompile(`https?://[^\s"']+\.mpd[^\s"']*`),
+		regexp.MustCompile(`file:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`source\s+(?:src|data-src)=["'](https?://.*?)["']`),
+		regexp.MustCompile(`video_url\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`data-video-url=["'](https?://.*?)["']`),
+	}
+	jsVariableRes = []*regexp.Regexp{
+		regexp.MustCompile(`["']?file["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?sources["']?\s*:\s*\[(.*?)\]`),
+		regexp.MustCompile(`["']?video_url["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?url["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?hls_url["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?stream_url["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?src["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`var\s+\w+\s*=\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`window\.config\s*=\s*(\{.*?\});`),
+		regexp.MustCompile(`player\.setup\s*\((\{.*?\})\)`),
+	}
+	jsonConfigRe      = regexp.MustCompile(`(?s)\{.*?"(?:sources|playlist|file)".*?\}`)
+	networkDiscoveryRes = []*regexp.Regexp{
+		regexp.MustCompile(`["'](https?://[^"']*/api/v[0-9]/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/ajax/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/get_source/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/playlist/[^"']+)["']`),
+	}
+)
+
 func FetchHTML(url string) (string, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -39,8 +73,7 @@ func FetchHTML(url string) (string, error) {
 }
 
 func ExtractIframes(html string) []string {
-	re := regexp.MustCompile(`(?i)<iframe.*?src=["'](.*?)["']`)
-	matches := re.FindAllStringSubmatch(html, -1)
+	matches := iframeRe.FindAllStringSubmatch(html, -1)
 
 	var urls []string
 	for _, m := range matches {
@@ -57,26 +90,14 @@ func ExtractIframes(html string) []string {
 
 func ExtractVideoSources(html string) []string {
 	// METHOD 1 – HTML PARSING & METHOD 5 - NETWORK DISCOVERY (MANIFESTS)
-	patterns := []string{
-		`https?://[^\s"']+\.m3u8[^\s"']*`,
-		`https?://[^\s"']+\.mp4[^\s"']*`,
-		`https?://[^\s"']+\.mpd[^\s"']*`, // DASH manifest
-		`file:\s*["'](https?://.*?)["']`,
-		`source\s+src=["'](https?://.*?)["']`,
-		`video_url\s*:\s*["'](https?://.*?)["']`,
-	}
-
 	var sources []string
-	for _, p := range patterns {
-		re := regexp.MustCompile(p)
+	for _, re := range videoSourceRes {
 		matches := re.FindAllStringSubmatch(html, -1)
 		for _, m := range matches {
 			if len(m) > 1 {
 				sources = append(sources, m[1])
-			} else if len(m) == 0 {
-				// For non-capturing group regexes
-				rawMatches := re.FindAllString(html, -1)
-				sources = append(sources, rawMatches...)
+			} else if len(m) == 1 {
+				sources = append(sources, m[0])
 			}
 		}
 	}
@@ -86,26 +107,24 @@ func ExtractVideoSources(html string) []string {
 
 func ExtractJSVariables(html string) []string {
 	// METHOD 3 – JAVASCRIPT VARIABLE PARSING
-	patterns := []string{
-		`["']?file["']?\s*:\s*["'](https?://.*?)["']`,
-		`["']?sources["']?\s*:\s*\[(.*?)\]`,
-		`["']?video_url["']?\s*:\s*["'](https?://.*?)["']`,
-		`["']?url["']?\s*:\s*["'](https?://.*?)["']`,
-		`var\s+\w+\s*=\s*["'](https?://.*?)["']`,
-	}
-
 	var sources []string
-	for _, p := range patterns {
-		re := regexp.MustCompile(p)
+	for _, re := range jsVariableRes {
 		matches := re.FindAllStringSubmatch(html, -1)
 		for _, m := range matches {
 			if len(m) > 1 {
-				if strings.Contains(m[1], "http") {
-					sources = append(sources, m[1])
-				} else if p == `["']?sources["']?\s*:\s*\[(.*?)\]` {
+				content := m[1]
+				if strings.HasPrefix(content, "{") {
+					// Handle JSON captured by window.config or player.setup
+					var data interface{}
+					if err := json.Unmarshal([]byte(content), &data); err == nil {
+						sources = append(sources, findURLsInJSON(data)...)
+					}
+				} else if strings.Contains(content, "http") {
+					sources = append(sources, content)
+				} else if strings.Contains(re.String(), `sources`) {
 					// Recursive extraction for sources array
 					innerRe := regexp.MustCompile(`["']?(?:file|src|url)["']?\s*:\s*["'](https?://.*?)["']`)
-					innerMatches := innerRe.FindAllStringSubmatch(m[1], -1)
+					innerMatches := innerRe.FindAllStringSubmatch(content, -1)
 					for _, im := range innerMatches {
 						if len(im) > 1 {
 							sources = append(sources, im[1])
@@ -122,8 +141,7 @@ func ExtractJSONConfig(html string) []string {
 	// METHOD 4 – PLAYER CONFIG PARSING
 	var sources []string
 	// Look for JSON objects that might contain video sources (common in JWPlayer, Video.js)
-	re := regexp.MustCompile(`(?s)\{.*?"(?:sources|playlist|file)".*?\}`)
-	matches := re.FindAllString(html, -1)
+	matches := jsonConfigRe.FindAllString(html, -1)
 
 	for _, m := range matches {
 		var data interface{}
@@ -176,6 +194,9 @@ func ExtractEmbeds(html string) []string {
 		"player.autoembed.cc",
 		"vidsrc.me",
 		"superembed.stream",
+		"embed.su",
+		"vidsrc.xyz",
+		"vidsrc.cc",
 	}
 
 	var embeds []string
@@ -189,4 +210,19 @@ func ExtractEmbeds(html string) []string {
 		}
 	}
 	return embeds
+}
+
+func ExtractNetworkDiscovery(html string) []string {
+	// METHOD 5 - NETWORK REQUEST DISCOVERY
+	// Looking for API endpoints or AJAX calls that might return video links
+	var endpoints []string
+	for _, re := range networkDiscoveryRes {
+		matches := re.FindAllStringSubmatch(html, -1)
+		for _, m := range matches {
+			if len(m) > 1 {
+				endpoints = append(endpoints, m[1])
+			}
+		}
+	}
+	return endpoints
 }

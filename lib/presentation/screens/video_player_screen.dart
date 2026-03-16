@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:riyo/core/video_engine/riyo_video_engine.dart';
 import 'package:riyo/core/video_engine/texture_bridge.dart';
+import 'package:riyo/core/video_engine/srt_parser.dart';
+import 'package:http/http.dart' as http;
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
@@ -39,6 +42,10 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   String _selectedQuality = 'Auto';
   String _selectedAudio = 'English';
   String _selectedSubtitle = 'Off';
+  List<Map<String, dynamic>> _availableSubtitles = [];
+  List<SubtitleEntry> _subtitleEntries = [];
+  String _currentSubtitleText = '';
+  Timer? _subtitleTimer;
 
   Movie? _movie;
   List<StreamSource> _sources = [];
@@ -57,6 +64,10 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     WakelockPlus.enable();
     _fetchData();
     _initVolume();
@@ -68,14 +79,45 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   void _startPlaybackTimer() {
     _playbackTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (_engine != null && _engine!.getState() == 2) {
-         setState(() {
-           // These values would normally come from the native engine
-           _position = _engine!.getPosition();
-           _duration = _engine!.getDuration();
-           if (_duration <= 0) _duration = 1;
-         });
+        final pos = _engine!.getPosition();
+        final dur = _engine!.getDuration();
+        setState(() {
+          _position = pos;
+          _duration = dur <= 0 ? 1 : dur;
+        });
+        _updateSubtitles(pos);
       }
     });
+  }
+
+  void _updateSubtitles(double positionSeconds) {
+    if (_selectedSubtitle == 'Off' || _subtitleEntries.isEmpty) {
+      if (_currentSubtitleText.isNotEmpty) setState(() => _currentSubtitleText = '');
+      return;
+    }
+
+    final duration = Duration(milliseconds: (positionSeconds * 1000).toInt());
+    final currentEntry = _subtitleEntries.firstWhere(
+      (entry) => duration >= entry.start && duration <= entry.end,
+      orElse: () => SubtitleEntry(start: Duration.zero, end: Duration.zero, text: ''),
+    );
+
+    if (_currentSubtitleText != currentEntry.text) {
+      setState(() => _currentSubtitleText = currentEntry.text);
+    }
+  }
+
+  Future<void> _loadSubtitles(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        setState(() {
+          _subtitleEntries = SrtParser.parse(response.body);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading subtitles: $e');
+    }
   }
 
   Future<void> _fetchData() async {
@@ -89,6 +131,9 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
         final List<dynamic> sourceData = response['sources'] ?? [];
         _sources = sourceData.map((s) => StreamSource.fromJson(s)).toList();
+
+        final List<dynamic> subtitleData = response['subtitles'] ?? [];
+        _availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
 
         // 5. SOURCE HANDLING - Implement Source priority system
         // Priority order: 1. Direct MP4 (direct), 2. M3U8 HLS (hls), 3. DASH (dash), 4. Embed (embed)
@@ -274,7 +319,14 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _playbackTimer?.cancel();
+    _subtitleTimer?.cancel();
     _eventSubscription?.cancel();
     WakelockPlus.disable();
     _engine?.dispose();
@@ -331,16 +383,48 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
                       ? Texture(textureId: _textureId!)
                       : const CircularProgressIndicator(color: Colors.purple),
             ),
-            if (_isLoadingSource)
+            // Subtitle Overlay
+            if (_selectedSubtitle != 'Off' && _currentSubtitleText.isNotEmpty)
+              Positioned(
+                bottom: _isControlsVisible ? 100 : 40,
+                left: 20,
+                right: 20,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _currentSubtitleText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(blurRadius: 2, color: Colors.black, offset: Offset(1, 1)),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+            // Loading and Buffering Indicator
+            if (_isLoadingSource || (_engine != null && _engine!.getState() == 4))
               Container(
-                color: Colors.black54,
-                child: const Center(
+                color: Colors.black26,
+                child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(color: Colors.purple),
-                      SizedBox(height: 16),
-                      Text('Finding best stream...', style: TextStyle(color: Colors.white)),
+                      const CircularProgressIndicator(color: Colors.purple),
+                      const SizedBox(height: 16),
+                      Text(
+                        _isLoadingSource ? 'Finding best stream...' : 'Buffering...',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
@@ -486,8 +570,10 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
               Row(
                 children: [
                   _buildControlItem(Icons.dns_rounded, _selectedSource?.label ?? 'SERVER', _showSourceMenu),
-                  if (_selectedSource?.type != 'embed')
+                  if (_selectedSource?.type != 'embed') ...[
+                    _buildControlItem(Icons.subtitles_rounded, _selectedSubtitle, _showSubtitleMenu),
                     _buildControlItem(Icons.speed_rounded, '${_playbackSpeed}x', _showSpeedMenu),
+                  ],
                   _buildControlItem(Icons.high_quality_rounded, _selectedSource?.quality ?? _selectedQuality, _showQualityMenu),
                 ],
               ),
@@ -542,6 +628,23 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   void _showQualityMenu() {
     _showBottomDialog('VIDEO QUALITY', ['AUTO', '720P', '1080P', '4K'], (val) {
       setState(() => _selectedQuality = val);
+    });
+  }
+
+  void _showSubtitleMenu() {
+    final List<String> options = ['Off'];
+    options.addAll(_availableSubtitles.map((s) => s['language'] as String));
+
+    _showBottomDialog('SELECT SUBTITLES', options, (val) {
+      setState(() {
+        _selectedSubtitle = val;
+        _currentSubtitleText = '';
+        _subtitleEntries = [];
+      });
+      if (val != 'Off') {
+        final sub = _availableSubtitles.firstWhere((s) => s['language'] == val);
+        _loadSubtitles(sub['url']);
+      }
     });
   }
 

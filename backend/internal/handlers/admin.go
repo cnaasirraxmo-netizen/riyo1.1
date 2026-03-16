@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -131,6 +133,10 @@ func AdminUpdateMovie(c *gin.Context) {
 		return
 	}
 
+	// Invalidate Cache
+	cache.InvalidateCache(fmt.Sprintf("movie_%s", idStr))
+	cache.InvalidateCache("home_data")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Movie updated successfully"})
 }
 
@@ -185,6 +191,10 @@ func AdminPublishMovie(c *gin.Context) {
 		return
 	}
 
+	// Invalidate Cache
+	cache.InvalidateCache(fmt.Sprintf("movie_%s", idStr))
+	cache.InvalidateCache("home_data")
+
 	// Create notifications
 	if len(movie.NotifyUsers) > 0 {
 		var notifications []interface{}
@@ -225,6 +235,10 @@ func AdminDeleteMovie(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Movie not found"})
 		return
 	}
+
+	// Invalidate Cache
+	cache.InvalidateCache(fmt.Sprintf("movie_%s", idStr))
+	cache.InvalidateCache("home_data")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Movie removed"})
 }

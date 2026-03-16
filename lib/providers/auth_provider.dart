@@ -1,11 +1,16 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:riyo/core/constants.dart';
 import 'package:riyo/models/user.dart';
 
 class AuthProvider with ChangeNotifier {
+  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
   static const String _backendUrl = Constants.apiBaseUrl;
   bool _isAuthenticated = false;
   bool _isOnboardingComplete = false;
@@ -40,67 +45,143 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> login(String email, String password) async {
     try {
+      // 1. Firebase Login
+      final fb.UserCredential credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final String? idToken = await credential.user?.getIdToken();
+      if (idToken == null) throw Exception("Failed to get ID Token from Firebase");
+
+      // 2. Backend Sync/Login
       final response = await http.post(
         Uri.parse('$_backendUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({
+          'email': email,
+          'firebaseToken': idToken,
+        }),
       ).timeout(const Duration(seconds: 30));
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        _token = data['token'];
-        _role = data['role'];
-        _user = User.fromJson(data);
-        _isAuthenticated = true;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isAuthenticated', true);
-        await prefs.setString('token', _token!);
-        await prefs.setString('role', _role!);
-        await prefs.setString('user', jsonEncode(_user!.toJson()));
-        notifyListeners();
+        await _handleLoginSuccess(data);
       } else {
-        final errorMsg = _parseErrorMessage(response);
-        throw Exception(errorMsg);
+        await _auth.signOut();
+        throw Exception(_parseErrorMessage(response));
       }
     } catch (e) {
-      if (e is http.ClientException || e.toString().contains('SocketException')) {
-        throw Exception('Unable to connect to the server. Please check your internet connection and ensure the backend is running.');
-      }
-      rethrow;
+      _handleError(e);
     }
   }
 
   Future<void> signup(String name, String email, String password) async {
     try {
+      // 1. Firebase Signup
+      final fb.UserCredential credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      await credential.user?.updateDisplayName(name);
+
+      final String? idToken = await credential.user?.getIdToken();
+      if (idToken == null) throw Exception("Failed to get ID Token from Firebase");
+
+      // 2. Backend Signup
       final response = await http.post(
         Uri.parse('$_backendUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'name': name, 'email': email, 'password': password}),
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'firebaseToken': idToken,
+        }),
       ).timeout(const Duration(seconds: 30));
+
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        _token = data['token'];
-        _role = data['role'];
-        _user = User.fromJson(data);
-        _isAuthenticated = true;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isAuthenticated', true);
-        await prefs.setString('token', _token!);
-        await prefs.setString('role', _role!);
-        await prefs.setString('user', jsonEncode(_user!.toJson()));
-        notifyListeners();
+        await _handleLoginSuccess(data);
       } else {
-        final errorMsg = _parseErrorMessage(response);
-        throw Exception(errorMsg);
+        await credential.user?.delete();
+        throw Exception(_parseErrorMessage(response));
       }
     } catch (e) {
-      if (e is http.ClientException || e.toString().contains('SocketException')) {
-        throw Exception('Unable to connect to the server. Please check your internet connection and ensure the backend is running.');
-      }
-      rethrow;
+      _handleError(e);
     }
   }
 
+  Future<void> loginWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final fb.AuthCredential credential = fb.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final fb.UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final String? idToken = await userCredential.user?.getIdToken();
+
+      final response = await http.post(
+        Uri.parse('$_backendUrl/auth/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': userCredential.user?.displayName,
+          'email': userCredential.user?.email,
+          'firebaseToken': idToken,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        await _handleLoginSuccess(data);
+      } else {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+        throw Exception(_parseErrorMessage(response));
+      }
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> _handleLoginSuccess(Map<String, dynamic> data) async {
+    _token = data['token'];
+    _role = data['role'];
+    _user = User.fromJson(data);
+    _isAuthenticated = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isAuthenticated', true);
+    await prefs.setString('token', _token!);
+    await prefs.setString('role', _role!);
+    await prefs.setString('user', jsonEncode(_user!.toJson()));
+    notifyListeners();
+  }
+
+  void _handleError(dynamic e) {
+    if (e is fb.FirebaseAuthException) {
+      throw Exception(e.message ?? 'Authentication error');
+    }
+    if (e is http.ClientException || e.toString().contains('SocketException')) {
+      throw Exception('Unable to connect to the server. Please check your internet connection.');
+    }
+    throw e;
+  }
+
   Future<void> logout() async {
+    await _auth.signOut();
+    await _googleSignIn.signOut();
     _isAuthenticated = false;
     _token = null;
     _role = null;

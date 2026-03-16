@@ -13,8 +13,10 @@ import 'package:riyo/providers/home_provider.dart';
 import 'package:riyo/providers/system_config_provider.dart';
 import 'package:riyo/presentation/screens/splash_screen.dart';
 import 'package:riyo/presentation/screens/onboarding_screen.dart';
+import 'package:riyo/presentation/widgets/safe_screen.dart';
 import 'package:riyo/presentation/screens/auth/login_screen.dart';
 import 'package:riyo/presentation/screens/auth/signup_screen.dart';
+import 'package:riyo/presentation/screens/auth/forgot_password_screen.dart';
 import 'package:riyo/presentation/screens/home_screen.dart';
 import 'package:riyo/presentation/screens/movie_details_screen.dart';
 import 'package:riyo/presentation/screens/video_player_screen.dart';
@@ -51,13 +53,56 @@ import 'package:easy_localization/easy_localization.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await EasyLocalization.ensureInitialized();
+
+  // Global Error Handler for UI errors
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: const Color(0xFF121212),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
+              const SizedBox(height: 16),
+              const Text(
+                'Something went wrong',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                details.exception.toString(),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => main(), // Simple retry
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('GLOBAL FLUTTER ERROR: ${details.exception}');
+  };
+
   try {
-    await Firebase.initializeApp();
-    await NotificationService.initialize();
+    await EasyLocalization.ensureInitialized();
+    await Firebase.initializeApp().timeout(const Duration(seconds: 5));
+    await NotificationService.initialize().timeout(const Duration(seconds: 5));
   } catch (e) {
-    debugPrint('Firebase/Notification Init Error: $e');
+    debugPrint('CRITICAL APP INIT ERROR: $e');
   }
+
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('en'), Locale('so'), Locale('ar'), Locale('es')],
@@ -91,44 +136,57 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: _rootNavigatorKey,
       initialLocation: '/splash',
       refreshListenable: authProvider,
+      errorBuilder: (context, state) {
+        debugPrint('GoRouter Error: ${state.error}. Redirecting to /home');
+        return const HomeScreen(); // Fallback UI for unknown routes
+      },
       redirect: (context, state) {
-        final bool loggingIn = state.uri.path == '/login';
-        final bool signingUp = state.uri.path == '/signup';
-        final bool splash = state.uri.path == '/splash';
-        final bool welcome = state.uri.path == '/welcome';
+        try {
+          final bool loggingIn = state.uri.path == '/login';
+          final bool signingUp = state.uri.path == '/signup';
+          final bool splash = state.uri.path == '/splash';
+          final bool welcome = state.uri.path == '/welcome';
 
-        if (splash) return null;
+          if (splash) return null;
 
-        if (!authProvider.isOnboardingComplete) {
-          return welcome ? null : '/welcome';
+          if (!authProvider.isOnboardingComplete) {
+            return welcome ? null : '/welcome';
+          }
+
+          if (!authProvider.isAuthenticated) {
+            return (loggingIn || signingUp || welcome) ? null : '/login';
+          }
+
+          if (loggingIn || signingUp || welcome) {
+            return '/home';
+          }
+
+          return null;
+        } catch (e) {
+          debugPrint('Redirect Error: $e. Defaulting to /splash');
+          return '/splash';
         }
-
-        if (!authProvider.isAuthenticated) {
-          return (loggingIn || signingUp || welcome) ? null : '/login';
-        }
-
-        if (loggingIn || signingUp || welcome) {
-          return '/home';
-        }
-
-        return null;
       },
       routes: [
         GoRoute(
           path: '/splash',
-          builder: (context, state) => const SplashScreen(),
+          builder: (context, state) => const SafeScreen(child: SplashScreen()),
         ),
         GoRoute(
           path: '/welcome',
-          builder: (context, state) => const WelcomeScreen(),
+          builder: (context, state) => const SafeScreen(child: WelcomeScreen()),
         ),
         GoRoute(
           path: '/login',
-          builder: (context, state) => const LoginScreen(),
+          builder: (context, state) => const SafeScreen(child: LoginScreen()),
         ),
         GoRoute(
           path: '/signup',
-          builder: (context, state) => const SignUpScreen(),
+          builder: (context, state) => const SafeScreen(child: SignUpScreen()),
+        ),
+        GoRoute(
+          path: '/forgot-password',
+          builder: (context, state) => const SafeScreen(child: ForgotPasswordScreen()),
         ),
         ShellRoute(
           navigatorKey: _shellNavigatorKey,

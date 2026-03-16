@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/riyobox/backend/internal/db"
+	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/providers"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -139,6 +140,8 @@ func (s *MetadataService) SyncMovieFull(tmdbID int, isTrending bool, isFeatured 
 		}
 		_, _ = collection.UpdateOne(context.TODO(), bson.M{"tmdbId": tmdbID}, update)
 	}
+	cache.InvalidateMovieCache(tmdbID)
+	cache.InvalidateCache("home_data")
 }
 
 func (s *MetadataService) SyncTVShowFull(tmdbID int, isTrending bool, isFeatured bool) {
@@ -233,6 +236,8 @@ func (s *MetadataService) SyncTVShowFull(tmdbID int, isTrending bool, isFeatured
 		}
 		_, _ = collection.UpdateOne(context.TODO(), bson.M{"tmdbId": tmdbID}, update)
 	}
+	cache.InvalidateMovieCache(tmdbID)
+	cache.InvalidateCache("home_data")
 }
 
 func (s *MetadataService) SyncAll() {

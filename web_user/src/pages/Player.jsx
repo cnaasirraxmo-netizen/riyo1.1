@@ -19,6 +19,7 @@ const Player = () => {
   const [sourceIndex, setSourceIndex] = useState(0);
   const [selectedSubtitle, setSelectedSubtitle] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
@@ -100,6 +101,12 @@ const Player = () => {
     }
   };
 
+  const onWaiting = () => setIsBuffering(true);
+  const onPlaying = () => {
+    setIsBuffering(false);
+    setIsPlaying(true);
+  };
+
   const handleSeek = (e) => {
     if (!videoRef.current) return;
     const seekTime = (e.target.value / 100) * videoRef.current.duration;
@@ -172,7 +179,16 @@ const Player = () => {
       </AnimatePresence>
 
       {/* Primary Video Container */}
-      <div className="w-full h-full bg-[#000]">
+      <div className="w-full h-full bg-[#000] relative">
+        {isBuffering && !isEmbed && (
+          <div className="absolute inset-0 flex items-center justify-center z-[105] bg-black/20">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="w-16 h-16 border-t-4 border-purple-600 rounded-full"
+            />
+          </div>
+        )}
         {isEmbed ? (
           <iframe
             src={selectedSource?.url}
@@ -187,6 +203,8 @@ const Player = () => {
             className="w-full h-full object-contain pointer-events-auto"
             onTimeUpdate={onTimeUpdate}
             onLoadedMetadata={onLoadedMetadata}
+            onWaiting={onWaiting}
+            onPlaying={onPlaying}
             onError={handleVideoError}
             onClick={togglePlay}
             autoPlay
@@ -315,10 +333,17 @@ const Player = () => {
                 selectedItem={showSourceSelector ? selectedSource : (selectedSubtitle || {language: 'Off'})}
                 onSelect={(item, index) => {
                     if (showSourceSelector) {
+                        const currentTime = videoRef.current?.currentTime || 0;
                         setSelectedSource(item);
                         setSourceIndex(index);
                         setShowSourceSelector(false);
                         setIsError(false);
+                        if (!isEmbed && videoRef.current) {
+                           videoRef.current.onloadedmetadata = () => {
+                             videoRef.current.currentTime = currentTime;
+                             videoRef.current.play();
+                           };
+                        }
                     } else {
                         setSelectedSubtitle(item.language === 'Off' ? null : item);
                         setShowSubtitleSelector(false);

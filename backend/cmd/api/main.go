@@ -10,6 +10,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/handlers"
 	"github.com/riyobox/backend/internal/middleware"
@@ -28,6 +29,8 @@ func main() {
 	}
 
 	db.ConnectDB()
+	utils.InitFirebase()
+	cache.InitRedis()
 	utils.InitR2()
 
 	// Initialize New Services
@@ -87,6 +90,7 @@ func main() {
 	{
 		auth.POST("/register", handlers.Register)
 		auth.POST("/login", handlers.Login)
+		auth.POST("/google", handlers.GoogleLogin)
 	}
 
 	movies := r.Group("/movies")
