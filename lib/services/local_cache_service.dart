@@ -23,11 +23,16 @@ class LocalCacheService {
   Future<void> init() async {
     if (_isInitialized) return;
 
-    _moviesBox = await Hive.openBox('movies_cache');
-    _progressBox = await Hive.openBox('playback_progress');
-    _historyBox = await Hive.openBox('watch_history');
-
-    _isInitialized = true;
+    try {
+      _moviesBox = await Hive.openBox('movies_cache');
+      _progressBox = await Hive.openBox('playback_progress');
+      _historyBox = await Hive.openBox('watch_history');
+      _isInitialized = true;
+      debugPrint('LocalCacheService initialized successfully.');
+    } catch (e) {
+      debugPrint('CRITICAL: LocalCacheService failed to initialize: $e');
+      // In a real app, we might want to notify the user or use a memory-only fallback
+    }
 
     // Connectivity monitoring
     _connectivity.onConnectivityChanged.listen((result) {
