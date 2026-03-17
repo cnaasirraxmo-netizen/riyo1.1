@@ -1,4 +1,4 @@
-package scrapers
+package extraction
 
 import (
 	"context"
@@ -28,11 +28,11 @@ func (s *HeadlessScraper) ScrapeVideoURLs(targetURL string) []string {
 	// Configure browser options
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.NoSandbox,
-		chromedp.Headless, // Ensure it's headless
+		chromedp.Headless,
 		chromedp.Flag("disable-setuid-sandbox", true),
 		chromedp.Flag("disable-dev-shm-usage", true),
 		chromedp.Flag("disable-extensions", true),
-		chromedp.Flag("blink-settings", "imagesEnabled=false"), // Save bandwidth
+		chromedp.Flag("blink-settings", "imagesEnabled=false"),
 		chromedp.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"),
 	)
 
@@ -50,7 +50,7 @@ func (s *HeadlessScraper) ScrapeVideoURLs(targetURL string) []string {
 		switch e := ev.(type) {
 		case *network.EventRequestWillBeSent:
 			reqURL := e.Request.URL
-			if isVideoURL(reqURL) {
+			if IsVideoURL(reqURL) {
 				mu.Lock()
 				urls = append(urls, reqURL)
 				mu.Unlock()
@@ -58,18 +58,16 @@ func (s *HeadlessScraper) ScrapeVideoURLs(targetURL string) []string {
 		}
 	})
 
-	// Perform the navigation and wait for common player elements or delays
+	// Perform the navigation and wait
 	err := chromedp.Run(ctx,
 		network.Enable(),
 		chromedp.Navigate(targetURL),
-		// Wait for potential Cloudflare-like protection or JS execution
 		chromedp.Sleep(5*time.Second),
-		// Try to find a video tag to ensure playback started
-		chromedp.WaitVisible(`video`, chromedp.ByQuery),
+		// No WaitVisible to avoid blocking if no video tag appears immediately
 	)
 
 	if err != nil {
-		// Even if error (like timeout), return what we found so far
+		// Even if error, return what we found
 	}
 
 	return s.deduplicateAndPrioritize(urls)
@@ -83,15 +81,6 @@ func (s *HeadlessScraper) ScrapeVideoURLsJSON(targetURL string) (string, error) 
 		return "[]", err
 	}
 	return string(data), nil
-}
-
-func isVideoURL(url string) bool {
-	lower := strings.ToLower(url)
-	return strings.Contains(lower, ".m3u8") ||
-		strings.Contains(lower, ".mp4") ||
-		strings.Contains(lower, ".mpd") ||
-		strings.Contains(lower, "/playlist/") ||
-		strings.Contains(lower, "/manifest/")
 }
 
 func (s *HeadlessScraper) deduplicateAndPrioritize(urls []string) []string {

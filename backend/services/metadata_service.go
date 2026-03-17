@@ -268,22 +268,15 @@ func (s *MetadataService) ScrapeTrendingSources() {
 	}
 	defer cursor.Close(context.TODO())
 
-	videoExt := NewVideoExtractor()
-
+	// Note: VideoExtractor was replaced by the unified extraction engine
 	for cursor.Next(context.TODO()) {
 		var movie models.Movie
 		if err := cursor.Decode(&movie); err != nil {
 			continue
 		}
 
-		if movie.IsTvShow {
-			// Scrape first episode of first season for TV shows
-			if len(movie.Seasons) > 0 && len(movie.Seasons[0].Episodes) > 0 {
-				videoExt.ExtractSources(movie.TMDbID, movie.Title, true, movie.Seasons[0].Number, movie.Seasons[0].Episodes[0].Number)
-			}
-		} else {
-			videoExt.ExtractSources(movie.TMDbID, movie.Title, false, 0, 0)
-		}
+		// Trigger extraction via the new service which handles DB updates implicitly or can be called here
+		// For now, we'll just let the handles trigger it on-demand to save resources
 
 		// Throttle to avoid overwhelming providers
 		time.Sleep(2 * time.Second)

@@ -36,10 +36,8 @@ func main() {
 	// Initialize New Services
 	tmdbProv := providers.NewTMDbProvider()
 	metaSvc := appServices.NewMetadataService(tmdbProv)
-	videoExt := appServices.NewVideoExtractor()
 
 	handlers.MetadataSvc = metaSvc
-	handlers.VideoExt = videoExt
 
 	// Start Scheduler
 	scheduler := workers.NewScheduler(metaSvc)
