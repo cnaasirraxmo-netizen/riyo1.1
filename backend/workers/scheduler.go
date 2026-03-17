@@ -63,9 +63,8 @@ func (s *Scheduler) Start() {
 }
 
 func (s *Scheduler) HealthCheckSources() {
-	// Implementation to verify all stored sources and remove dead ones
-	// This would typically iterate over movies and check their sources array
-	log.Println("Performing Link Health Check...")
+	hc := NewHealthChecker()
+	hc.CheckAllLinks()
 }
 
 func (s *Scheduler) WarmupCache() {

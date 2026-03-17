@@ -1,11 +1,11 @@
 import React from 'react';
-import { Wrench, Trash2, RefreshCw, Database, Activity } from 'lucide-react';
+import { Wrench, Trash2, RefreshCw, Database, Activity, Search, ShieldCheck } from 'lucide-react';
 
 const SystemTools = () => {
   const tools = [
     { title: 'Clear Cache', desc: 'Flush all system and image caches', icon: <Trash2 size={24} />, action: 'Flush' },
-    { title: 'Rebuild Thumbnails', desc: 'Regenerate all movie/TV show thumbnails', icon: <RefreshCw size={24} />, action: 'Rebuild' },
-    { title: 'Database Backup', desc: 'Create a full backup of the system database', icon: <Database size={24} />, action: 'Backup' },
+    { title: 'Scrape Sources', desc: 'Trigger manual background scraping for trending content', icon: <Search size={24} />, action: 'Start' },
+    { title: 'Health Check', desc: 'Verify and remove broken streaming links', icon: <ShieldCheck size={24} />, action: 'Run' },
     { title: 'System Health', desc: 'Check API and storage server connectivity', icon: <Activity size={24} />, action: 'Check' },
   ];
 

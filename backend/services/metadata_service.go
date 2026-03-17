@@ -252,4 +252,41 @@ func (s *MetadataService) SyncAll() {
 		log.Printf("Error syncing trending TV shows: %v", err)
 	}
 	log.Println("Metadata Sync Completed.")
+
+	// Trigger background scraping for trending items
+	go s.ScrapeTrendingSources()
+}
+
+func (s *MetadataService) ScrapeTrendingSources() {
+	log.Println("Background Task: Scraping sources for trending content...")
+	collection := db.DB.Collection("movies")
+
+	// Get trending movies and TV shows
+	cursor, err := collection.Find(context.TODO(), bson.M{"isTrending": true})
+	if err != nil {
+		return
+	}
+	defer cursor.Close(context.TODO())
+
+	videoExt := NewVideoExtractor()
+
+	for cursor.Next(context.TODO()) {
+		var movie models.Movie
+		if err := cursor.Decode(&movie); err != nil {
+			continue
+		}
+
+		if movie.IsTvShow {
+			// Scrape first episode of first season for TV shows
+			if len(movie.Seasons) > 0 && len(movie.Seasons[0].Episodes) > 0 {
+				videoExt.ExtractSources(movie.TMDbID, movie.Title, true, movie.Seasons[0].Number, movie.Seasons[0].Episodes[0].Number)
+			}
+		} else {
+			videoExt.ExtractSources(movie.TMDbID, movie.Title, false, 0, 0)
+		}
+
+		// Throttle to avoid overwhelming providers
+		time.Sleep(2 * time.Second)
+	}
+	log.Println("Background Scraping Completed.")
 }

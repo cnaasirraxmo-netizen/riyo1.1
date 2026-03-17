@@ -123,28 +123,45 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 }
 
 func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.StreamSource {
-	// Simple ranking based on quality and provider reliability
-	// 4K > 1080p > 720p > 480p > 360p
+	// Step 9: Source Ranking (Quality > Provider Reliability > Speed/Type)
 	qualityMap := map[string]int{
-		"4K":    5,
-		"1080p": 4,
-		"720p":  3,
-		"480p":  2,
-		"360p":  1,
+		"4K":    50,
+		"1080p": 40,
+		"720p":  30,
+		"480p":  20,
+		"360p":  10,
 	}
 
-	// Stability/Reliability heuristic: direct links are better than embeds
-	providerRank := func(s models.StreamSource) int {
-		if s.Type != "embed" {
-			return 10
+	// Direct links (hls, dash, direct) are more reliable than external sources
+	typeRank := func(t string) int {
+		switch t {
+		case "hls":
+			return 5
+		case "direct":
+			return 4
+		case "dash":
+			return 3
+		default:
+			return 0
 		}
-		return 1
+	}
+
+	// Some providers are historically better/faster
+	providerReliability := map[string]int{
+		"vidsrc":      10,
+		"vidlink":     9,
+		"superembed":  8,
+		"2embed":      7,
+		"vidsrcpro":   10,
 	}
 
 	for i := 0; i < len(sources); i++ {
 		for j := i + 1; j < len(sources); j++ {
-			scoreI := qualityMap[sources[i].Quality]*10 + providerRank(sources[i])
-			scoreJ := qualityMap[sources[j].Quality]*10 + providerRank(sources[j])
+			pI := providerReliability[strings.ToLower(sources[i].Provider)]
+			pJ := providerReliability[strings.ToLower(sources[j].Provider)]
+
+			scoreI := qualityMap[sources[i].Quality] + typeRank(sources[i].Type) + pI
+			scoreJ := qualityMap[sources[j].Quality] + typeRank(sources[j].Type) + pJ
 
 			if scoreJ > scoreI {
 				sources[i], sources[j] = sources[j], sources[i]

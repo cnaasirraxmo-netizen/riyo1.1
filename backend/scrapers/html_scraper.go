@@ -53,6 +53,10 @@ var (
 		regexp.MustCompile(`["'](https?://[^"']*/ajax/[^"']+)["']`),
 		regexp.MustCompile(`["'](https?://[^"']*/get_source/[^"']+)["']`),
 		regexp.MustCompile(`["'](https?://[^"']*/playlist/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/embed/sources/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/getSources/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/v[0-9]/sources/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/player/get_playlist/[^"']+)["']`),
 	}
 )
 
@@ -162,7 +166,7 @@ func findURLsInJSON(data interface{}) []string {
 	var urls []string
 	switch v := data.(type) {
 	case string:
-		if strings.HasPrefix(v, "http") && (strings.Contains(v, ".mp4") || strings.Contains(v, ".m3u8") || strings.Contains(v, ".mpd")) {
+		if strings.HasPrefix(v, "http") && (strings.Contains(v, ".mp4") || strings.Contains(v, ".m3u8") || strings.Contains(v, ".mpd") || strings.Contains(v, "/playlist/") || strings.Contains(v, "/manifest/")) {
 			urls = append(urls, v)
 		}
 	case map[string]interface{}:
