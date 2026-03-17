@@ -12,16 +12,18 @@ import (
 )
 
 type VideoExtractor struct {
-	client *http.Client
-	finder *scrapers.UniversalFinder
+	client   *http.Client
+	finder   *scrapers.UniversalFinder
+	headless *scrapers.HeadlessScraper
 }
 
 func NewVideoExtractor() *VideoExtractor {
 	return &VideoExtractor{
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 15 * time.Second,
 		},
-		finder: scrapers.NewUniversalFinder(),
+		finder:   scrapers.NewUniversalFinder(),
+		headless: scrapers.NewHeadlessScraper(45 * time.Second),
 	}
 }
 

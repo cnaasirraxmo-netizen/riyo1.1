@@ -3,12 +3,17 @@ package scrapers
 import (
 	"strings"
 	"sync"
+	"time"
 )
 
-type UniversalFinder struct{}
+type UniversalFinder struct {
+	headless *HeadlessScraper
+}
 
 func NewUniversalFinder() *UniversalFinder {
-	return &UniversalFinder{}
+	return &UniversalFinder{
+		headless: NewHeadlessScraper(30 * time.Second),
+	}
 }
 
 // FindSources is the main entry point for the recursive extraction process.
@@ -99,6 +104,15 @@ func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 	}
 
 	wg.Wait()
+
+	// STEP 8: HEADLESS BROWSER SCRAPING (Method 8)
+	// Fallback to browser for heavily JS-dependent sites
+	if depth == 0 { // Only run headless for the root URL to avoid infinite browser loops
+		headlessSources := f.headless.ScrapeVideoURLs(url)
+		mu.Lock()
+		allSources = append(allSources, headlessSources...)
+		mu.Unlock()
+	}
 
 	// Final Step: Follow redirects for all found sources
 	var finalSources []string
