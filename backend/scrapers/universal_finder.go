@@ -103,6 +103,13 @@ func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 		}(endpoint)
 	}
 
+	// STEP 7.5: REDIRECT EXTRACTION (Method 9)
+	// Identify URLs that are likely redirects and follow them.
+	redirectSources := ExtractRedirects(html)
+	mu.Lock()
+	allSources = append(allSources, redirectSources...)
+	mu.Unlock()
+
 	wg.Wait()
 
 	// STEP 8: HEADLESS BROWSER SCRAPING (Method 8)
