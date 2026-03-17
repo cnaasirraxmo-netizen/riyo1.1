@@ -166,7 +166,18 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         });
 
         if (_sources.isNotEmpty) {
-          _currentSourceIndex = 0;
+          // If a specific URL was passed, try to find it in the sources
+          if (widget.videoUrl != null) {
+            final index = _sources.indexWhere((s) => s.url == widget.videoUrl);
+            if (index != -1) {
+              _currentSourceIndex = index;
+            } else {
+              _currentSourceIndex = 0;
+            }
+          } else {
+            _currentSourceIndex = 0;
+          }
+
           _selectedSource = _sources[_currentSourceIndex];
           if (mounted) _initPlayer();
         } else if (widget.videoUrl != null) {

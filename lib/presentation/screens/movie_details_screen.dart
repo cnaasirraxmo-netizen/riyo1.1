@@ -596,7 +596,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                   label: Text('${source.label} (${source.quality})'),
                   onPressed: () {
                     final id = widget.movieId;
-                    context.push('/movie/$id/play');
+                    context.push('/movie/$id/play?url=${Uri.encodeComponent(source.url)}');
                   },
                 ),
               );

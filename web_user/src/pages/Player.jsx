@@ -11,6 +11,7 @@ const Player = () => {
   const queryParams = new URLSearchParams(location.search);
   const season = queryParams.get('s');
   const episode = queryParams.get('e');
+  const initialUrl = queryParams.get('url');
 
   const [movie, setMovie] = useState(null);
   const [sources, setSources] = useState([]);
@@ -47,8 +48,21 @@ const Player = () => {
         setSubtitles(subtitlesData);
 
         if (sourcesData.length > 0) {
-          setSelectedSource(sourcesData[0]);
-          setSourceIndex(0);
+          let foundIndex = -1;
+          if (initialUrl) {
+            foundIndex = sourcesData.findIndex(s => s.url === initialUrl);
+          }
+
+          if (foundIndex !== -1) {
+            setSelectedSource(sourcesData[foundIndex]);
+            setSourceIndex(foundIndex);
+          } else if (initialUrl) {
+            setSelectedSource({ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' });
+            setSourceIndex(0);
+          } else {
+            setSelectedSource(sourcesData[0]);
+            setSourceIndex(0);
+          }
         }
       } catch (err) {
         console.error(err);
