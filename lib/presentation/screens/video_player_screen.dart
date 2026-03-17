@@ -249,10 +249,14 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     _engine?.dispose();
     _engine = RiyoVideoEngine();
     _textureId = await TextureRegistryBridge.createTexture();
+    setState(() {}); // Ensure texture ID is registered in UI
 
     // 2. IMPROVE THE VIDEO PLAYER - Integrate ExoPlayer (via native engine)
     _engine!.load(url);
     _engine!.setEventCallback();
+
+    // Connect the native player handle to the Flutter texture surface
+    await TextureRegistryBridge.connectPlayer(_textureId!, _engine!.handle.address);
 
     // 6. ERROR HANDLING - Improve reliability of streaming
     // Automatic switch to another source if one fails
@@ -388,7 +392,12 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           children: <Widget>[
             Center(
               child: (_textureId != null)
-                  ? Texture(textureId: _textureId!)
+                  ? Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      color: Colors.black,
+                      child: Texture(textureId: _textureId!),
+                    )
                   : const CircularProgressIndicator(color: Colors.purple),
             ),
             // Subtitle Overlay

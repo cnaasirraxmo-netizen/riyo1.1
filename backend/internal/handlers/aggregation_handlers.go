@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 	"net/http"
 	"net/url"
 	"os"
@@ -139,9 +140,13 @@ func ProxyStream(c *gin.Context) {
 		req.Header.Set("Referer", targetURL)
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	fmt.Printf("Proxying request to: %s\n", targetURL)
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Printf("Proxy error: %v for %s\n", err, targetURL)
 		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach source domain"})
 		return
 	}

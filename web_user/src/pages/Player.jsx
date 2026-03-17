@@ -63,6 +63,11 @@ const Player = () => {
             setSelectedSource(sourcesData[0]);
             setSourceIndex(0);
           }
+        } else if (initialUrl) {
+          // If no sources returned from backend, but we have an initial URL, use it
+          setSelectedSource({ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' });
+          setSources([{ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' }]);
+          setSourceIndex(0);
         }
       } catch (err) {
         console.error(err);
