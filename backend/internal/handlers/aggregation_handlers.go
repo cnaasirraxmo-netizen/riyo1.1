@@ -99,11 +99,16 @@ func ProxyStream(c *gin.Context) {
 
 	// Forward important headers from the client (like Range for seeking)
 	for name, values := range c.Request.Header {
-		if name == "Range" || name == "User-Agent" {
+		if name == "Range" || name == "User-Agent" || name == "Referer" || name == "Origin" {
 			for _, value := range values {
 				req.Header.Add(name, value)
 			}
 		}
+	}
+
+	// Some providers require a valid Referer to serve content
+	if req.Header.Get("Referer") == "" {
+		req.Header.Set("Referer", targetURL)
 	}
 
 	client := &http.Client{}
@@ -127,7 +132,7 @@ func ProxyStream(c *gin.Context) {
 			return
 		}
 
-		rewrittenManifest := rewriteHLSManifest(string(body), targetURL)
+		rewrittenManifest := rewriteHLSManifest(string(body), targetURL, c.Request.Host)
 
 		// Copy headers back to the client, but update Content-Length
 		for name, values := range resp.Header {
@@ -151,56 +156,80 @@ func ProxyStream(c *gin.Context) {
 	}
 }
 
-func rewriteHLSManifest(manifest, originalURL string) string {
+func rewriteHLSManifest(manifest, originalURL, requestHost string) string {
 	baseURL := os.Getenv("API_BASE_URL")
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		scheme := "http"
+		if strings.Contains(requestHost, "localhost") {
+			scheme = "http"
+		} else {
+			scheme = "https"
+		}
+		baseURL = fmt.Sprintf("%s://%s", scheme, requestHost)
 	}
 
 	// Get base URL of the manifest to resolve relative paths
 	parsedURL, _ := url.Parse(originalURL)
-	originalBase := originalURL[:strings.LastIndex(originalURL, "/")+1]
 
+	// Normalize line endings
+	lineSeparator := "\n"
+	if strings.Contains(manifest, "\r\n") {
+		lineSeparator = "\r\n"
+	}
+	manifest = strings.ReplaceAll(manifest, "\r\n", "\n")
 	lines := strings.Split(manifest, "\n")
+
+	outputLines := make([]string, len(lines))
 	for i, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			outputLines[i] = line
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "#") {
 			// Check for URI in tags like #EXT-X-KEY or #EXT-X-MEDIA
-			if strings.HasPrefix(line, "#EXT") && strings.Contains(line, "URI=") {
+			if strings.Contains(trimmed, "URI=") {
 				re := regexp.MustCompile(`URI=["'](.*?)["']`)
-				lines[i] = re.ReplaceAllStringFunc(line, func(match string) string {
+				outputLines[i] = re.ReplaceAllStringFunc(line, func(match string) string {
 					submatch := re.FindStringSubmatch(match)
 					if len(submatch) > 1 {
-						resolvedURL := resolveURL(submatch[1], originalBase, parsedURL)
+						resolvedURL := resolveURL(submatch[1], parsedURL)
 						encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
 						return fmt.Sprintf(`URI="%s/api/v1/stream/%s"`, baseURL, encodedURL)
 					}
 					return match
 				})
+			} else {
+				outputLines[i] = line
 			}
-			continue
+		} else {
+			// It's a URL (segment or sub-playlist)
+			resolvedURL := resolveURL(trimmed, parsedURL)
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
+			// Keep the original indentation/spacing
+			outputLines[i] = strings.Replace(line, trimmed, fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL), 1)
 		}
-
-		// It's a URL (segment or sub-playlist)
-		resolvedURL := resolveURL(line, originalBase, parsedURL)
-		encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
-		lines[i] = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 	}
 
-	return strings.Join(lines, "\n")
+	return strings.Join(outputLines, lineSeparator)
 }
 
-func resolveURL(link, base string, parsedBase *url.URL) string {
-	if strings.HasPrefix(link, "http") {
-		return link
-	}
+func resolveURL(link string, parsedBase *url.URL) string {
 	if strings.HasPrefix(link, "//") {
 		return "https:" + link
 	}
-	if strings.HasPrefix(link, "/") && parsedBase != nil {
-		return fmt.Sprintf("%s://%s%s", parsedBase.Scheme, parsedBase.Host, link)
+	u, err := url.Parse(link)
+	if err != nil {
+		return link
 	}
-	return base + link
+	if u.IsAbs() {
+		return link
+	}
+	if parsedBase == nil {
+		return link
+	}
+	return parsedBase.ResolveReference(u).String()
 }
 
 func GetMoviesByFilter(filter bson.M) gin.HandlerFunc {
@@ -237,7 +266,7 @@ func GetMovieSources(c *gin.Context) {
 
 	cacheKey := fmt.Sprintf("movie_sources_%d", movie.TMDbID)
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0, c.Request.Host)
 		subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
 
 		return gin.H{
@@ -275,7 +304,7 @@ func GetTVSources(c *gin.Context) {
 
 	cacheKey := fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
+		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode, c.Request.Host)
 		subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
 
 		return gin.H{

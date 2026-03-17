@@ -28,7 +28,7 @@ func NewVideoExtractor() *VideoExtractor {
 	}
 }
 
-func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool, season, episode int) []models.StreamSource {
+func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool, season, episode int, requestHost string) []models.StreamSource {
 	var allSources []models.StreamSource
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -117,6 +117,15 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 	// Convert direct sources to proxy URLs and remove embeds
 	var finalSources []models.StreamSource
 	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL == "" && requestHost != "" {
+		scheme := "http"
+		if strings.Contains(requestHost, "localhost") {
+			scheme = "http"
+		} else {
+			scheme = "https"
+		}
+		baseURL = fmt.Sprintf("%s://%s", scheme, requestHost)
+	}
 	if baseURL == "" {
 		baseURL = "http://localhost:8080"
 	}
@@ -189,6 +198,10 @@ func (e *VideoExtractor) ValidateLink(url string) (bool, string) {
 				strings.Contains(contentType, "application/vnd.apple.mpegurl") {
 				return true, contentType
 			}
+		} else if resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusForbidden {
+			// Some servers block HEAD requests, fallback to GET with range
+		} else {
+			return false, ""
 		}
 	}
 
