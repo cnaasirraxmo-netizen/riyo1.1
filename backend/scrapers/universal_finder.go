@@ -11,10 +11,12 @@ func NewUniversalFinder() *UniversalFinder {
 	return &UniversalFinder{}
 }
 
+// FindSources is the main entry point for the recursive extraction process.
 func (f *UniversalFinder) FindSources(url string) []string {
 	return f.recursiveFind(url, 0)
 }
 
+// recursiveFind implements the core extraction logic, traversing iframes up to depth 4.
 func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 	if depth > 4 {
 		return nil
@@ -23,20 +25,23 @@ func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 	var allSources []string
 	var mu sync.Mutex
 
-	// 1. REDIRECT EXTRACTION (METHOD 6)
+	// STEP 1: FOLLOW REDIRECTS (Method 6)
+	// Some providers use intermediate redirect pages to hide their true player URLs.
 	finalURL, _ := FollowRedirects(url)
 	html, err := FetchHTML(finalURL)
 	if err != nil {
 		return nil
 	}
 
-	// 2. EMBED PROVIDER EXTRACTION (METHOD 7)
+	// STEP 2: EMBED PROVIDER EXTRACTION (Method 7)
+	// Identify and extract other embed links within the current page.
 	embeds := ExtractEmbeds(html)
 	mu.Lock()
 	allSources = append(allSources, embeds...)
 	mu.Unlock()
 
-	// 3. IFRAME EXTRACTION (METHOD 2) - Recursive discovery
+	// STEP 3: IFRAME EXTRACTION (Method 2)
+	// Recursively discover sources from nested iframes.
 	iframes := ExtractIframes(html)
 	var wg sync.WaitGroup
 	for _, iframe := range iframes {
@@ -50,25 +55,29 @@ func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 		}(iframe)
 	}
 
-	// 4. HTML PARSING (METHOD 1)
+	// STEP 4: HTML PARSING (Method 1)
+	// Scan the page for <video>, <source>, and data-video-url tags.
 	htmlSources := ExtractVideoSources(html)
 	mu.Lock()
 	allSources = append(allSources, htmlSources...)
 	mu.Unlock()
 
-	// 5. JAVASCRIPT VARIABLE PARSING (METHOD 3)
+	// STEP 5: JAVASCRIPT VARIABLE PARSING (Method 3)
+	// Look for variables like 'hls_url', 'stream_url', etc. in <script> tags.
 	jsSources := ExtractJSVariables(html)
 	mu.Lock()
 	allSources = append(allSources, jsSources...)
 	mu.Unlock()
 
-	// 6. PLAYER CONFIG PARSING (METHOD 4)
+	// STEP 6: PLAYER CONFIG PARSING (Method 4)
+	// Parse JSON configuration objects (common in JWPlayer and Video.js).
 	jsonSources := ExtractJSONConfig(html)
 	mu.Lock()
 	allSources = append(allSources, jsonSources...)
 	mu.Unlock()
 
-	// 7. NETWORK REQUEST DISCOVERY (METHOD 5)
+	// STEP 7: NETWORK REQUEST DISCOVERY (Method 5)
+	// Identify API endpoints that the player might call to fetch its stream.
 	networkEndpoints := ExtractNetworkDiscovery(html)
 	for _, endpoint := range networkEndpoints {
 		wg.Add(1)

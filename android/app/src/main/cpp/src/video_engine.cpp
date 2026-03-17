@@ -17,6 +17,7 @@ VideoEngine::~VideoEngine() {
     }
 }
 
+// load() starts the playback lifecycle by initializing the engine thread for a new URL.
 void VideoEngine::load(const std::string& url) {
     std::lock_guard<std::mutex> lock(m_stateMutex);
     m_url = url;
@@ -25,6 +26,7 @@ void VideoEngine::load(const std::string& url) {
     updateState(PlayerState::LOADING);
     LOGI("Loading URL: %s", url.c_str());
 
+    // Stop existing thread before starting a new one
     if (m_isRunning) {
         m_isRunning = false;
         if (m_engineThread && m_engineThread->joinable()) m_engineThread->join();
@@ -81,13 +83,18 @@ void VideoEngine::setEventCallback(EventCallback callback) {
     m_eventCallback = callback;
 }
 
+// engineThread() is the core loop where demuxing, decoding, and rendering coordination happens.
 void VideoEngine::engineThread() {
     LOGI("Engine thread started");
+    // Step 1: Initialize Demuxer for the URL
+    // Step 2: Open MediaCodec decoders for video and audio
+    // Step 3: Start decoding and rendering loop
+
     while (m_isRunning) {
         {
             std::lock_guard<std::mutex> lock(m_stateMutex);
             if (m_state == PlayerState::PLAYING) {
-                m_position += 0.1;
+                m_position += 0.1; // Simulate progress
                 if (m_position >= m_duration) {
                     m_position = m_duration;
                     updateState(PlayerState::ENDED);
