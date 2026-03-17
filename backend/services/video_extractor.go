@@ -1,10 +1,7 @@
 package services
 
 import (
-	"encoding/base64"
-	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -28,7 +25,7 @@ func NewVideoExtractor() *VideoExtractor {
 	}
 }
 
-func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool, season, episode int, requestHost string) []models.StreamSource {
+func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool, season, episode int) []models.StreamSource {
 	var allSources []models.StreamSource
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -114,26 +111,10 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 	wg.Wait()
 	deduped := e.deduplicateSources(allSources)
 
-	// Convert direct sources to proxy URLs and remove embeds
+	// Return raw sources, filter out embeds
 	var finalSources []models.StreamSource
-	baseURL := os.Getenv("API_BASE_URL")
-	if baseURL == "" && requestHost != "" {
-		scheme := "http"
-		if strings.Contains(requestHost, "localhost") {
-			scheme = "http"
-		} else {
-			scheme = "https"
-		}
-		baseURL = fmt.Sprintf("%s://%s", scheme, requestHost)
-	}
-	if baseURL == "" {
-		baseURL = "http://localhost:8080"
-	}
-
 	for _, s := range deduped {
 		if s.Type != "embed" {
-			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
-			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 			finalSources = append(finalSources, s)
 		}
 	}

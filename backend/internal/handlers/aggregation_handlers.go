@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -78,7 +79,34 @@ func GetHome(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, cached)
+	// Wrap sources with proxy URLs outside of cache to handle dynamic hosts correctly
+	responseMap := make(map[string]interface{})
+	if m, ok := cached.(map[string]interface{}); ok {
+		for k, v := range m {
+			responseMap[k] = v
+		}
+	} else if h, ok := cached.(gin.H); ok {
+		for k, v := range h {
+			responseMap[k] = v
+		}
+	}
+
+	if sourcesData, ok := responseMap["sources"]; ok {
+		var sources []models.StreamSource
+		b, _ := json.Marshal(sourcesData)
+		json.Unmarshal(b, &sources)
+
+		proxiedSources := make([]models.StreamSource, len(sources))
+		baseURL := GetBaseURL(c.Request.Host)
+		for i, s := range sources {
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
+			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+			proxiedSources[i] = s
+		}
+		responseMap["sources"] = proxiedSources
+	}
+
+	c.JSON(http.StatusOK, responseMap)
 }
 
 func ProxyStream(c *gin.Context) {
@@ -266,7 +294,7 @@ func GetMovieSources(c *gin.Context) {
 
 	cacheKey := fmt.Sprintf("movie_sources_%d", movie.TMDbID)
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0, c.Request.Host)
+		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
 		subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
 
 		return gin.H{
@@ -280,7 +308,34 @@ func GetMovieSources(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, cached)
+	// Wrap sources with proxy URLs outside of cache to handle dynamic hosts correctly
+	responseMap := make(map[string]interface{})
+	if m, ok := cached.(map[string]interface{}); ok {
+		for k, v := range m {
+			responseMap[k] = v
+		}
+	} else if h, ok := cached.(gin.H); ok {
+		for k, v := range h {
+			responseMap[k] = v
+		}
+	}
+
+	if sourcesData, ok := responseMap["sources"]; ok {
+		var sources []models.StreamSource
+		b, _ := json.Marshal(sourcesData)
+		json.Unmarshal(b, &sources)
+
+		proxiedSources := make([]models.StreamSource, len(sources))
+		baseURL := GetBaseURL(c.Request.Host)
+		for i, s := range sources {
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
+			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+			proxiedSources[i] = s
+		}
+		responseMap["sources"] = proxiedSources
+	}
+
+	c.JSON(http.StatusOK, responseMap)
 }
 
 func GetTVSources(c *gin.Context) {
@@ -304,7 +359,7 @@ func GetTVSources(c *gin.Context) {
 
 	cacheKey := fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode, c.Request.Host)
+		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
 		subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
 
 		return gin.H{
@@ -318,7 +373,46 @@ func GetTVSources(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, cached)
+	// Wrap sources with proxy URLs outside of cache to handle dynamic hosts correctly
+	responseMap := make(map[string]interface{})
+	if m, ok := cached.(map[string]interface{}); ok {
+		for k, v := range m {
+			responseMap[k] = v
+		}
+	} else if h, ok := cached.(gin.H); ok {
+		for k, v := range h {
+			responseMap[k] = v
+		}
+	}
+
+	if sourcesData, ok := responseMap["sources"]; ok {
+		var sources []models.StreamSource
+		b, _ := json.Marshal(sourcesData)
+		json.Unmarshal(b, &sources)
+
+		proxiedSources := make([]models.StreamSource, len(sources))
+		baseURL := GetBaseURL(c.Request.Host)
+		for i, s := range sources {
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
+			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+			proxiedSources[i] = s
+		}
+		responseMap["sources"] = proxiedSources
+	}
+
+	c.JSON(http.StatusOK, responseMap)
+}
+
+func GetBaseURL(requestHost string) string {
+	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL != "" {
+		return baseURL
+	}
+	scheme := "https"
+	if strings.Contains(requestHost, "localhost") || strings.Contains(requestHost, "127.0.0.1") {
+		scheme = "http"
+	}
+	return fmt.Sprintf("%s://%s", scheme, requestHost)
 }
 
 func SearchMovies(c *gin.Context) {
