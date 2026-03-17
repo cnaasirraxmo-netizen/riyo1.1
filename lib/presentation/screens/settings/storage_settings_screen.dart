@@ -12,7 +12,6 @@ class StorageSettingsScreen extends StatefulWidget {
 
 class _StorageSettingsScreenState extends State<StorageSettingsScreen> {
   String _cacheSize = '0 MB';
-  String _imageCacheSize = '0 MB';
 
   @override
   void initState() {
@@ -21,24 +20,29 @@ class _StorageSettingsScreenState extends State<StorageSettingsScreen> {
   }
 
   Future<void> _calculateSizes() async {
-    final tempDir = await getTemporaryDirectory();
-    final cacheSize = _getSize(tempDir);
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final cacheSize = await _getSizeAsync(tempDir);
 
-    setState(() {
-      _cacheSize = _formatSize(cacheSize);
-      _imageCacheSize = 'Included in Cache';
-    });
+      if (mounted) {
+        setState(() {
+          _cacheSize = _formatSize(cacheSize);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error calculating sizes: $e');
+    }
   }
 
-  int _getSize(Directory dir) {
+  Future<int> _getSizeAsync(Directory dir) async {
     int totalSize = 0;
     try {
-      if (dir.existsSync()) {
-        dir.listSync(recursive: true, followLinks: false).forEach((FileSystemEntity entity) {
+      if (await dir.exists()) {
+        await for (var entity in dir.list(recursive: true, followLinks: false)) {
           if (entity is File) {
-            totalSize += entity.lengthSync();
+            totalSize += await entity.length();
           }
-        });
+        }
       }
     } catch (e) {
       debugPrint('Error calculating size: $e');
@@ -54,15 +58,23 @@ class _StorageSettingsScreenState extends State<StorageSettingsScreen> {
   }
 
   Future<void> _clearCache() async {
-    final tempDir = await getTemporaryDirectory();
-    if (tempDir.existsSync()) {
-      tempDir.listSync().forEach((entity) {
-        entity.deleteSync(recursive: true);
-      });
-    }
-    _calculateSizes();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cache cleared successfully')));
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        final List<FileSystemEntity> entities = await tempDir.list().toList();
+        for (var entity in entities) {
+          await entity.delete(recursive: true);
+        }
+      }
+      await _calculateSizes();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cache cleared successfully')));
+      }
+    } catch (e) {
+      debugPrint('Error clearing cache: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to clear cache: $e'), backgroundColor: Colors.redAccent));
+      }
     }
   }
 
@@ -113,7 +125,7 @@ class _StorageSettingsScreenState extends State<StorageSettingsScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: 0.65,
-              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
               minHeight: 8,
             ),

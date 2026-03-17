@@ -42,6 +42,8 @@ class RiyoVideoEngine {
   late DynamicLibrary _lib;
   late Pointer<Void> _playerHandle;
 
+  Pointer<Void> get handle => _playerHandle;
+
   late PlayerCreate _playerCreate;
   late PlayerDestroy _playerDestroy;
   late PlayerLoad _playerLoad;

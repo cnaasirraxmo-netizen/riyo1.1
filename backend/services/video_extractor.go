@@ -1,10 +1,7 @@
 package services
 
 import (
-	"encoding/base64"
-	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -43,7 +40,8 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 				sources, err := p.Search(title, isTvShow, season, episode)
 				if err == nil {
 					for _, s := range sources {
-						if e.ValidateLink(s.URL) {
+						if isValid, ct := e.ValidateLink(s.URL); isValid {
+							s.Type = e.DetectType(s.URL, ct)
 							mu.Lock()
 							allSources = append(allSources, s)
 							mu.Unlock()
@@ -95,12 +93,12 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 			// Use Universal Finder to discover direct links from embed
 			discovered := e.finder.FindSources(url)
 			for _, link := range discovered {
-				if e.ValidateLink(link) {
+				if isValid, ct := e.ValidateLink(link); isValid {
 					mu.Lock()
 					allSources = append(allSources, models.StreamSource{
 						Label:    p.Name + " (Direct)",
 						URL:      link,
-						Type:     e.DetectType(link),
+						Type:     e.DetectType(link, ct),
 						Provider: strings.ToLower(p.Name),
 						Quality:  e.finder.DetectQuality(link),
 					})
@@ -113,17 +111,10 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 	wg.Wait()
 	deduped := e.deduplicateSources(allSources)
 
-	// Convert direct sources to proxy URLs and remove embeds
+	// Return raw sources, filter out embeds
 	var finalSources []models.StreamSource
-	baseURL := os.Getenv("API_BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:8080"
-	}
-
 	for _, s := range deduped {
 		if s.Type != "embed" {
-			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
-			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 			finalSources = append(finalSources, s)
 		}
 	}
@@ -132,28 +123,45 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 }
 
 func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.StreamSource {
-	// Simple ranking based on quality and provider reliability
-	// 4K > 1080p > 720p > 480p > 360p
+	// Step 9: Source Ranking (Quality > Provider Reliability > Speed/Type)
 	qualityMap := map[string]int{
-		"4K":    5,
-		"1080p": 4,
-		"720p":  3,
-		"480p":  2,
-		"360p":  1,
+		"4K":    50,
+		"1080p": 40,
+		"720p":  30,
+		"480p":  20,
+		"360p":  10,
 	}
 
-	// Stability/Reliability heuristic: direct links are better than embeds
-	providerRank := func(s models.StreamSource) int {
-		if s.Type != "embed" {
-			return 10
+	// Direct links (hls, dash, direct) are more reliable than external sources
+	typeRank := func(t string) int {
+		switch t {
+		case "hls":
+			return 5
+		case "direct":
+			return 4
+		case "dash":
+			return 3
+		default:
+			return 0
 		}
-		return 1
+	}
+
+	// Some providers are historically better/faster
+	providerReliability := map[string]int{
+		"vidsrc":      10,
+		"vidlink":     9,
+		"superembed":  8,
+		"2embed":      7,
+		"vidsrcpro":   10,
 	}
 
 	for i := 0; i < len(sources); i++ {
 		for j := i + 1; j < len(sources); j++ {
-			scoreI := qualityMap[sources[i].Quality]*10 + providerRank(sources[i])
-			scoreJ := qualityMap[sources[j].Quality]*10 + providerRank(sources[j])
+			pI := providerReliability[strings.ToLower(sources[i].Provider)]
+			pJ := providerReliability[strings.ToLower(sources[j].Provider)]
+
+			scoreI := qualityMap[sources[i].Quality] + typeRank(sources[i].Type) + pI
+			scoreJ := qualityMap[sources[j].Quality] + typeRank(sources[j].Type) + pJ
 
 			if scoreJ > scoreI {
 				sources[i], sources[j] = sources[j], sources[i]
@@ -164,15 +172,15 @@ func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.Str
 	return sources
 }
 
-func (e *VideoExtractor) ValidateLink(url string) bool {
+func (e *VideoExtractor) ValidateLink(url string) (bool, string) {
 	if url == "" {
-		return false
+		return false, ""
 	}
 
 	// Try HEAD request first
 	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
-		return false
+		return false, ""
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
@@ -186,46 +194,57 @@ func (e *VideoExtractor) ValidateLink(url string) bool {
 				strings.Contains(contentType, "application/dash+xml") ||
 				strings.Contains(contentType, "application/octet-stream") ||
 				strings.Contains(contentType, "application/vnd.apple.mpegurl") {
-				return true
+				return true, contentType
 			}
+		} else if resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusForbidden {
+			// Some servers block HEAD requests, fallback to GET with range
+		} else {
+			return false, ""
 		}
 	}
 
 	// Fallback to GET request with Range header if HEAD fails or is inconclusive
 	req, err = http.NewRequest("GET", url, nil)
 	if err != nil {
-		return false
+		return false, ""
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 	req.Header.Set("Range", "bytes=0-0")
 
 	resp, err = e.client.Do(req)
 	if err != nil {
-		return false
+		return false, ""
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
 		contentType := strings.ToLower(resp.Header.Get("Content-Type"))
-		return strings.Contains(contentType, "video/") ||
+		isValid := strings.Contains(contentType, "video/") ||
 			strings.Contains(contentType, "application/x-mpegurl") ||
 			strings.Contains(contentType, "application/dash+xml") ||
 			strings.Contains(contentType, "application/octet-stream") ||
 			strings.Contains(contentType, "application/vnd.apple.mpegurl") ||
-			resp.StatusCode == http.StatusPartialContent // Range request success is a good sign
+			resp.StatusCode == http.StatusPartialContent
+
+		if isValid {
+			return true, contentType
+		}
 	}
 
-	return false
+	return false, ""
 }
 
-func (e *VideoExtractor) DetectType(url string) string {
-	if strings.Contains(url, ".m3u8") {
+func (e *VideoExtractor) DetectType(url, contentType string) string {
+	if strings.Contains(url, ".m3u8") || strings.Contains(contentType, "mpegurl") {
 		return "hls"
 	}
-	if strings.Contains(url, ".mpd") {
+	if strings.Contains(url, ".mpd") || strings.Contains(contentType, "dash+xml") {
 		return "dash"
 	}
-	if strings.Contains(url, ".mp4") {
+	if strings.Contains(url, ".mp4") || strings.Contains(contentType, "video/mp4") || strings.Contains(contentType, "application/octet-stream") {
+		return "direct"
+	}
+	if strings.Contains(contentType, "video/") {
 		return "direct"
 	}
 	return "embed"

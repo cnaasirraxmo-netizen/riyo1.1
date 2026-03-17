@@ -16,7 +16,7 @@ func (f *UniversalFinder) FindSources(url string) []string {
 }
 
 func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
-	if depth > 2 {
+	if depth > 4 {
 		return nil
 	}
 
@@ -118,16 +118,16 @@ func (f *UniversalFinder) DetectQuality(url string) string {
 	if strings.Contains(lowerURL, "2160") || strings.Contains(lowerURL, "4k") || strings.Contains(lowerURL, "uhd") {
 		return "4K"
 	}
-	if strings.Contains(lowerURL, "1080") || strings.Contains(lowerURL, "fhd") {
+	if strings.Contains(lowerURL, "1080") || strings.Contains(lowerURL, "fhd") || strings.Contains(lowerURL, "fullhd") || strings.Contains(lowerURL, "1920x1080") {
 		return "1080p"
 	}
-	if strings.Contains(lowerURL, "720") || strings.Contains(lowerURL, "hd") {
+	if strings.Contains(lowerURL, "720") || strings.Contains(lowerURL, "hd") || strings.Contains(lowerURL, "1280x720") {
 		return "720p"
 	}
-	if strings.Contains(lowerURL, "480") || strings.Contains(lowerURL, "sd") {
+	if strings.Contains(lowerURL, "480") || strings.Contains(lowerURL, "sd") || strings.Contains(lowerURL, "854x480") {
 		return "480p"
 	}
-	if strings.Contains(lowerURL, "360") {
+	if strings.Contains(lowerURL, "360") || strings.Contains(lowerURL, "640x360") {
 		return "360p"
 	}
 	return "720p"

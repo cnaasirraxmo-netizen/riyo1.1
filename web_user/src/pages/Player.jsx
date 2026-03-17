@@ -11,6 +11,7 @@ const Player = () => {
   const queryParams = new URLSearchParams(location.search);
   const season = queryParams.get('s');
   const episode = queryParams.get('e');
+  const initialUrl = queryParams.get('url');
 
   const [movie, setMovie] = useState(null);
   const [sources, setSources] = useState([]);
@@ -47,7 +48,25 @@ const Player = () => {
         setSubtitles(subtitlesData);
 
         if (sourcesData.length > 0) {
-          setSelectedSource(sourcesData[0]);
+          let foundIndex = -1;
+          if (initialUrl) {
+            foundIndex = sourcesData.findIndex(s => s.url === initialUrl);
+          }
+
+          if (foundIndex !== -1) {
+            setSelectedSource(sourcesData[foundIndex]);
+            setSourceIndex(foundIndex);
+          } else if (initialUrl) {
+            setSelectedSource({ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' });
+            setSourceIndex(0);
+          } else {
+            setSelectedSource(sourcesData[0]);
+            setSourceIndex(0);
+          }
+        } else if (initialUrl) {
+          // If no sources returned from backend, but we have an initial URL, use it
+          setSelectedSource({ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' });
+          setSources([{ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' }]);
           setSourceIndex(0);
         }
       } catch (err) {
@@ -142,8 +161,6 @@ const Player = () => {
     </div>
   );
 
-  const isEmbed = selectedSource?.type === 'embed';
-
   return (
     <div
       className="fixed inset-0 z-[100] bg-black group overflow-hidden select-none cursor-none"
@@ -180,7 +197,7 @@ const Player = () => {
 
       {/* Primary Video Container */}
       <div className="w-full h-full bg-[#000] relative">
-        {isBuffering && !isEmbed && (
+        {isBuffering && (
           <div className="absolute inset-0 flex items-center justify-center z-[105] bg-black/20">
             <motion.div
               animate={{ rotate: 360 }}
@@ -189,140 +206,114 @@ const Player = () => {
             />
           </div>
         )}
-        {isEmbed ? (
-          <iframe
-            src={selectedSource?.url}
-            className="w-full h-full border-none pointer-events-auto"
-            allowFullScreen
-            title="Video Player"
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            src={selectedSource?.url || movie.videoUrl}
-            className="w-full h-full object-contain pointer-events-auto"
-            onTimeUpdate={onTimeUpdate}
-            onLoadedMetadata={onLoadedMetadata}
-            onWaiting={onWaiting}
-            onPlaying={onPlaying}
-            onError={handleVideoError}
-            onClick={togglePlay}
-            autoPlay
-          >
-            {selectedSubtitle && (
-              <track
-                label={selectedSubtitle.language}
-                kind="subtitles"
-                srcLang="en"
-                src={selectedSubtitle.url}
-                default
-              />
-            )}
-          </video>
-        )}
+        <video
+          ref={videoRef}
+          src={selectedSource?.url || movie.videoUrl}
+          className="w-full h-full object-contain pointer-events-auto"
+          onTimeUpdate={onTimeUpdate}
+          onLoadedMetadata={onLoadedMetadata}
+          onWaiting={onWaiting}
+          onPlaying={onPlaying}
+          onError={handleVideoError}
+          onClick={togglePlay}
+          autoPlay
+        >
+          {selectedSubtitle && (
+            <track
+              label={selectedSubtitle.language}
+              kind="subtitles"
+              srcLang="en"
+              src={selectedSubtitle.url}
+              default
+            />
+          )}
+        </video>
       </div>
 
       {/* Premium UI Overlay */}
-      {!isEmbed && (
-        <AnimatePresence>
-            {showControls && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40 flex flex-col justify-end p-10 md:p-16"
-                >
-                    {/* Cinematic Seek Bar */}
-                    <div className="w-full mb-12 group/seek pointer-events-auto">
-                        <div className="relative w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                                className="absolute left-0 top-0 h-full bg-purple-600 shadow-[0_0_20px_rgba(139,92,246,0.8)]"
-                                style={{ width: `${progress}%` }}
-                            />
-                        </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={progress}
-                            onChange={handleSeek}
-                            className="absolute -top-1 left-0 w-full opacity-0 cursor-pointer h-3"
-                        />
-                        <div className="flex justify-between text-[11px] mt-6 font-black font-mono text-slate-500 tracking-[0.3em] uppercase">
-                            <span className="text-purple-500">{formatTime(videoRef.current?.currentTime || 0)}</span>
-                            <span>{formatTime(duration)}</span>
-                        </div>
-                    </div>
-
-                    {/* Master Controls */}
-                    <div className="flex items-center justify-between pointer-events-auto">
-                        <div className="flex items-center space-x-16">
-                            <button onClick={togglePlay} className="text-white hover:scale-110 active:scale-90 transition-all">
-                                {isPlaying ? <Pause size={72} fill="white" /> : <Play size={72} fill="white" className="ml-2" />}
-                            </button>
-
-                            <div className="flex items-center space-x-8">
-                                <button onClick={() => videoRef.current.currentTime -= 10} className="text-slate-400 hover:text-white transition-all">
-                                    <RotateCcw size={36} />
-                                </button>
-                                <button onClick={() => videoRef.current.currentTime += 10} className="text-slate-400 hover:text-white transition-all">
-                                    <RotateCw size={36} />
-                                </button>
-                            </div>
-
-                            <div className="flex items-center space-x-6 group/vol bg-white/5 px-6 py-4 rounded-3xl border border-white/5">
-                                <Volume2 size={24} className="text-slate-400 group-hover/vol:text-white transition-colors" />
-                                <input type="range" className="w-24 accent-white h-1 appearance-none bg-white/10 rounded-full" />
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-10">
-                            <button
-                                onClick={() => setShowSubtitleSelector(true)}
-                                className={`flex flex-col items-center space-y-2 transition-all ${selectedSubtitle ? 'text-purple-500 scale-110' : 'text-slate-500 hover:text-white'}`}
-                            >
-                                <Subtitles size={32} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{selectedSubtitle?.language || 'Off'}</span>
-                            </button>
-
-                            <button
-                                onClick={() => setShowSourceSelector(true)}
-                                className="flex items-center space-x-5 glass-dark px-8 py-4 rounded-[1.5rem] border border-white/10 hover:border-purple-600 transition-all text-white group"
-                            >
-                                <Monitor size={24} className="text-purple-500" />
-                                <div className="flex flex-col items-start leading-none">
-                                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">Mirror</span>
-                                    <span className="text-sm font-black uppercase tracking-widest">{selectedSource?.label || 'Direct'}</span>
-                                </div>
-                            </button>
-
-                            <button
-                                onClick={() => videoRef.current.requestFullscreen()}
-                                className="text-slate-500 hover:text-white hover:scale-110 transition-transform"
-                            >
-                                <Maximize size={32} />
-                            </button>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-      )}
-
-      {/* Floating Server UI (Embed Mode) */}
-      {isEmbed && showControls && (
-          <div className="absolute bottom-16 right-16 z-[120] pointer-events-auto">
-             <motion.button
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                onClick={() => setShowSourceSelector(true)}
-                className="bg-purple-600 text-white px-10 py-5 rounded-[1.8rem] font-black uppercase tracking-[0.3em] text-[11px] flex items-center space-x-5 hover:bg-purple-700 transition-all shadow-[0_30px_100px_rgba(139,92,246,0.5)] active:scale-95 border-b-4 border-black/20"
+      <AnimatePresence>
+          {showControls && (
+              <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40 flex flex-col justify-end p-10 md:p-16"
               >
-                <Monitor size={22} />
-                <span>Switch Mirror</span>
-              </motion.button>
-          </div>
-      )}
+                  {/* Cinematic Seek Bar */}
+                  <div className="w-full mb-12 group/seek pointer-events-auto">
+                      <div className="relative w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                              className="absolute left-0 top-0 h-full bg-purple-600 shadow-[0_0_20px_rgba(139,92,246,0.8)]"
+                              style={{ width: `${progress}%` }}
+                          />
+                      </div>
+                      <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={progress}
+                          onChange={handleSeek}
+                          className="absolute -top-1 left-0 w-full opacity-0 cursor-pointer h-3"
+                      />
+                      <div className="flex justify-between text-[11px] mt-6 font-black font-mono text-slate-500 tracking-[0.3em] uppercase">
+                          <span className="text-purple-500">{formatTime(videoRef.current?.currentTime || 0)}</span>
+                          <span>{formatTime(duration)}</span>
+                      </div>
+                  </div>
+
+                  {/* Master Controls */}
+                  <div className="flex items-center justify-between pointer-events-auto">
+                      <div className="flex items-center space-x-16">
+                          <button onClick={togglePlay} className="text-white hover:scale-110 active:scale-90 transition-all">
+                              {isPlaying ? <Pause size={72} fill="white" /> : <Play size={72} fill="white" className="ml-2" />}
+                          </button>
+
+                          <div className="flex items-center space-x-8">
+                              <button onClick={() => videoRef.current.currentTime -= 10} className="text-slate-400 hover:text-white transition-all">
+                                  <RotateCcw size={36} />
+                              </button>
+                              <button onClick={() => videoRef.current.currentTime += 10} className="text-slate-400 hover:text-white transition-all">
+                                  <RotateCw size={36} />
+                              </button>
+                          </div>
+
+                          <div className="flex items-center space-x-6 group/vol bg-white/5 px-6 py-4 rounded-3xl border border-white/5">
+                              <Volume2 size={24} className="text-slate-400 group-hover/vol:text-white transition-colors" />
+                              <input type="range" className="w-24 accent-white h-1 appearance-none bg-white/10 rounded-full" />
+                          </div>
+                      </div>
+
+                      <div className="flex items-center space-x-10">
+                          <button
+                              onClick={() => setShowSubtitleSelector(true)}
+                              className={`flex flex-col items-center space-y-2 transition-all ${selectedSubtitle ? 'text-purple-500 scale-110' : 'text-slate-500 hover:text-white'}`}
+                          >
+                              <Subtitles size={32} />
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em]">{selectedSubtitle?.language || 'Off'}</span>
+                          </button>
+
+                          <button
+                              onClick={() => setShowSourceSelector(true)}
+                              className="flex items-center space-x-5 glass-dark px-8 py-4 rounded-[1.5rem] border border-white/10 hover:border-purple-600 transition-all text-white group"
+                          >
+                              <Monitor size={24} className="text-purple-500" />
+                              <div className="flex flex-col items-start leading-none">
+                                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">Mirror</span>
+                                  <span className="text-sm font-black uppercase tracking-widest">{selectedSource?.label || 'Direct'}</span>
+                              </div>
+                          </button>
+
+                          <button
+                              onClick={() => videoRef.current.requestFullscreen()}
+                              className="text-slate-500 hover:text-white hover:scale-110 transition-transform"
+                          >
+                              <Maximize size={32} />
+                          </button>
+                      </div>
+                  </div>
+              </motion.div>
+          )}
+      </AnimatePresence>
 
       {/* Full-Screen Selection Overlays */}
       <AnimatePresence>
@@ -338,7 +329,7 @@ const Player = () => {
                         setSourceIndex(index);
                         setShowSourceSelector(false);
                         setIsError(false);
-                        if (!isEmbed && videoRef.current) {
+                        if (videoRef.current) {
                            videoRef.current.onloadedmetadata = () => {
                              videoRef.current.currentTime = currentTime;
                              videoRef.current.play();

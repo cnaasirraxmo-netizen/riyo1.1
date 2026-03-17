@@ -89,10 +89,17 @@ class DownloadProvider with ChangeNotifier {
       final directory = await getApplicationDocumentsDirectory();
       final extension = p.extension(videoUrl).split('?').first; // Handle URLs with query params
       final fileName = '${movie.id}${extension.isEmpty ? ".mp4" : extension}';
-      final filePath = p.join(directory.path, 'downloads', fileName);
+      final downloadDir = Directory(p.join(directory.path, 'downloads'));
+      final filePath = p.join(downloadDir.path, fileName);
 
-      // Ensure directory exists
-      await Directory(p.dirname(filePath)).create(recursive: true);
+      // Robust directory creation with error handling
+      try {
+        if (!await downloadDir.exists()) {
+          await downloadDir.create(recursive: true);
+        }
+      } catch (e) {
+        throw FileSystemException("Could not create downloads directory", downloadDir.path, e as dynamic);
+      }
 
       final dio = Dio();
       await dio.download(
@@ -122,9 +129,10 @@ class DownloadProvider with ChangeNotifier {
       await _saveDownloadedMovies();
       notifyListeners();
     } catch (e) {
-      debugPrint('Download error: $e');
+      debugPrint('CRITICAL: Download error for ${movie.title}: $e');
       _downloadingMovies.removeWhere((m) => m.id == movie.id);
       notifyListeners();
+      // In a real app, we might want to propagate this error to the UI
     } finally {
       _cancelTokens.remove(movie.id);
     }

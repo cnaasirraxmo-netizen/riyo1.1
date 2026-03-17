@@ -3,9 +3,14 @@ package handlers
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 	"net/http"
+	"net/url"
+	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -75,7 +80,34 @@ func GetHome(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, cached)
+	// Wrap sources with proxy URLs outside of cache to handle dynamic hosts correctly
+	responseMap := make(map[string]interface{})
+	if m, ok := cached.(map[string]interface{}); ok {
+		for k, v := range m {
+			responseMap[k] = v
+		}
+	} else if h, ok := cached.(gin.H); ok {
+		for k, v := range h {
+			responseMap[k] = v
+		}
+	}
+
+	if sourcesData, ok := responseMap["sources"]; ok {
+		var sources []models.StreamSource
+		b, _ := json.Marshal(sourcesData)
+		json.Unmarshal(b, &sources)
+
+		proxiedSources := make([]models.StreamSource, len(sources))
+		baseURL := GetBaseURL(c.Request.Host)
+		for i, s := range sources {
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
+			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+			proxiedSources[i] = s
+		}
+		responseMap["sources"] = proxiedSources
+	}
+
+	c.JSON(http.StatusOK, responseMap)
 }
 
 func ProxyStream(c *gin.Context) {
@@ -96,30 +128,141 @@ func ProxyStream(c *gin.Context) {
 
 	// Forward important headers from the client (like Range for seeking)
 	for name, values := range c.Request.Header {
-		if name == "Range" || name == "User-Agent" {
+		if name == "Range" || name == "User-Agent" || name == "Referer" || name == "Origin" {
 			for _, value := range values {
 				req.Header.Add(name, value)
 			}
 		}
 	}
 
-	client := &http.Client{}
+	// Some providers require a valid Referer to serve content
+	if req.Header.Get("Referer") == "" {
+		req.Header.Set("Referer", targetURL)
+	}
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	fmt.Printf("Proxying request to: %s\n", targetURL)
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Printf("Proxy error: %v for %s\n", err, targetURL)
 		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach source domain"})
 		return
 	}
 	defer resp.Body.Close()
 
-	// Copy headers back to the client
-	for name, values := range resp.Header {
-		for _, value := range values {
-			c.Header(name, value)
+	// Detect if it's an HLS manifest
+	contentType := resp.Header.Get("Content-Type")
+	isM3U8 := strings.Contains(targetURL, ".m3u8") ||
+		strings.Contains(contentType, "mpegurl") ||
+		strings.Contains(contentType, "x-mpegURL")
+
+	if isM3U8 {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to read manifest"})
+			return
+		}
+
+		rewrittenManifest := rewriteHLSManifest(string(body), targetURL, c.Request.Host)
+
+		// Copy headers back to the client, but update Content-Length
+		for name, values := range resp.Header {
+			if name != "Content-Length" {
+				for _, value := range values {
+					c.Header(name, value)
+				}
+			}
+		}
+		c.Header("Content-Length", strconv.Itoa(len(rewrittenManifest)))
+		c.String(resp.StatusCode, rewrittenManifest)
+	} else {
+		// Copy headers back to the client
+		for name, values := range resp.Header {
+			for _, value := range values {
+				c.Header(name, value)
+			}
+		}
+		c.Status(resp.StatusCode)
+		io.Copy(c.Writer, resp.Body)
+	}
+}
+
+func rewriteHLSManifest(manifest, originalURL, requestHost string) string {
+	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL == "" {
+		scheme := "http"
+		if strings.Contains(requestHost, "localhost") {
+			scheme = "http"
+		} else {
+			scheme = "https"
+		}
+		baseURL = fmt.Sprintf("%s://%s", scheme, requestHost)
+	}
+
+	// Get base URL of the manifest to resolve relative paths
+	parsedURL, _ := url.Parse(originalURL)
+
+	// Normalize line endings
+	lineSeparator := "\n"
+	if strings.Contains(manifest, "\r\n") {
+		lineSeparator = "\r\n"
+	}
+	manifest = strings.ReplaceAll(manifest, "\r\n", "\n")
+	lines := strings.Split(manifest, "\n")
+
+	outputLines := make([]string, len(lines))
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			outputLines[i] = line
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "#") {
+			// Check for URI in tags like #EXT-X-KEY or #EXT-X-MEDIA
+			if strings.Contains(trimmed, "URI=") {
+				re := regexp.MustCompile(`URI=["'](.*?)["']`)
+				outputLines[i] = re.ReplaceAllStringFunc(line, func(match string) string {
+					submatch := re.FindStringSubmatch(match)
+					if len(submatch) > 1 {
+						resolvedURL := resolveURL(submatch[1], parsedURL)
+						encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
+						return fmt.Sprintf(`URI="%s/api/v1/stream/%s"`, baseURL, encodedURL)
+					}
+					return match
+				})
+			} else {
+				outputLines[i] = line
+			}
+		} else {
+			// It's a URL (segment or sub-playlist)
+			resolvedURL := resolveURL(trimmed, parsedURL)
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
+			// Keep the original indentation/spacing
+			outputLines[i] = strings.Replace(line, trimmed, fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL), 1)
 		}
 	}
 
-	c.Status(resp.StatusCode)
-	io.Copy(c.Writer, resp.Body)
+	return strings.Join(outputLines, lineSeparator)
+}
+
+func resolveURL(link string, parsedBase *url.URL) string {
+	if strings.HasPrefix(link, "//") {
+		return "https:" + link
+	}
+	u, err := url.Parse(link)
+	if err != nil {
+		return link
+	}
+	if u.IsAbs() {
+		return link
+	}
+	if parsedBase == nil {
+		return link
+	}
+	return parsedBase.ResolveReference(u).String()
 }
 
 func GetMoviesByFilter(filter bson.M) gin.HandlerFunc {
@@ -170,7 +313,34 @@ func GetMovieSources(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, cached)
+	// Wrap sources with proxy URLs outside of cache to handle dynamic hosts correctly
+	responseMap := make(map[string]interface{})
+	if m, ok := cached.(map[string]interface{}); ok {
+		for k, v := range m {
+			responseMap[k] = v
+		}
+	} else if h, ok := cached.(gin.H); ok {
+		for k, v := range h {
+			responseMap[k] = v
+		}
+	}
+
+	if sourcesData, ok := responseMap["sources"]; ok {
+		var sources []models.StreamSource
+		b, _ := json.Marshal(sourcesData)
+		json.Unmarshal(b, &sources)
+
+		proxiedSources := make([]models.StreamSource, len(sources))
+		baseURL := GetBaseURL(c.Request.Host)
+		for i, s := range sources {
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
+			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+			proxiedSources[i] = s
+		}
+		responseMap["sources"] = proxiedSources
+	}
+
+	c.JSON(http.StatusOK, responseMap)
 }
 
 func GetTVSources(c *gin.Context) {
@@ -208,7 +378,46 @@ func GetTVSources(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, cached)
+	// Wrap sources with proxy URLs outside of cache to handle dynamic hosts correctly
+	responseMap := make(map[string]interface{})
+	if m, ok := cached.(map[string]interface{}); ok {
+		for k, v := range m {
+			responseMap[k] = v
+		}
+	} else if h, ok := cached.(gin.H); ok {
+		for k, v := range h {
+			responseMap[k] = v
+		}
+	}
+
+	if sourcesData, ok := responseMap["sources"]; ok {
+		var sources []models.StreamSource
+		b, _ := json.Marshal(sourcesData)
+		json.Unmarshal(b, &sources)
+
+		proxiedSources := make([]models.StreamSource, len(sources))
+		baseURL := GetBaseURL(c.Request.Host)
+		for i, s := range sources {
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
+			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+			proxiedSources[i] = s
+		}
+		responseMap["sources"] = proxiedSources
+	}
+
+	c.JSON(http.StatusOK, responseMap)
+}
+
+func GetBaseURL(requestHost string) string {
+	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL != "" {
+		return baseURL
+	}
+	scheme := "https"
+	if strings.Contains(requestHost, "localhost") || strings.Contains(requestHost, "127.0.0.1") {
+		scheme = "http"
+	}
+	return fmt.Sprintf("%s://%s", scheme, requestHost)
 }
 
 func SearchMovies(c *gin.Context) {

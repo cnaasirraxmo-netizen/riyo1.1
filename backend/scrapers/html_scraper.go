@@ -24,10 +24,13 @@ var (
 		regexp.MustCompile(`https?://[^\s"']+\.webm[^\s"']*`),
 		regexp.MustCompile(`https?://[^\s"']+\.mkv[^\s"']*`),
 		regexp.MustCompile(`https?://[^\s"']+\.mpd[^\s"']*`),
+		regexp.MustCompile(`https?://[^\s"']+\.f4v[^\s"']*`),
+		regexp.MustCompile(`https?://[^\s"']+\.flv[^\s"']*`),
 		regexp.MustCompile(`file:\s*["'](https?://.*?)["']`),
-		regexp.MustCompile(`source\s+(?:src|data-src)=["'](https?://.*?)["']`),
+		regexp.MustCompile(`source\s+(?:src|data-src|data-video|data-main)=["'](https?://.*?)["']`),
 		regexp.MustCompile(`video_url\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`data-video-url=["'](https?://.*?)["']`),
+		regexp.MustCompile(`["'](https?://[^\s"']+\.(?:m3u8|mp4|mpd|webm|mkv))["']`),
 	}
 	jsVariableRes = []*regexp.Regexp{
 		regexp.MustCompile(`["']?file["']?\s*:\s*["'](https?://.*?)["']`),
@@ -37,9 +40,12 @@ var (
 		regexp.MustCompile(`["']?hls_url["']?\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`["']?stream_url["']?\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`["']?src["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?link["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?data["']?\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`var\s+\w+\s*=\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`window\.config\s*=\s*(\{.*?\});`),
 		regexp.MustCompile(`player\.setup\s*\((\{.*?\})\)`),
+		regexp.MustCompile(`jwplayer\(.*?\)\.setup\((\{.*?\})\)`),
 	}
 	jsonConfigRe      = regexp.MustCompile(`(?s)\{.*?"(?:sources|playlist|file)".*?\}`)
 	networkDiscoveryRes = []*regexp.Regexp{
@@ -47,6 +53,10 @@ var (
 		regexp.MustCompile(`["'](https?://[^"']*/ajax/[^"']+)["']`),
 		regexp.MustCompile(`["'](https?://[^"']*/get_source/[^"']+)["']`),
 		regexp.MustCompile(`["'](https?://[^"']*/playlist/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/embed/sources/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/getSources/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/v[0-9]/sources/[^"']+)["']`),
+		regexp.MustCompile(`["'](https?://[^"']*/player/get_playlist/[^"']+)["']`),
 	}
 )
 
@@ -156,7 +166,7 @@ func findURLsInJSON(data interface{}) []string {
 	var urls []string
 	switch v := data.(type) {
 	case string:
-		if strings.HasPrefix(v, "http") && (strings.Contains(v, ".mp4") || strings.Contains(v, ".m3u8") || strings.Contains(v, ".mpd")) {
+		if strings.HasPrefix(v, "http") && (strings.Contains(v, ".mp4") || strings.Contains(v, ".m3u8") || strings.Contains(v, ".mpd") || strings.Contains(v, "/playlist/") || strings.Contains(v, "/manifest/")) {
 			urls = append(urls, v)
 		}
 	case map[string]interface{}:

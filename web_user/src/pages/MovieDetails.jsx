@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { Play, Plus, ThumbsUp, Check, Star, Clock, Calendar, Globe, User, Shield, Share2 } from 'lucide-react';
+import { Play, Plus, ThumbsUp, Check, Star, Clock, Calendar, Globe, User, Shield, Share2, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const MovieDetails = () => {
@@ -11,6 +11,8 @@ const MovieDetails = () => {
   const [loading, setLoading] = useState(true);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(0);
+  const [sources, setSources] = useState([]);
+  const [isLoadingSources, setIsLoadingSources] = useState(false);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -23,6 +25,8 @@ const MovieDetails = () => {
 
         const profileRes = await api.get('/users/profile');
         setIsInWatchlist(profileRes.data.watchlist?.some(m => m._id === id) || false);
+
+        fetchSources();
       } catch (err) {
         console.error(err);
       } finally {
@@ -31,6 +35,18 @@ const MovieDetails = () => {
     };
     fetchMovie();
   }, [id]);
+
+  const fetchSources = async () => {
+    setIsLoadingSources(true);
+    try {
+      const response = await api.get(`/api/v1/movie/${id}/sources`);
+      setSources(response.data.sources || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingSources(false);
+    }
+  };
 
   const toggleWatchlist = async () => {
     try {
@@ -153,6 +169,37 @@ const MovieDetails = () => {
                   {movie.description}
                 </p>
             </div>
+
+            {/* Streaming Sources */}
+            {!movie.isTvShow && (
+              <div className="mb-20">
+                <div className="flex items-center space-x-4 mb-8">
+                    <div className="h-[2px] w-12 bg-purple-600"></div>
+                    <h3 className="text-xs font-black uppercase tracking-[0.4em] text-purple-500">Available Servers</h3>
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  {isLoadingSources ? (
+                    <div className="text-slate-500 font-bold uppercase text-[10px] tracking-widest animate-pulse">Searching for best mirrors...</div>
+                  ) : sources.length > 0 ? (
+                    sources.map((source, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => navigate(`/watch/${movie._id}?url=${encodeURIComponent(source.url)}`)}
+                        className="glass px-6 py-3 rounded-xl border border-white/10 hover:border-purple-600 transition-all text-white group flex items-center space-x-3"
+                      >
+                        <Zap size={14} className="text-purple-500" />
+                        <div className="flex flex-col items-start leading-none">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-1">{source.provider}</span>
+                            <span className="text-xs font-black uppercase tracking-widest">{source.label} ({source.quality})</span>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">No direct sources found.</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Premium Episode List */}
             {movie.isTvShow && movie.seasons && (

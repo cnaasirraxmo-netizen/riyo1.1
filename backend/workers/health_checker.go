@@ -73,9 +73,27 @@ func (h *HealthChecker) ValidateLink(url string) bool {
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
-	resp, err := client.Head(url)
-	if err != nil {
-		return false
+
+	// Try HEAD first
+	req, _ := http.NewRequest("HEAD", url, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	resp, err := client.Do(req)
+	if err == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
+			return true
+		}
 	}
-	return resp.StatusCode == http.StatusOK
+
+	// Fallback to GET with Range
+	req, _ = http.NewRequest("GET", url, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("Range", "bytes=0-1")
+	resp, err = client.Do(req)
+	if err == nil {
+		defer resp.Body.Close()
+		return resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent
+	}
+
+	return false
 }
