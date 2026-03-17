@@ -24,10 +24,13 @@ var (
 		regexp.MustCompile(`https?://[^\s"']+\.webm[^\s"']*`),
 		regexp.MustCompile(`https?://[^\s"']+\.mkv[^\s"']*`),
 		regexp.MustCompile(`https?://[^\s"']+\.mpd[^\s"']*`),
+		regexp.MustCompile(`https?://[^\s"']+\.f4v[^\s"']*`),
+		regexp.MustCompile(`https?://[^\s"']+\.flv[^\s"']*`),
 		regexp.MustCompile(`file:\s*["'](https?://.*?)["']`),
-		regexp.MustCompile(`source\s+(?:src|data-src)=["'](https?://.*?)["']`),
+		regexp.MustCompile(`source\s+(?:src|data-src|data-video|data-main)=["'](https?://.*?)["']`),
 		regexp.MustCompile(`video_url\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`data-video-url=["'](https?://.*?)["']`),
+		regexp.MustCompile(`["'](https?://[^\s"']+\.(?:m3u8|mp4|mpd|webm|mkv))["']`),
 	}
 	jsVariableRes = []*regexp.Regexp{
 		regexp.MustCompile(`["']?file["']?\s*:\s*["'](https?://.*?)["']`),
@@ -37,9 +40,12 @@ var (
 		regexp.MustCompile(`["']?hls_url["']?\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`["']?stream_url["']?\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`["']?src["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?link["']?\s*:\s*["'](https?://.*?)["']`),
+		regexp.MustCompile(`["']?data["']?\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`var\s+\w+\s*=\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`window\.config\s*=\s*(\{.*?\});`),
 		regexp.MustCompile(`player\.setup\s*\((\{.*?\})\)`),
+		regexp.MustCompile(`jwplayer\(.*?\)\.setup\((\{.*?\})\)`),
 	}
 	jsonConfigRe      = regexp.MustCompile(`(?s)\{.*?"(?:sources|playlist|file)".*?\}`)
 	networkDiscoveryRes = []*regexp.Regexp{

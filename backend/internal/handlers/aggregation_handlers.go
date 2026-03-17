@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -111,15 +114,93 @@ func ProxyStream(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	// Copy headers back to the client
-	for name, values := range resp.Header {
-		for _, value := range values {
-			c.Header(name, value)
+	// Detect if it's an HLS manifest
+	contentType := resp.Header.Get("Content-Type")
+	isM3U8 := strings.Contains(targetURL, ".m3u8") ||
+		strings.Contains(contentType, "mpegurl") ||
+		strings.Contains(contentType, "x-mpegURL")
+
+	if isM3U8 {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to read manifest"})
+			return
 		}
+
+		rewrittenManifest := rewriteHLSManifest(string(body), targetURL)
+
+		// Copy headers back to the client, but update Content-Length
+		for name, values := range resp.Header {
+			if name != "Content-Length" {
+				for _, value := range values {
+					c.Header(name, value)
+				}
+			}
+		}
+		c.Header("Content-Length", strconv.Itoa(len(rewrittenManifest)))
+		c.String(resp.StatusCode, rewrittenManifest)
+	} else {
+		// Copy headers back to the client
+		for name, values := range resp.Header {
+			for _, value := range values {
+				c.Header(name, value)
+			}
+		}
+		c.Status(resp.StatusCode)
+		io.Copy(c.Writer, resp.Body)
+	}
+}
+
+func rewriteHLSManifest(manifest, originalURL string) string {
+	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
 	}
 
-	c.Status(resp.StatusCode)
-	io.Copy(c.Writer, resp.Body)
+	// Get base URL of the manifest to resolve relative paths
+	parsedURL, _ := url.Parse(originalURL)
+	originalBase := originalURL[:strings.LastIndex(originalURL, "/")+1]
+
+	lines := strings.Split(manifest, "\n")
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			// Check for URI in tags like #EXT-X-KEY or #EXT-X-MEDIA
+			if strings.HasPrefix(line, "#EXT") && strings.Contains(line, "URI=") {
+				re := regexp.MustCompile(`URI=["'](.*?)["']`)
+				lines[i] = re.ReplaceAllStringFunc(line, func(match string) string {
+					submatch := re.FindStringSubmatch(match)
+					if len(submatch) > 1 {
+						resolvedURL := resolveURL(submatch[1], originalBase, parsedURL)
+						encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
+						return fmt.Sprintf(`URI="%s/api/v1/stream/%s"`, baseURL, encodedURL)
+					}
+					return match
+				})
+			}
+			continue
+		}
+
+		// It's a URL (segment or sub-playlist)
+		resolvedURL := resolveURL(line, originalBase, parsedURL)
+		encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
+		lines[i] = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func resolveURL(link, base string, parsedBase *url.URL) string {
+	if strings.HasPrefix(link, "http") {
+		return link
+	}
+	if strings.HasPrefix(link, "//") {
+		return "https:" + link
+	}
+	if strings.HasPrefix(link, "/") && parsedBase != nil {
+		return fmt.Sprintf("%s://%s%s", parsedBase.Scheme, parsedBase.Host, link)
+	}
+	return base + link
 }
 
 func GetMoviesByFilter(filter bson.M) gin.HandlerFunc {
