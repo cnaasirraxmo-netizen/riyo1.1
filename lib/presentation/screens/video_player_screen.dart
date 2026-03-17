@@ -17,7 +17,6 @@ import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 import 'package:riyo/core/casting/presentation/providers/casting_provider.dart';
 import 'package:riyo/core/casting/domain/entities/cast_media.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
-import 'package:webview_flutter/webview_flutter.dart';
 
 class VideoPlayerScreen extends rp.ConsumerStatefulWidget {
   final String? movieId;
@@ -34,7 +33,6 @@ class VideoPlayerScreen extends rp.ConsumerStatefulWidget {
 class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   RiyoVideoEngine? _engine;
   int? _textureId;
-  WebViewController? _webController;
   bool _isControlsVisible = true;
   Timer? _hideControlsTimer;
   double _currentVolume = 0.5;
@@ -237,19 +235,6 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       return;
     }
 
-    if (_selectedSource?.type == 'embed') {
-      _engine?.dispose();
-      _engine = null;
-      _webController = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(const Color(0x00000000))
-        ..loadRequest(Uri.parse(url));
-      if (mounted) {
-        setState(() => _isLoadingSource = false);
-      }
-      return;
-    }
-
     _engine?.dispose();
     _engine = RiyoVideoEngine();
     _textureId = await TextureRegistryBridge.createTexture();
@@ -391,13 +376,9 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         child: Stack(
           children: <Widget>[
             Center(
-              child: _selectedSource?.type == 'embed'
-                  ? (_webController != null
-                      ? WebViewWidget(controller: _webController!)
-                      : const CircularProgressIndicator(color: Colors.purple))
-                  : (_textureId != null)
-                      ? Texture(textureId: _textureId!)
-                      : const CircularProgressIndicator(color: Colors.purple),
+              child: (_textureId != null)
+                  ? Texture(textureId: _textureId!)
+                  : const CircularProgressIndicator(color: Colors.purple),
             ),
             // Subtitle Overlay
             if (_selectedSubtitle != 'Off' && _currentSubtitleText.isNotEmpty)
@@ -466,7 +447,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           children: [
             _buildTopBar(),
             const Spacer(),
-            if (_selectedSource?.type != 'embed') _buildPlaybackControls(),
+            _buildPlaybackControls(),
             const Spacer(),
             _buildBottomBar(),
           ],
@@ -550,46 +531,43 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          if (_selectedSource?.type != 'embed')
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                children: [
-                   SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 2,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                      activeTrackColor: Colors.purple,
-                      inactiveTrackColor: Colors.white24,
-                      thumbColor: Colors.white,
-                    ),
-                    child: Slider(
-                      value: _position,
-                      max: _duration,
-                      onChanged: (val) {
-                        setState(() => _position = val);
-                        _engine!.seek(val);
-                      },
-                    ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              children: [
+                 SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 2,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    activeTrackColor: Colors.purple,
+                    inactiveTrackColor: Colors.white24,
+                    thumbColor: Colors.white,
                   ),
-                ],
-              ),
+                  child: Slider(
+                    value: _position,
+                    max: _duration,
+                    onChanged: (val) {
+                      setState(() => _position = val);
+                      _engine!.seek(val);
+                    },
+                  ),
+                ),
+              ],
             ),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _selectedSource?.type == 'embed' ? 'EXTERNAL SERVER' : '${_formatDuration(Duration(seconds: _position.toInt()))} / ${_formatDuration(Duration(seconds: _duration.toInt()))}',
+                '${_formatDuration(Duration(seconds: _position.toInt()))} / ${_formatDuration(Duration(seconds: _duration.toInt()))}',
                 style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
               ),
               Row(
                 children: [
                   _buildControlItem(Icons.dns_rounded, _selectedSource?.label ?? 'SERVER', _showSourceMenu),
-                  if (_selectedSource?.type != 'embed') ...[
-                    _buildControlItem(Icons.subtitles_rounded, _selectedSubtitle, _showSubtitleMenu),
-                    _buildControlItem(Icons.speed_rounded, '${_playbackSpeed}x', _showSpeedMenu),
-                  ],
+                  _buildControlItem(Icons.subtitles_rounded, _selectedSubtitle, _showSubtitleMenu),
+                  _buildControlItem(Icons.speed_rounded, '${_playbackSpeed}x', _showSpeedMenu),
                   _buildControlItem(Icons.high_quality_rounded, _selectedSource?.quality ?? _selectedQuality, _showQualityMenu),
                 ],
               ),
