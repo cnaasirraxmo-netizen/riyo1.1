@@ -90,7 +90,7 @@ class AuthProvider with ChangeNotifier {
         throw Exception(_parseErrorMessage(response));
       }
     } catch (e) {
-      _handleError(e);
+      await _handleError(e);
     }
   }
 
@@ -128,7 +128,7 @@ class AuthProvider with ChangeNotifier {
         throw Exception(_parseErrorMessage(response));
       }
     } catch (e) {
-      _handleError(e);
+      await _handleError(e);
     }
   }
 
@@ -168,7 +168,7 @@ class AuthProvider with ChangeNotifier {
         throw Exception(_parseErrorMessage(response));
       }
     } catch (e) {
-      _handleError(e);
+      await _handleError(e);
     }
   }
 
@@ -230,10 +230,23 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void _handleError(dynamic e) {
+  Future<void> _handleError(dynamic e) async {
+    debugPrint('AUTH ERROR DETAILS: $e');
+
     if (e is fb.FirebaseAuthException) {
+      if (e.code == 'network-request-failed') {
+        // Detailed check for connectivity to googleapis.com
+        try {
+          final res = await http.head(Uri.parse('https://www.googleapis.com/generate_204')).timeout(const Duration(seconds: 5));
+          debugPrint('Google API Connectivity Check: ${res.statusCode}');
+        } catch (connErr) {
+          debugPrint('Google API Connectivity Check FAILED: $connErr');
+          throw Exception('Firebase connection error: The app cannot reach Google services. Please check if your network/firewall is blocking googleapis.com or if your device time is correct.');
+        }
+      }
       throw Exception(e.message ?? 'Authentication error');
     }
+
     if (e is http.ClientException || e.toString().contains('SocketException')) {
       throw Exception('Unable to connect to the server. Please check your internet connection.');
     }
