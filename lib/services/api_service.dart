@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riyo/models/movie.dart';
@@ -9,37 +10,55 @@ class ApiService {
   static const String _backendUrl = Constants.apiBaseUrl;
   final LocalCacheService _cacheService = LocalCacheService();
 
-  // NEW AGGREGATION METHODS
-  Future<Map<String, List<Movie>>> getHomeData() async {
+  Future<T> _cacheThenNetwork<T>({
+    required String cacheKey,
+    required String url,
+    required T Function(dynamic data) parser,
+    Map<String, String>? headers,
+  }) async {
+    // 1. Try to get from cache first for fast response
+    final cached = _cacheService.getCachedData(cacheKey);
+    T? cachedResult;
+    if (cached != null) {
+      try {
+        cachedResult = parser(cached);
+      } catch (e) {
+        debugPrint('Cache parsing error for $cacheKey: $e');
+      }
+    }
+
+    // 2. Fetch from network
     try {
-      final response = await http.get(Uri.parse('$_backendUrl/api/v1/home')).timeout(const Duration(seconds: 10));
+      final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        // Save to cache asynchronously
+        unawaited(_cacheService.cacheData(cacheKey, data));
+        return parser(data);
+      }
+    } catch (e) {
+      debugPrint('ApiService network error for $url: $e');
+    }
 
-        // Cache data for offline
-        _cacheService.cacheMovieList('home_trendingMovies', List<Map<String, dynamic>>.from(data['trendingMovies'] ?? []));
-        _cacheService.cacheMovieList('home_popularMovies', List<Map<String, dynamic>>.from(data['popularMovies'] ?? []));
-        _cacheService.cacheMovieList('home_topRatedMovies', List<Map<String, dynamic>>.from(data['topRatedMovies'] ?? []));
-        _cacheService.cacheMovieList('home_trendingTV', List<Map<String, dynamic>>.from(data['trendingTV'] ?? []));
+    // 3. Fallback to cache if network failed
+    if (cachedResult != null) return cachedResult;
 
+    throw Exception('Failed to load data from network and no cache available');
+  }
+
+  Future<Map<String, List<Movie>>> getHomeData() async {
+    return _cacheThenNetwork<Map<String, List<Movie>>>(
+      cacheKey: 'home_data_aggregate',
+      url: '$_backendUrl/api/v1/home',
+      parser: (data) {
         return {
           'trendingMovies': _parseList(data['trendingMovies']),
           'popularMovies': _parseList(data['popularMovies']),
           'topRatedMovies': _parseList(data['topRatedMovies']),
           'trendingTV': _parseList(data['trendingTV']),
         };
-      }
-    } catch (e) {
-      debugPrint('ApiService.getHomeData error: $e. Using cache.');
-    }
-
-    // Offline fallback
-    return {
-      'trendingMovies': _parseList(_cacheService.getCachedMovieList('home_trendingMovies')),
-      'popularMovies': _parseList(_cacheService.getCachedMovieList('home_popularMovies')),
-      'topRatedMovies': _parseList(_cacheService.getCachedMovieList('home_topRatedMovies')),
-      'trendingTV': _parseList(_cacheService.getCachedMovieList('home_trendingTV')),
-    };
+      },
+    );
   }
 
   Future<Map<String, dynamic>> getSources(String id, {int? season, int? episode}) async {
@@ -48,14 +67,16 @@ class ApiService {
       url = '$_backendUrl/api/v1/tv/$id/sources/$season/$episode';
     }
 
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(json.decode(response.body));
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(json.decode(response.body));
+      }
+    } catch (e) {
+      debugPrint('ApiService.getSources error: $e');
     }
     return {'sources': [], 'subtitles': []};
   }
-
-  // RESTORED METHODS TO FIX CI COMPILATION ERRORS
 
   Future<List<Movie>> getTrendingMovies({String? token, String? genre, bool isFeatured = false, int page = 1, int limit = 20}) async {
     String url = '$_backendUrl/movies';
@@ -64,17 +85,20 @@ class ApiService {
     if (isFeatured) params.add('isFeatured=true');
     params.add('page=$page');
     params.add('limit=$limit');
-
     if (params.isNotEmpty) url += '?${params.join('&')}';
 
-    final response = await http.get(
-      Uri.parse(url),
-      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
-    );
-    if (response.statusCode == 200) {
-      return _parseList(json.decode(response.body));
+    final cacheKey = 'movies_list_${genre ?? 'all'}_${isFeatured}_${page}_${limit}';
+
+    try {
+      return await _cacheThenNetwork<List<Movie>>(
+        cacheKey: cacheKey,
+        url: url,
+        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+        parser: (data) => _parseList(data),
+      );
+    } catch (e) {
+      return [];
     }
-    return [];
   }
 
   Future<List<Movie>> getTopRatedMovies({String? token, int page = 1, int limit = 20}) async {
@@ -86,26 +110,13 @@ class ApiService {
   }
 
   Future<Movie> getMovieDetails(String movieId, {String? token}) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_backendUrl/movies/$movieId'),
-        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _cacheService.cacheMovie(movieId, data);
-        return Movie.fromJson(data);
-      }
-    } catch (e) {
-      debugPrint('ApiService.getMovieDetails error: $e. Using cache.');
-    }
-
-    final cached = _cacheService.getCachedMovie(movieId);
-    if (cached != null) {
-      return Movie.fromJson(cached);
-    }
-    throw Exception('Failed to load movie details');
+    final cacheKey = 'movie_details_$movieId';
+    return _cacheThenNetwork<Movie>(
+      cacheKey: cacheKey,
+      url: '$_backendUrl/movies/$movieId',
+      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+      parser: (data) => Movie.fromJson(data),
+    );
   }
 
   Future<bool> toggleWatchlist(String movieId, String token) async {
@@ -133,36 +144,53 @@ class ApiService {
   }
 
   Future<List<String>> getHeaderCategories() async {
-    final response = await http.get(Uri.parse('$_backendUrl/config/categories'));
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return data.map((cat) => cat['name'].toString()).toList();
+    const cacheKey = 'header_categories';
+    try {
+      return await _cacheThenNetwork<List<String>>(
+        cacheKey: cacheKey,
+        url: '$_backendUrl/config/categories',
+        parser: (data) {
+          final List<dynamic> list = data is List ? data : [];
+          return list.map((cat) => cat['name'].toString()).toList();
+        },
+      );
+    } catch (e) {
+      return ["All", "Movies", "TV Shows", "Anime", "Kids", "My List"];
     }
-    return ["All", "Movies", "TV Shows", "Anime", "Kids", "My List"];
   }
 
   Future<List<Map<String, dynamic>>> getHomeSections() async {
-    final response = await http.get(Uri.parse('$_backendUrl/config/home-sections'));
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return List<Map<String, dynamic>>.from(data);
+    const cacheKey = 'home_sections_config';
+    try {
+      return await _cacheThenNetwork<List<Map<String, dynamic>>>(
+        cacheKey: cacheKey,
+        url: '$_backendUrl/config/home-sections',
+        parser: (data) {
+          final List<dynamic> list = data is List ? data : [];
+          return List<Map<String, dynamic>>.from(list);
+        },
+      );
+    } catch (e) {
+      return [
+        {'title': 'Trending Now', 'type': 'trending'},
+        {'title': 'Popular on RIYO', 'type': 'top_rated'},
+        {'title': 'New Releases', 'type': 'new_releases'},
+      ];
     }
-    return [
-      {'title': 'Trending Now', 'type': 'trending'},
-      {'title': 'Popular on RIYO', 'type': 'top_rated'},
-      {'title': 'New Releases', 'type': 'new_releases'},
-    ];
   }
 
   Future<List<Movie>> getComingSoonMovies({String? token}) async {
-    final response = await http.get(
-      Uri.parse('$_backendUrl/movies/coming-soon'),
-      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
-    );
-    if (response.statusCode == 200) {
-      return _parseList(json.decode(response.body));
+    const cacheKey = 'coming_soon_movies';
+    try {
+      return await _cacheThenNetwork<List<Movie>>(
+        cacheKey: cacheKey,
+        url: '$_backendUrl/movies/coming-soon',
+        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+        parser: (data) => _parseList(data),
+      );
+    } catch (e) {
+      return [];
     }
-    return [];
   }
 
   Future<bool> toggleNotifyMe(String movieId, String token) async {
