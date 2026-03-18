@@ -3,8 +3,10 @@ package utils
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"time"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
@@ -63,7 +65,30 @@ func VerifyFirebaseToken(idToken string) (*auth.Token, error) {
 	if FirebaseAuth == nil {
 		return nil, errors.New("firebase auth client not initialized")
 	}
-	return FirebaseAuth.VerifyIDToken(context.Background(), idToken)
+
+	// Create context with timeout for network resilience
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var token *auth.Token
+	var err error
+
+	// Retry up to 3 times for transient network issues
+	for i := 0; i < 3; i++ {
+		token, err = FirebaseAuth.VerifyIDToken(ctx, idToken)
+		if err == nil {
+			return token, nil
+		}
+
+		if i < 2 {
+			log.Printf("Retrying Firebase token verification (%d/3)...", i+1)
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	LogErrorf("Firebase token verification failed after 3 attempts: %v", err)
+	return nil, fmt.Errorf("failed to verify token after retries: %w", err)
+	return token, nil
 }
 
 func SendPushNotification(ctx context.Context, tokens []string, title, body string, data map[string]string) error {
