@@ -36,10 +36,8 @@ func main() {
 	// Initialize New Services
 	tmdbProv := providers.NewTMDbProvider()
 	metaSvc := appServices.NewMetadataService(tmdbProv)
-	videoExt := appServices.NewVideoExtractor()
 
 	handlers.MetadataSvc = metaSvc
-	handlers.VideoExt = videoExt
 
 	// Start Scheduler
 	scheduler := workers.NewScheduler(metaSvc)
@@ -127,6 +125,7 @@ func main() {
 		users.POST("/notify-me/:movieId", handlers.ToggleNotifyMe)
 		users.GET("/settings", handlers.GetUserSettings)
 		users.PUT("/settings", handlers.UpdateUserSettings)
+		users.POST("/fcm-token", handlers.RegisterFCMToken)
 	}
 
 	r.GET("/system-config", handlers.GetSystemConfig)

@@ -18,6 +18,7 @@ import (
 	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
+	internal_services "github.com/riyobox/backend/internal/services" // Import the new internal services
 	"github.com/riyobox/backend/services"
 	"github.com/riyobox/backend/utils"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -25,7 +26,6 @@ import (
 )
 
 var MetadataSvc *services.MetadataService
-var VideoExt *services.VideoExtractor
 
 func GetHome(c *gin.Context) {
 	cached, err := cache.GetOrSetCache("home_data", cache.TrendingTTL, func() (interface{}, error) {
@@ -299,7 +299,21 @@ func GetMovieSources(c *gin.Context) {
 
 	cacheKey := fmt.Sprintf("movie_sources_%d", movie.TMDbID)
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+		// Use the new ProviderService for deep extraction
+		newSources := internal_services.CallProviders(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+
+		// Map new model back to old model for compatibility with current frontend/proxy
+		var sources []models.StreamSource
+		for _, ns := range newSources {
+			sources = append(sources, models.StreamSource{
+				URL:      ns.URL,
+				Quality:  ns.Quality,
+				Provider: ns.Provider,
+				Type:     ns.Type,
+				Label:    fmt.Sprintf("%s (%s)", ns.Provider, ns.Quality),
+			})
+		}
+
 		subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
 
 		return gin.H{
@@ -364,7 +378,21 @@ func GetTVSources(c *gin.Context) {
 
 	cacheKey := fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
+		// Use the new ProviderService for deep extraction
+		newSources := internal_services.CallProviders(movie.TMDbID, movie.Title, true, season, episode)
+
+		// Map new model back to old model for compatibility
+		var sources []models.StreamSource
+		for _, ns := range newSources {
+			sources = append(sources, models.StreamSource{
+				URL:      ns.URL,
+				Quality:  ns.Quality,
+				Provider: ns.Provider,
+				Type:     ns.Type,
+				Label:    fmt.Sprintf("%s (%s)", ns.Provider, ns.Quality),
+			})
+		}
+
 		subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
 
 		return gin.H{

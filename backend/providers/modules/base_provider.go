@@ -3,13 +3,16 @@ package modules
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
+	"io"
+	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/riyobox/backend/cache"
+	"github.com/riyobox/backend/internal/extraction"
 	"github.com/riyobox/backend/internal/models"
-	"github.com/riyobox/backend/scrapers"
 )
 
 type BaseProvider struct {
@@ -67,10 +70,14 @@ func (p *BaseProvider) searchInternal(query string, isTvShow bool, season, episo
 		searchQuery = fmt.Sprintf("%s S%02dE%02d", query, season, episode)
 	}
 	searchURL := fmt.Sprintf("%s/?s=%s", p.BaseURL, url.QueryEscape(searchQuery))
-	html, err := scrapers.FetchHTML(searchURL)
-	if err != nil {
-		return nil, err
-	}
+
+	// Use the unified extraction's fetch helper
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Get(searchURL)
+	if err != nil { return nil, err }
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	html := string(body)
 
 	// Find the first result link
 	re := regexp.MustCompile(fmt.Sprintf(`(?i)<a\s+href=["'](%s/[^"']+)["']`, regexp.QuoteMeta(p.BaseURL)))
@@ -83,18 +90,20 @@ func (p *BaseProvider) searchInternal(query string, isTvShow bool, season, episo
 			continue
 		}
 
-		// Use Universal Finder for comprehensive extraction
-		finder := scrapers.NewUniversalFinder()
-		discovered := finder.FindSources(contentURL)
+		// Fetch content HTML and use unified extraction for comprehensive discovery
+		resp, err := client.Get(contentURL)
+		if err != nil { continue }
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		discovered := extraction.ExtractAll(string(body))
 
-		for _, link := range discovered {
-			isEmbed := strings.Contains(link, "embed") || strings.Contains(link, "player")
+		for _, s := range discovered {
 			allSources = append(allSources, models.StreamSource{
 				Label:    p.Name,
-				URL:      link,
-				Type:     p.detectType(link, isEmbed),
+				URL:      s.URL,
+				Type:     s.Type,
 				Provider: strings.ToLower(p.Name),
-				Quality:  finder.DetectQuality(link),
+				Quality:  s.Quality,
 			})
 		}
 

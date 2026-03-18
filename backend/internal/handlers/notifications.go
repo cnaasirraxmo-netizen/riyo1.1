@@ -34,8 +34,11 @@ func SendAdminNotification(c *gin.Context) {
 			err := utils.SendToTopic(ctx, "all_users", req.Title, req.Message, map[string]string{"type": "admin"})
 
 			status := "sent"
+			errorMessage := ""
 			if err != nil {
 				status = "failed"
+				errorMessage = err.Error()
+				utils.LogErrorf("Failed to send broadcast notification: %v", err)
 			}
 
 			db.DB.Collection("notifications").InsertOne(ctx, models.Notification{
@@ -44,6 +47,7 @@ func SendAdminNotification(c *gin.Context) {
 				Message:   req.Message,
 				Type:      "admin",
 				Status:    status,
+				Error:     errorMessage,
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			})
@@ -77,8 +81,11 @@ func SendAdminNotification(c *gin.Context) {
 			err := utils.SendPushNotification(ctx, tokens, req.Title, req.Message, map[string]string{"type": "admin"})
 
 			status := "sent"
+			errorMessage := ""
 			if err != nil {
 				status = "failed"
+				errorMessage = err.Error()
+				utils.LogErrorf("Failed to send targeted notification: %v", err)
 			}
 
 			history := models.Notification{
@@ -87,6 +94,7 @@ func SendAdminNotification(c *gin.Context) {
 				Message:   req.Message,
 				Type:      "admin",
 				Status:    status,
+				Error:     errorMessage,
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			}

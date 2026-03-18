@@ -135,3 +135,29 @@ func ToggleNotifyMe(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": message, "isNotified": isNotified})
 }
+
+func RegisterFCMToken(c *gin.Context) {
+	userVal, _ := c.Get("user")
+	user := userVal.(models.User)
+
+	var req struct {
+		Token string `json:"token" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Token is required"})
+		return
+	}
+
+	collection := db.DB.Collection("users")
+
+	// Use $addToSet to ensure no duplicates in the FCMTokens array
+	update := bson.M{"$addToSet": bson.M{"fcmTokens": req.Token}}
+	_, err := collection.UpdateOne(context.TODO(), bson.M{"_id": user.ID}, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to register token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "FCM token registered successfully"})
+}

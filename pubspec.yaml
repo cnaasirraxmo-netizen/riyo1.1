@@ -41,7 +41,6 @@ dependencies:
   media_cast_dlna: ^0.2.0
   ffi: ^2.2.0
   dynamic_color: ^1.8.1
-  webview_flutter: ^4.10.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.1.5
