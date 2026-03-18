@@ -54,6 +54,9 @@ class NotificationService {
 
     // Background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // Subscribe to default topic for broadcasts
+    await FirebaseMessaging.instance.subscribeToTopic('all_users');
   }
 
   static Future<void> showWelcomeNotification() async {

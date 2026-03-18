@@ -150,6 +150,7 @@ type Notification struct {
 	IsRead    bool          `bson:"isRead" json:"isRead"`
 	Type      string        `bson:"type" json:"type"` // e.g., "welcome", "admin", "movie_release"
 	Status    string        `bson:"status" json:"status"` // "sent", "failed"
+	Error     string        `bson:"error,omitempty" json:"error,omitempty"`
 	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
 }

@@ -55,6 +55,10 @@ func InitFirebase() {
 	log.Println("Firebase initialized successfully")
 }
 
+func LogErrorf(format string, v ...interface{}) {
+	log.Printf("ERROR: "+format, v...)
+}
+
 func VerifyFirebaseToken(idToken string) (*auth.Token, error) {
 	if FirebaseAuth == nil {
 		return nil, errors.New("firebase auth client not initialized")

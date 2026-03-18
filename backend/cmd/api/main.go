@@ -125,6 +125,7 @@ func main() {
 		users.POST("/notify-me/:movieId", handlers.ToggleNotifyMe)
 		users.GET("/settings", handlers.GetUserSettings)
 		users.PUT("/settings", handlers.UpdateUserSettings)
+		users.POST("/fcm-token", handlers.RegisterFCMToken)
 	}
 
 	r.GET("/system-config", handlers.GetSystemConfig)
