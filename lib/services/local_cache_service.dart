@@ -92,6 +92,14 @@ class LocalCacheService {
     return _progressBox.get(movieId, defaultValue: 0);
   }
 
+  Map<String, int> getAllProgress() {
+    final Map<String, int> progress = {};
+    for (var key in _progressBox.keys) {
+      progress[key.toString()] = _progressBox.get(key);
+    }
+    return progress;
+  }
+
   // Watch History
   Future<void> addToHistory(String movieId) async {
     final List<String> history = List<String>.from(_historyBox.get('movie_ids', defaultValue: <String>[]));
