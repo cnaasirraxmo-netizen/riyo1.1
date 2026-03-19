@@ -27,6 +27,7 @@ import 'package:riyo/presentation/screens/my_riyo_screen.dart';
 import 'package:riyo/presentation/screens/search_screen.dart';
 import 'package:riyo/presentation/screens/coming_soon_screen.dart';
 import 'package:riyo/presentation/screens/genre_movies_screen.dart';
+import 'package:riyo/presentation/widgets/state_widgets.dart';
 import 'package:riyo/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyo/presentation/screens/download_settings_screen.dart';
 import 'package:riyo/presentation/screens/support/contacts_screen.dart';
@@ -172,8 +173,15 @@ class _MyAppState extends State<MyApp> {
         _AnalyticsObserver(authProvider),
       ],
       errorBuilder: (context, state) {
-        debugPrint('GoRouter Error: ${state.error}. Redirecting to /home');
-        return const HomeScreen(); // Fallback UI for unknown routes
+        return Scaffold(
+          body: StateWidget(
+            icon: Icons.error_outline_rounded,
+            title: 'Page not found',
+            description: 'The page you are looking for does not exist or has been moved.',
+            primaryActionText: 'Go Home',
+            onPrimaryAction: () => context.go('/home'),
+          ),
+        );
       },
       redirect: (context, state) {
         try {
@@ -276,7 +284,18 @@ class _MyAppState extends State<MyApp> {
           path: '/movie/:id',
           parentNavigatorKey: _rootNavigatorKey,
           builder: (context, state) {
-            final id = state.pathParameters['id']!;
+            final id = state.pathParameters['id'];
+            if (id == null || id == 'null' || id.isEmpty) {
+               return Scaffold(
+                 body: StateWidget(
+                   icon: Icons.movie_filter_outlined,
+                   title: 'Invalid navigation request',
+                   description: 'Movie details cannot be loaded without a valid ID.',
+                   primaryActionText: 'Go Back',
+                   onPrimaryAction: () => context.pop(),
+                 ),
+               );
+            }
             return MovieDetailsScreen(movieId: id);
           },
         ),

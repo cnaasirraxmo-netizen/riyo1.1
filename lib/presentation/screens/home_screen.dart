@@ -24,13 +24,14 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final ApiService _apiService = ApiService();
   int _currentCarouselIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
@@ -39,6 +40,22 @@ class _HomeScreenState extends State<HomeScreen> {
         _precacheHomeImages();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      // Auto refresh stale data on resume
+      homeProvider.loadConfig(token: auth.token, forceRefresh: true);
+    }
   }
 
   void _precacheHomeImages() {

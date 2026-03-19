@@ -58,11 +58,12 @@ class _RiyoTextFieldState extends State<RiyoTextField> {
   }
 }
 
-class RiyoButton extends StatelessWidget {
+class RiyoButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool isPrimary;
+  final Duration debounceDuration;
 
   const RiyoButton({
     super.key,
@@ -70,26 +71,47 @@ class RiyoButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
     this.isPrimary = true,
+    this.debounceDuration = const Duration(milliseconds: 500),
   });
 
   @override
+  State<RiyoButton> createState() => _RiyoButtonState();
+}
+
+class _RiyoButtonState extends State<RiyoButton> {
+  bool _isDebouncing = false;
+
+  void _handlePressed() {
+    if (widget.onPressed == null || widget.isLoading || _isDebouncing) return;
+
+    setState(() => _isDebouncing = true);
+    widget.onPressed!();
+
+    Future.delayed(widget.debounceDuration, () {
+      if (mounted) setState(() => _isDebouncing = false);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!isPrimary) {
+    final bool isDisabled = widget.onPressed == null || widget.isLoading || _isDebouncing;
+
+    if (!widget.isPrimary) {
       return TextButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: isDisabled ? null : _handlePressed,
         style: TextButton.styleFrom(
           foregroundColor: Theme.of(context).colorScheme.primary,
           textStyle: AppTypography.labelLarge.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
-        child: Text(text),
+        child: Text(isDisabled && widget.isLoading ? "Please wait..." : widget.text),
       );
     }
 
     return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
-      child: isLoading
+      onPressed: isDisabled ? null : _handlePressed,
+      child: widget.isLoading
           ? const SizedBox(
               height: 24,
               width: 24,
@@ -98,7 +120,7 @@ class RiyoButton extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             )
-          : Text(text),
+          : Text(_isDebouncing ? "Action already in progress" : widget.text),
     );
   }
 }

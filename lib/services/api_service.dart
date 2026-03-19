@@ -186,13 +186,28 @@ class ApiService {
   }
 
   List<Movie> _parseList(dynamic data) {
-    if (data == null) return [];
-    if (data is Map && data.containsKey('movies')) {
-      return (data['movies'] as List).map((json) => Movie.fromJson(json)).toList();
+    try {
+      if (data == null) return [];
+
+      List<dynamic> list = [];
+      if (data is Map && data.containsKey('movies')) {
+        list = data['movies'] as List;
+      } else if (data is List) {
+        list = data;
+      }
+
+      return list.map((json) {
+        try {
+          return Movie.fromJson(Map<String, dynamic>.from(json));
+        } catch (e) {
+          debugPrint('Error parsing individual movie: $e');
+          // Return a mock or empty movie to prevent the whole list from failing
+          return null;
+        }
+      }).whereType<Movie>().toList();
+    } catch (e) {
+      debugPrint('Critical error in _parseList: $e');
+      return [];
     }
-    if (data is List) {
-      return data.map((json) => Movie.fromJson(json)).toList();
-    }
-    return [];
   }
 }
