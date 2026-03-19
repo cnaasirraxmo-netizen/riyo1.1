@@ -36,6 +36,8 @@ import 'package:riyo/presentation/screens/support/privacy_screen.dart';
 import 'package:riyo/presentation/screens/support/about_screen.dart';
 import 'package:riyo/presentation/screens/settings/appearance_settings_screen.dart';
 import 'package:riyo/presentation/screens/settings/account_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/edit_profile_screen.dart';
+import 'package:riyo/presentation/screens/settings/change_password_screen.dart';
 import 'package:riyo/presentation/screens/settings/notification_settings_screen.dart';
 import 'package:riyo/presentation/screens/settings/playback_settings_screen.dart';
 import 'package:riyo/presentation/screens/settings/download_settings_screen.dart' as ds;
@@ -321,7 +323,14 @@ class _MyAppState extends State<MyApp> {
           builder: (context, state) => const SettingsScreen(),
           routes: [
             GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
-            GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
+            GoRoute(
+              path: 'account',
+              builder: (context, state) => const AccountSettingsScreen(),
+              routes: [
+                GoRoute(path: 'edit-profile', builder: (context, state) => const EditProfileScreen()),
+                GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
+              ]
+            ),
             GoRoute(path: 'notifications', builder: (context, state) => const NotificationSettingsScreen()),
             GoRoute(path: 'playback', builder: (context, state) => const PlaybackSettingsScreen()),
             GoRoute(path: 'downloads', builder: (context, state) => const ds.DownloadSettingsScreen()),

@@ -137,6 +137,80 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<void> updateProfile({String? name, String? phoneNumber}) async {
+    if (_token == null) return;
+    try {
+      final response = await http.put(
+        Uri.parse('$_backendUrl/users/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({
+          'name': name,
+          'phoneNumber': phoneNumber,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        // Refresh local user data
+        final currentData = _user?.toJson() ?? {};
+        if (name != null) currentData['name'] = name;
+        if (phoneNumber != null) currentData['phoneNumber'] = phoneNumber;
+
+        _user = User.fromJson(currentData);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user', jsonEncode(_user!.toJson()));
+        notifyListeners();
+      } else {
+        throw Exception(_parseErrorMessage(response));
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    if (_token == null) return;
+    try {
+      final response = await http.post(
+        Uri.parse('$_backendUrl/users/change-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200) {
+        throw Exception(_parseErrorMessage(response));
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    if (_token == null) return;
+    try {
+      final response = await http.delete(
+        Uri.parse('$_backendUrl/users/account'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        await logout();
+      } else {
+        throw Exception(_parseErrorMessage(response));
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> loginWithGoogle() async {
     if (_googleSignIn == null || _auth == null) throw Exception("Google Sign-In/Firebase not initialized");
     try {

@@ -123,11 +123,15 @@ func main() {
 	users.Use(middleware.Protect())
 	{
 		users.GET("/profile", handlers.GetProfile)
+		users.PUT("/profile", handlers.UpdateProfile)
 		users.POST("/watchlist/:movieId", handlers.ToggleWatchlist)
 		users.POST("/notify-me/:movieId", handlers.ToggleNotifyMe)
 		users.GET("/settings", handlers.GetUserSettings)
 		users.PUT("/settings", handlers.UpdateUserSettings)
 		users.PUT("/analytics/device", handlers.UpdateDeviceAndLocation)
+		users.POST("/change-password", handlers.ChangePassword)
+		users.DELETE("/account", handlers.DeleteAccount)
+		users.POST("/logout-all", handlers.LogoutFromAllDevices)
 	}
 
 	r.GET("/system-config", handlers.GetSystemConfig)

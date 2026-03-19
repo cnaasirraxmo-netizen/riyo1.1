@@ -81,8 +81,16 @@ class HomeProvider extends ChangeNotifier {
       _sectionFutures['Top Rated'] = Future.value(homeData['topRatedMovies']);
       _sectionFutures['TV Shows'] = Future.value(homeData['trendingTV']);
 
-      _featuredFuture = Future.value(homeData['trendingMovies']?.take(5).toList());
+      final featured = homeData['trendingMovies']?.take(5).toList() ?? [];
+      _featuredFuture = Future.value(featured);
       _isDataLoaded = true;
+
+      // Deep pre-caching for improved UX
+      for (var movie in featured) {
+        if (movie.videoUrl != null) {
+          _apiService.preCacheVideo(movie.videoUrl!);
+        }
+      }
     } catch (e) {
       debugPrint('Error loading home config: $e');
     } finally {

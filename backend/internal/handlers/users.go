@@ -53,6 +53,43 @@ func GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, results[0])
 }
 
+func UpdateProfile(c *gin.Context) {
+	userVal, _ := c.Get("user")
+	user := userVal.(models.User)
+
+	var req struct {
+		Name        string `json:"name"`
+		PhoneNumber string `json:"phoneNumber"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	collection := db.DB.Collection("users")
+	update := bson.M{
+		"$set": bson.M{
+			"updatedAt": time.Now(),
+		},
+	}
+
+	if req.Name != "" {
+		update["$set"].(bson.M)["name"] = req.Name
+	}
+	if req.PhoneNumber != "" {
+		update["$set"].(bson.M)["phoneNumber"] = req.PhoneNumber
+	}
+
+	_, err := collection.UpdateOne(context.TODO(), bson.M{"_id": user.ID}, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile updated"})
+}
+
 func UpdateDeviceAndLocation(c *gin.Context) {
 	userVal, _ := c.Get("user")
 	user := userVal.(models.User)

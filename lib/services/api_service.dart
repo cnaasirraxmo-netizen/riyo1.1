@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart' as dio;
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/core/constants.dart';
 import 'package:riyo/services/local_cache_service.dart';
@@ -183,6 +185,23 @@ class ApiService {
       return _parseList(json.decode(response.body));
     }
     return [];
+  }
+
+  Future<void> preCacheVideo(String url) async {
+    if (kIsWeb) return;
+    try {
+      final dioClient = dio.Dio();
+      await dioClient.get(
+        url,
+        options: dio.Options(
+          headers: {'Range': 'bytes=0-1048576'}, // First 1MB
+          responseType: dio.ResponseType.bytes,
+        ),
+      );
+      debugPrint('Pre-cached 1MB of video: $url');
+    } catch (e) {
+      debugPrint('Pre-cache error: $e');
+    }
   }
 
   List<Movie> _parseList(dynamic data) {
