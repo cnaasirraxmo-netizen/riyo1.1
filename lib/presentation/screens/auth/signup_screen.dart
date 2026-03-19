@@ -15,6 +15,7 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
@@ -25,6 +26,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _nameController.text,
         _emailController.text,
         _passwordController.text,
+        phoneNumber: _phoneController.text,
       );
       if (mounted) context.go('/home');
     } catch (e) {
@@ -69,6 +71,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 controller: _emailController,
                 label: 'Email',
                 keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              RiyoTextField(
+                controller: _phoneController,
+                label: 'Phone Number (Optional)',
+                keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
               RiyoTextField(

@@ -52,6 +52,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:riyo/services/local_cache_service.dart';
 import 'package:riyo/core/localization.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:riyo/core/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -165,6 +168,9 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: _rootNavigatorKey,
       initialLocation: '/splash',
       refreshListenable: authProvider,
+      observers: [
+        _AnalyticsObserver(authProvider),
+      ],
       errorBuilder: (context, state) {
         debugPrint('GoRouter Error: ${state.error}. Redirecting to /home');
         return const HomeScreen(); // Fallback UI for unknown routes
@@ -230,22 +236,27 @@ class _MyAppState extends State<MyApp> {
           routes: [
             GoRoute(
               path: '/home',
+              name: 'home',
               builder: (context, state) => const HomeScreen(),
             ),
             GoRoute(
               path: '/category',
+              name: 'categories',
               builder: (context, state) => const CategoriesScreen(),
             ),
             GoRoute(
               path: '/downloads',
+              name: 'downloads',
               builder: (context, state) => const DownloadsScreen(),
             ),
             GoRoute(
               path: '/search',
+              name: 'search',
               builder: (context, state) => const SearchScreen(),
             ),
             GoRoute(
               path: '/my-riyo',
+              name: 'profile',
               builder: (context, state) => const MyRiyoScreen(),
             ),
             GoRoute(
@@ -381,6 +392,45 @@ class _MyAppState extends State<MyApp> {
         },
       ),
     );
+  }
+}
+
+class _AnalyticsObserver extends NavigatorObserver {
+  final AuthProvider auth;
+  _AnalyticsObserver(this.auth);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _logScreen(route);
+  }
+
+  void _logScreen(Route<dynamic> route) {
+    if (route.settings.name != null) {
+      _sendAnalytics(route.settings.name!);
+    } else if (route is PageRoute) {
+      // Try to get path from state if possible, or just use route type for now
+      // This is a bit limited with GoRouter without a custom observer that has access to state
+    }
+  }
+
+  Future<void> _sendAnalytics(String screenName) async {
+    if (!auth.isAuthenticated || auth.token == null) return;
+    try {
+      await http.post(
+        Uri.parse('${Constants.apiBaseUrl}/api/v1/analytics/usage'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+        },
+        body: jsonEncode({
+          'screen': screenName,
+          'feature': 'navigation',
+        }),
+      );
+    } catch (e) {
+      debugPrint('Analytics error: $e');
+    }
   }
 }
 

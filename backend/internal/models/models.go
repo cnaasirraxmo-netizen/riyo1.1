@@ -18,16 +18,52 @@ type UserSettings struct {
 }
 
 type User struct {
-	ID        bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
-	Name      string          `bson:"name" json:"name"`
-	Email     string          `bson:"email" json:"email"`
-	Password  string          `bson:"password" json:"-"`
-	Role      string          `bson:"role" json:"role"`
-	Watchlist []bson.ObjectID `bson:"watchlist" json:"watchlist"`
-	FCMTokens []string        `bson:"fcmTokens" json:"fcmTokens"`
-	Settings  UserSettings    `bson:"settings" json:"settings"`
-	CreatedAt time.Time       `bson:"createdAt" json:"createdAt"`
-	UpdatedAt time.Time       `bson:"updatedAt" json:"updatedAt"`
+	ID          bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
+	Name        string          `bson:"name" json:"name"`
+	Email       string          `bson:"email" json:"email"`
+	PhoneNumber string          `bson:"phoneNumber" json:"phoneNumber"`
+	Password    string          `bson:"password" json:"-"`
+	Role        string          `bson:"role" json:"role"`
+	Watchlist   []bson.ObjectID `bson:"watchlist" json:"watchlist"`
+	FCMTokens   []string        `bson:"fcmTokens" json:"fcmTokens"`
+	Settings    UserSettings    `bson:"settings" json:"settings"`
+	DeviceInfo  DeviceInfo      `bson:"deviceInfo" json:"deviceInfo"`
+	Location    LocationData    `bson:"location" json:"location"`
+	CreatedAt   time.Time       `bson:"createdAt" json:"createdAt"`
+	UpdatedAt   time.Time       `bson:"updatedAt" json:"updatedAt"`
+}
+
+type DeviceInfo struct {
+	Model     string `bson:"model" json:"model"`
+	OS        string `bson:"os" json:"os"`
+	IP        string `bson:"ip" json:"ip"`
+	DeviceID  string `bson:"deviceId" json:"deviceId"`
+	UserAgent string `bson:"userAgent" json:"userAgent"`
+}
+
+type LocationData struct {
+	Country string `bson:"country" json:"country"`
+	City    string `bson:"city" json:"city"`
+	Lat     string `bson:"lat" json:"lat"`
+	Lon     string `bson:"lon" json:"lon"`
+}
+
+type UsageLog struct {
+	ID        bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	UserID    bson.ObjectID `bson:"userId" json:"userId"`
+	Screen    string        `bson:"screen" json:"screen"`
+	Feature   string        `bson:"feature" json:"feature"`
+	Duration  int           `bson:"duration" json:"duration"` // in seconds
+	Timestamp time.Time     `bson:"timestamp" json:"timestamp"`
+}
+
+type Review struct {
+	ID        bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	UserID    bson.ObjectID `bson:"userId" json:"userId"`
+	MovieID   bson.ObjectID `bson:"movieId" json:"movieId"`
+	Rating    float64       `bson:"rating" json:"rating"`
+	Comment   string        `bson:"comment" json:"comment"`
+	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
 }
 
 type SystemConfig struct {

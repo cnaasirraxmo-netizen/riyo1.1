@@ -19,6 +19,7 @@ import (
 type RegisterRequest struct {
 	Name          string `json:"name" binding:"required"`
 	Email         string `json:"email" binding:"required,email"`
+	PhoneNumber   string `json:"phoneNumber"`
 	FirebaseToken string `json:"firebaseToken" binding:"required"`
 	FCMToken      string `json:"fcmToken"`
 }
@@ -198,13 +199,14 @@ func Register(c *gin.Context) {
 	}
 
 	user := models.User{
-		ID:        bson.NewObjectID(),
-		Name:      req.Name,
-		Email:     req.Email,
-		Role:      "user",
-		FCMTokens: []string{},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:          bson.NewObjectID(),
+		Name:        req.Name,
+		Email:       req.Email,
+		PhoneNumber: req.PhoneNumber,
+		Role:        "user",
+		FCMTokens:   []string{},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	if req.FCMToken != "" {

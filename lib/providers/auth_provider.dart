@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:riyo/core/constants.dart';
 import 'package:riyo/models/user.dart';
 import 'package:riyo/services/notification_service.dart';
@@ -94,7 +97,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<void> signup(String name, String email, String password) async {
+  Future<void> signup(String name, String email, String password, {String? phoneNumber}) async {
     if (_auth == null) throw Exception("Firebase Auth not initialized");
     try {
       // 1. Firebase Signup
@@ -115,6 +118,7 @@ class AuthProvider with ChangeNotifier {
         body: jsonEncode({
           'name': name,
           'email': email,
+          'phoneNumber': phoneNumber,
           'firebaseToken': idToken,
           'fcmToken': fcmToken,
         }),
@@ -227,7 +231,91 @@ class AuthProvider with ChangeNotifier {
     await prefs.setString('token', _token!);
     await prefs.setString('role', _role!);
     await prefs.setString('user', jsonEncode(_user!.toJson()));
+
+    // Asynchronously update analytics
+    _updateUserAnalytics();
+
     notifyListeners();
+  }
+
+  Future<void> _updateUserAnalytics() async {
+    if (_token == null) return;
+
+    try {
+      final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      Map<String, dynamic> deviceData = {};
+      String os = 'Unknown';
+
+      if (kIsWeb) {
+        final webInfo = await deviceInfo.webBrowserInfo;
+        deviceData = {
+          'model': webInfo.browserName.toString(),
+          'os': 'Web',
+          'userAgent': webInfo.userAgent,
+          'deviceId': webInfo.vendor,
+        };
+        os = 'Web';
+      } else if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        deviceData = {
+          'model': androidInfo.model,
+          'os': 'Android ${androidInfo.version.release}',
+          'deviceId': androidInfo.id,
+        };
+        os = 'Android';
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        deviceData = {
+          'model': iosInfo.utsname.machine,
+          'os': 'iOS ${iosInfo.systemVersion}',
+          'deviceId': iosInfo.identifierForVendor,
+        };
+        os = 'iOS';
+      }
+
+      // Get IP-based location info (using a free public API for now)
+      Map<String, dynamic> locationData = {};
+      try {
+        final locResponse = await http.get(Uri.parse('https://ipapi.co/json/')).timeout(const Duration(seconds: 5));
+        if (locResponse.statusCode == 200) {
+          final loc = jsonDecode(locResponse.body);
+          locationData = {
+            'country': loc['country_name'],
+            'city': loc['city'],
+            'lat': loc['latitude'].toString(),
+            'lon': loc['longitude'].toString(),
+            'ip': loc['ip'],
+          };
+        }
+      } catch (e) {
+        debugPrint('Location fetch error: $e');
+      }
+
+      await http.put(
+        Uri.parse('$_backendUrl/users/analytics/device'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({
+          'deviceInfo': {
+            'model': deviceData['model'] ?? 'Unknown',
+            'os': deviceData['os'] ?? os,
+            'deviceId': deviceData['deviceId'] ?? 'Unknown',
+            'userAgent': deviceData['userAgent'] ?? 'Mobile App',
+            'ip': locationData['ip'] ?? 'Unknown',
+          },
+          'location': {
+            'country': locationData['country'] ?? 'Unknown',
+            'city': locationData['city'] ?? 'Unknown',
+            'lat': locationData['lat'] ?? '0',
+            'lon': locationData['lon'] ?? '0',
+          }
+        }),
+      );
+    } catch (e) {
+      debugPrint('Error updating user analytics: $e');
+    }
   }
 
   void _handleError(dynamic e) {

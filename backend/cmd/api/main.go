@@ -127,6 +127,7 @@ func main() {
 		users.POST("/notify-me/:movieId", handlers.ToggleNotifyMe)
 		users.GET("/settings", handlers.GetUserSettings)
 		users.PUT("/settings", handlers.UpdateUserSettings)
+		users.PUT("/analytics/device", handlers.UpdateDeviceAndLocation)
 	}
 
 	r.GET("/system-config", handlers.GetSystemConfig)
@@ -144,6 +145,7 @@ func main() {
 		admin.PUT("/movies/:id/publish", handlers.AdminPublishMovie)
 		admin.DELETE("/movies/:id", handlers.AdminDeleteMovie)
 		admin.GET("/users", handlers.AdminGetUsers)
+		admin.GET("/users/:id", handlers.AdminGetUserDetails)
 		admin.PUT("/system-config", handlers.AdminUpdateSystemConfig)
 		admin.POST("/notifications", handlers.SendAdminNotification)
 		admin.GET("/notifications/history", handlers.GetNotificationHistory)

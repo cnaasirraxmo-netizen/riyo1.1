@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/riyobox/backend/internal/db"
@@ -50,6 +51,43 @@ func GetProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, results[0])
+}
+
+func UpdateDeviceAndLocation(c *gin.Context) {
+	userVal, _ := c.Get("user")
+	user := userVal.(models.User)
+
+	var req struct {
+		DeviceInfo models.DeviceInfo   `json:"deviceInfo"`
+		Location   models.LocationData `json:"location"`
+		PhoneNumber string             `json:"phoneNumber"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	collection := db.DB.Collection("users")
+	update := bson.M{
+		"$set": bson.M{
+			"deviceInfo": req.DeviceInfo,
+			"location":   req.Location,
+			"updatedAt":  time.Now(),
+		},
+	}
+
+	if req.PhoneNumber != "" {
+		update["$set"].(bson.M)["phoneNumber"] = req.PhoneNumber
+	}
+
+	_, err := collection.UpdateOne(context.TODO(), bson.M{"_id": user.ID}, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Analytics updated"})
 }
 
 func ToggleWatchlist(c *gin.Context) {
@@ -134,4 +172,56 @@ func ToggleNotifyMe(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": message, "isNotified": isNotified})
+}
+
+func LogUsage(c *gin.Context) {
+	var log models.UsageLog
+	if err := c.ShouldBindJSON(&log); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	userVal, exists := c.Get("user")
+	if exists {
+		user := userVal.(models.User)
+		log.UserID = user.ID
+	}
+
+	log.ID = bson.NewObjectID()
+	log.Timestamp = time.Now()
+
+	_, err := db.DB.Collection("usagelogs").InsertOne(context.TODO(), log)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Usage logged"})
+}
+
+func AddReview(c *gin.Context) {
+	movieIDStr := c.Param("id")
+	movieID, _ := bson.ObjectIDFromHex(movieIDStr)
+
+	var review models.Review
+	if err := c.ShouldBindJSON(&review); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	userVal, _ := c.Get("user")
+	user := userVal.(models.User)
+
+	review.ID = bson.NewObjectID()
+	review.UserID = user.ID
+	review.MovieID = movieID
+	review.CreatedAt = time.Now()
+
+	_, err := db.DB.Collection("reviews").InsertOne(context.TODO(), review)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, review)
 }

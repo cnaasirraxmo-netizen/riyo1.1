@@ -14,6 +14,8 @@ func RegisterNewRoutes(r *gin.Engine) {
 		api.GET("/movie/:id/sources", GetMovieSources)
 		api.GET("/tv/:id/sources/:season/:episode", GetTVSources)
 		api.GET("/stream/:id", ProxyStream)
+		api.POST("/analytics/usage", LogUsage)
+		api.POST("/movies/:id/reviews", AddReview)
 	}
 }
 

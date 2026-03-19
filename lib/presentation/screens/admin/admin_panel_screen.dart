@@ -35,15 +35,18 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   double _videoUploadProgress = 0;
   List<Movie> _movies = [];
   bool _isLoadingMovies = false;
+  List<dynamic> _users = [];
+  bool _isLoadingUsers = false;
 
   static const String _backendUrl = Constants.apiBaseUrl;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _fetchMovies();
     _fetchR2Files();
+    _fetchUsers();
   }
 
   Future<void> _fetchR2Files() async {
@@ -82,6 +85,28 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         _fetchR2Files();
       }
     } catch (e) {}
+  }
+
+  Future<void> _fetchUsers() async {
+    setState(() => _isLoadingUsers = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
+    try {
+      final response = await http.get(
+        Uri.parse('$_backendUrl/admin/users'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        setState(() {
+          _users = jsonDecode(response.body);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching users: $e');
+    } finally {
+      setState(() => _isLoadingUsers = false);
+    }
   }
 
   Future<void> _fetchMovies() async {
@@ -279,6 +304,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           tabs: const [
             Tab(text: 'UPLOAD MOVIE'),
             Tab(text: 'MOVIE LIST'),
+            Tab(text: 'USERS'),
             Tab(text: 'MEDIA LIBRARY'),
           ],
         ),
@@ -288,7 +314,166 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         children: [
           _buildUploadTab(),
           _buildManageTab(),
+          _buildUsersTab(),
           _buildMediaLibraryTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsersTab() {
+    if (_isLoadingUsers) return const Center(child: CircularProgressIndicator());
+    if (_users.isEmpty) return const Center(child: Text('No users found.', style: TextStyle(color: Colors.grey)));
+
+    return ListView.builder(
+      itemCount: _users.length,
+      itemBuilder: (context, index) {
+        final user = _users[index];
+        return ListTile(
+          leading: const CircleAvatar(
+            backgroundColor: Colors.deepPurpleAccent,
+            child: Icon(Icons.person, color: Colors.white),
+          ),
+          title: Text(user['name'] ?? 'N/A', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          subtitle: Text(user['email'] ?? 'N/A', style: const TextStyle(color: Colors.grey)),
+          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+          onTap: () => _showUserDetails(user['_id']),
+        );
+      },
+    );
+  }
+
+  void _showUserDetails(String userId) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_backendUrl/admin/users/$userId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _showUserDetailsModal(data);
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
+  void _showUserDetailsModal(Map<String, dynamic> data) {
+    final user = data['user'];
+    final usage = data['usage'] as List;
+    final reviews = data['reviews'] as List;
+    final deviceInfo = user['deviceInfo'] ?? {};
+    final location = user['location'] ?? {};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1C1C1C),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('USER DETAILS', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white)),
+                ],
+              ),
+              const Divider(color: Colors.white10),
+              Expanded(
+                child: ListView(
+                  children: [
+                    _buildDetailSection('Personal Information', [
+                      _buildDetailRow('Name', user['name']),
+                      _buildDetailRow('Email', user['email']),
+                      _buildDetailRow('Phone', user['phoneNumber'] ?? 'Not provided'),
+                      _buildDetailRow('User ID', user['_id']),
+                    ]),
+                    _buildDetailSection('Device Information', [
+                      _buildDetailRow('Model', deviceInfo['model']),
+                      _buildDetailRow('OS', deviceInfo['os']),
+                      _buildDetailRow('IP Address', deviceInfo['ip']),
+                      _buildDetailRow('Device ID', deviceInfo['deviceId']),
+                    ]),
+                    _buildDetailSection('Location Data', [
+                      _buildDetailRow('Country', location['country']),
+                      _buildDetailRow('City', location['city']),
+                      _buildDetailRow('Lat/Lon', '${location['lat']}, ${location['lon']}'),
+                    ]),
+                    _buildDetailSection('Usage Data (${usage.length} items)', [
+                      if (usage.isEmpty) const Text('No recent usage logs', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      ...usage.take(10).map((u) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text('• Visited ${u['screen']} at ${DateTime.parse(u['timestamp']).toLocal()}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      )),
+                    ]),
+                    _buildDetailSection('Feedback (${reviews.length} items)', [
+                      if (reviews.isEmpty) const Text('No reviews or ratings yet', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      ...reviews.map((r) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.star, color: Colors.amber, size: 14),
+                                const SizedBox(width: 4),
+                                Text('${r['rating']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ],
+                            ),
+                            Text(r['comment'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          ],
+                        ),
+                      )),
+                    ]),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Text(title.toUpperCase(), style: const TextStyle(color: Colors.deepPurpleAccent, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+        const SizedBox(height: 12),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(String label, dynamic value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 100, child: Text('$label:', style: const TextStyle(color: Colors.grey, fontSize: 13))),
+          Expanded(child: Text('${value ?? 'N/A'}', style: const TextStyle(color: Colors.white, fontSize: 13))),
         ],
       ),
     );
