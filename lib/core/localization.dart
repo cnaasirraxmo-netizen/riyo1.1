@@ -23,6 +23,10 @@ class RiyoStrings {
       'trending': 'Trending Now',
       'popular': 'Popular on RIYO',
       'top_rated': 'Top Rated',
+      'offline_badge': 'OFFLINE',
+      'available_offline': 'Available Offline',
+      'continue_watching': 'Continue Watching',
+      'no_movies_found': 'No movies found.',
     },
     'so': {
       'home': 'Hoyga',

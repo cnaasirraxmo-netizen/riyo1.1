@@ -99,14 +99,14 @@ func main() {
 	movies := r.Group("/movies")
 	movies.Use(middleware.Protect())
 	{
-		movies.GET("/", handlers.GetMovies)
-		movies.GET("/coming-soon", handlers.GetComingSoonMovies)
-		movies.GET("/:id", handlers.GetMovieByID)
+		movies.GET("/", middleware.Cache(12*time.Hour), handlers.GetMovies)
+		movies.GET("/coming-soon", middleware.Cache(24*time.Hour), handlers.GetComingSoonMovies)
+		movies.GET("/:id", middleware.Cache(24*time.Hour), handlers.GetMovieByID)
 	}
 
 	config := r.Group("/config")
 	{
-		config.GET("/categories", handlers.GetCategories)
+		config.GET("/categories", middleware.Cache(24*time.Hour), handlers.GetCategories)
 		config.POST("/categories", handlers.CreateCategory)
 		config.PUT("/categories/:id", handlers.UpdateCategory)
 		config.DELETE("/categories/:id", handlers.DeleteCategory)

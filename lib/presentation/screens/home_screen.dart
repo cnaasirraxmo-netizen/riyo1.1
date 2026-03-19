@@ -17,6 +17,7 @@ import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 import 'package:riyo/services/analytics_service.dart';
+import 'package:riyo/core/localization.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -136,8 +137,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Chip(
-                          label: const Text('OFFLINE',
-                              style: TextStyle(
+                          label: Text('offline_badge'.tr(context),
+                              style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white)),
@@ -249,11 +250,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ? [
                                   Padding(
                                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                                    child: Text('My Downloads',
+                                    child: Text('downloads'.tr(context),
                                         style: AppTypography.headlineMedium),
                                   ),
                                   _buildMovieCategory(
-                                      "Available Offline",
+                                      'available_offline'.tr(context),
                                       Future.value(snapshot.data ?? [])),
                                   const SizedBox(height: 100),
                                 ]
@@ -376,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       context.push('/movie/$id/play');
                                     },
                                     icon: const Icon(Icons.play_arrow_rounded),
-                                    label: const Text('Play Now'),
+                                    label: Text('play_now'.tr(context)),
                                     style: ElevatedButton.styleFrom(
                                       minimumSize: const Size(140, 48),
                                     ),
@@ -447,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                  child: Text('Continue Watching', style: AppTypography.titleLarge),
+                  child: Text('continue_watching'.tr(context), style: AppTypography.titleLarge),
                 ),
                 SizedBox(
                   height: 180,
@@ -573,7 +574,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 return _buildMovieShimmerList();
               }
               if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text('No movies found.'));
+                return Center(child: Text('no_movies_found'.tr(context)));
               }
               final movies = snapshot.data!;
               return ListView.builder(
