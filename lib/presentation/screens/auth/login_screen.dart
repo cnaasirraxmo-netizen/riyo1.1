@@ -14,22 +14,41 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   void _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
     try {
       await Provider.of<AuthProvider>(context, listen: false).login(
-        _emailController.text,
+        _emailController.text.trim(),
         _passwordController.text,
       );
       if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) {
+        String message = e.toString().replaceAll('Exception: ', '');
+        if (message.contains('invalid-credential') || message.contains('wrong-password')) {
+          message = 'Incorrect email or password.';
+        } else if (message.contains('user-not-found')) {
+          message = 'User account not found.';
+        } else if (message.contains('network-request-failed')) {
+          message = 'No internet connection.';
+        } else if (message.contains('timeout')) {
+          message = 'Server is unavailable. Try again later.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: ${e.toString().replaceAll('Exception: ', '')}')),
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(label: 'RETRY', textColor: Colors.white, onPressed: _handleLogin),
+          ),
         );
       }
     } finally {
@@ -43,108 +62,122 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'welcome_message'.tr(context),
-                style: AppTypography.headlineLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Sign in to continue watching',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: Theme.of(context).textTheme.labelSmall?.color,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'welcome_message'.tr(context),
+                  style: AppTypography.headlineLarge,
                 ),
-              ),
-              const SizedBox(height: 48),
-              RiyoTextField(
-                controller: _emailController,
-                label: 'Email or Username',
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              RiyoTextField(
-                controller: _passwordController,
-                label: 'Password',
-                obscureText: true,
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: RiyoButton(
-                  text: 'Forgot password?',
-                  isPrimary: false,
-                  onPressed: () => context.push('/forgot-password'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              RiyoButton(
-                text: 'login_button'.tr(context),
-                isLoading: _isLoading,
-                onPressed: _handleLogin,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'OR',
-                      style: AppTypography.labelSmall,
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  'Sign in to continue watching',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: Theme.of(context).textTheme.labelSmall?.color,
                   ),
-                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
-                ],
-              ),
-              const SizedBox(height: 24),
-              RiyoSocialButton(
-                text: 'Continue with Google',
-                icon: Image.network('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg', height: 24, errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 28)),
-                onPressed: () async {
-                  setState(() => _isLoading = true);
-                  try {
-                    await Provider.of<AuthProvider>(context, listen: false).loginWithGoogle();
-                    if (mounted) context.go('/home');
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Google login failed: ${e.toString().replaceAll('Exception: ', '')}')),
-                      );
+                ),
+                const SizedBox(height: 48),
+                RiyoTextField(
+                  controller: _emailController,
+                  label: 'Email Address',
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Email and password are required.';
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      return 'Please enter a valid email address.';
                     }
-                  } finally {
-                    if (mounted) setState(() => _isLoading = false);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              RiyoSocialButton(
-                text: 'Continue with Apple',
-                icon: const Icon(Icons.apple, size: 28),
-                onPressed: () {},
-              ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Don't have an account? ",
-                    style: AppTypography.bodyMedium,
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                RiyoTextField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Email and password are required.';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: RiyoButton(
+                    text: 'Forgot password?',
+                    isPrimary: false,
+                    onPressed: () => context.push('/forgot-password'),
                   ),
-                  GestureDetector(
-                    onTap: () => context.push('/signup'),
-                    child: Text(
-                      'Sign Up',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(height: 24),
+                RiyoButton(
+                  text: 'login_button'.tr(context),
+                  isLoading: _isLoading,
+                  onPressed: _handleLogin,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'OR',
+                        style: AppTypography.labelSmall,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                RiyoSocialButton(
+                  text: 'Continue with Google',
+                  icon: Image.network('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg', height: 24, errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 28)),
+                  onPressed: () async {
+                    setState(() => _isLoading = true);
+                    try {
+                      await Provider.of<AuthProvider>(context, listen: false).loginWithGoogle();
+                      if (mounted) context.go('/home');
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Google login failed: ${e.toString().replaceAll('Exception: ', '')}')),
+                        );
+                      }
+                    } finally {
+                      if (mounted) setState(() => _isLoading = false);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                RiyoSocialButton(
+                  text: 'Continue with Apple',
+                  icon: const Icon(Icons.apple, size: 28),
+                  onPressed: () {},
+                ),
+                const SizedBox(height: 40),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account? ",
+                      style: AppTypography.bodyMedium,
+                    ),
+                    GestureDetector(
+                      onTap: () => context.push('/signup'),
+                      child: Text(
+                        'Sign Up',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

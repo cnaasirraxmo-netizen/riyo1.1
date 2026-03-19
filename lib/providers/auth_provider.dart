@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'dart:async';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:riyo/core/constants.dart';
@@ -320,10 +321,14 @@ class AuthProvider with ChangeNotifier {
 
   void _handleError(dynamic e) {
     if (e is fb.FirebaseAuthException) {
-      throw Exception(e.message ?? 'Authentication error');
+      // Return the error code for UI to map to specific messages
+      throw Exception(e.code);
     }
     if (e is http.ClientException || e.toString().contains('SocketException')) {
-      throw Exception('Unable to connect to the server. Please check your internet connection.');
+      throw Exception('network-request-failed');
+    }
+    if (e is TimeoutException) {
+      throw Exception('timeout');
     }
     throw e;
   }
