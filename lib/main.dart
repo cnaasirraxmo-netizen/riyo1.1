@@ -56,6 +56,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:riyo/services/local_cache_service.dart';
 import 'package:riyo/core/localization.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:riyo/core/constants.dart';
@@ -174,6 +175,7 @@ class _MyAppState extends State<MyApp> {
       refreshListenable: authProvider,
       observers: [
         _AnalyticsObserver(authProvider),
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
       ],
       errorBuilder: (context, state) {
         return Scaffold(

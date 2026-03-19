@@ -16,6 +16,7 @@ import 'package:riyo/models/movie.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 import 'package:riyo/core/casting/presentation/providers/casting_provider.dart';
 import 'package:riyo/core/casting/domain/entities/cast_media.dart';
+import 'package:riyo/services/analytics_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
 class VideoPlayerScreen extends rp.ConsumerStatefulWidget {
@@ -290,6 +291,9 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     });
 
     _engine!.play();
+
+    // Log video start event
+    AnalyticsService.logVideoStart(_movie?.title ?? "Unknown", widget.movieId);
 
     // 4. RESUME PLAYBACK - Seek to saved position
     if (widget.movieId != null) {

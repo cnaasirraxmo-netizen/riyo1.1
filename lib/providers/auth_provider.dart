@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:riyo/core/constants.dart';
 import 'package:riyo/models/user.dart';
 import 'package:riyo/services/notification_service.dart';
+import 'package:riyo/services/analytics_service.dart';
 
 class AuthProvider with ChangeNotifier {
   fb.FirebaseAuth? _auth;
@@ -89,6 +90,7 @@ class AuthProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         await _handleLoginSuccess(data);
+        AnalyticsService.logUserLogin('email');
       } else {
         await _auth?.signOut();
         throw Exception(_parseErrorMessage(response));
@@ -128,6 +130,7 @@ class AuthProvider with ChangeNotifier {
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         await _handleLoginSuccess(data);
+        AnalyticsService.logUserSignUp('email');
       } else {
         await credential.user?.delete();
         throw Exception(_parseErrorMessage(response));
@@ -241,6 +244,11 @@ class AuthProvider with ChangeNotifier {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         await _handleLoginSuccess(data);
+        if (response.statusCode == 201) {
+          AnalyticsService.logUserSignUp('google');
+        } else {
+          AnalyticsService.logUserLogin('google');
+        }
       } else {
         await _auth?.signOut();
         await _googleSignIn?.signOut();

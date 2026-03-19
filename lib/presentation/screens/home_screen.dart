@@ -16,6 +16,7 @@ import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
+import 'package:riyo/services/analytics_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -155,7 +156,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   IconButton(
                       icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => context.push('/settings')),
+                      onPressed: () {
+                        AnalyticsService.logButtonClick('home_settings_button');
+                        context.push('/settings');
+                      }),
                 ],
                 pinned: true,
                 floating: true,
