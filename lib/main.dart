@@ -49,9 +49,9 @@ import 'package:riyo/presentation/screens/settings/developer_settings_screen.dar
 import 'package:riyo/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:riyo/services/local_cache_service.dart';
+import 'package:riyo/core/localization.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -107,14 +107,6 @@ void main() async {
   };
 
   try {
-    debugPrint('Starting EasyLocalization initialization...');
-    await EasyLocalization.ensureInitialized().timeout(
-      const Duration(seconds: 5),
-      onTimeout: () {
-        debugPrint('EasyLocalization initialization timed out after 5 seconds');
-      },
-    );
-
     debugPrint('Starting Firebase initialization...');
     try {
       await Firebase.initializeApp().timeout(
@@ -146,16 +138,12 @@ void main() async {
   }
 
   runApp(
-    EasyLocalization(
-      supportedLocales: const [Locale('en'), Locale('so'), Locale('ar'), Locale('es')],
-      path: 'assets/lang',
-      fallbackLocale: const Locale('en'),
-      child: const rp.ProviderScope(child: MyApp()),
-    ),
+    const rp.ProviderScope(child: MyApp()),
   );
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -234,65 +222,44 @@ class _MyAppState extends State<MyApp> {
           path: '/forgot-password',
           builder: (context, state) => const SafeScreen(child: ForgotPasswordScreen()),
         ),
-        StatefulShellRoute.indexedStack(
-          builder: (context, state, navigationShell) {
-            return MainScreen(navigationShell: navigationShell);
+        ShellRoute(
+          navigatorKey: _shellNavigatorKey,
+          builder: (context, state, child) {
+            return MainScreen(child: child);
           },
-          branches: [
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/home',
-                  builder: (context, state) => const HomeScreen(),
-                ),
-              ],
+          routes: [
+            GoRoute(
+              path: '/home',
+              builder: (context, state) => const HomeScreen(),
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/category',
-                  builder: (context, state) => const CategoriesScreen(),
-                ),
-              ],
+            GoRoute(
+              path: '/category',
+              builder: (context, state) => const CategoriesScreen(),
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/downloads',
-                  builder: (context, state) => const DownloadsScreen(),
-                ),
-              ],
+            GoRoute(
+              path: '/downloads',
+              builder: (context, state) => const DownloadsScreen(),
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/search',
-                  builder: (context, state) => const SearchScreen(),
-                ),
-              ],
+            GoRoute(
+              path: '/search',
+              builder: (context, state) => const SearchScreen(),
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/my-riyo',
-                  builder: (context, state) => const MyRiyoScreen(),
-                ),
-              ],
+            GoRoute(
+              path: '/my-riyo',
+              builder: (context, state) => const MyRiyoScreen(),
+            ),
+            GoRoute(
+              path: '/coming-soon',
+              builder: (context, state) => const ComingSoonScreen(),
+            ),
+            GoRoute(
+              path: '/genre/:name',
+              builder: (context, state) {
+                final name = state.pathParameters['name']!;
+                return GenreMoviesScreen(genreName: name);
+              },
             ),
           ],
-        ),
-        GoRoute(
-          path: '/coming-soon',
-          parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) => const ComingSoonScreen(),
-        ),
-        GoRoute(
-          path: '/genre/:name',
-          parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) {
-            final name = state.pathParameters['name']!;
-            return GenreMoviesScreen(genreName: name);
-          },
         ),
         GoRoute(
           path: '/movie/:id',
@@ -402,9 +369,6 @@ class _MyAppState extends State<MyApp> {
                 routerConfig: _router!,
                 title: 'RIYO',
                 themeMode: settings.themeMode,
-                localizationsDelegates: context.localizationDelegates,
-                supportedLocales: context.supportedLocales,
-                locale: context.locale,
                 builder: (context, child) {
                   return child!;
                 },
@@ -421,9 +385,9 @@ class _MyAppState extends State<MyApp> {
 }
 
 class MainScreen extends StatefulWidget {
-  final StatefulNavigationShell navigationShell;
+  final Widget child;
 
-  const MainScreen({super.key, required this.navigationShell});
+  const MainScreen({super.key, required this.child});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -469,33 +433,33 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           BottomNavigationBarItem(
             icon: const Icon(Icons.home_outlined),
             activeIcon: const Icon(Icons.home),
-            label: 'home'.tr(),
+            label: 'home'.tr(context),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.grid_view_outlined),
             activeIcon: const Icon(Icons.grid_view),
-            label: 'categories'.tr(),
+            label: 'categories'.tr(context),
           ),
           if (downloadsEnabled)
             BottomNavigationBarItem(
               icon: const Icon(Icons.download_outlined),
               activeIcon: const Icon(Icons.download),
-              label: 'downloads'.tr(),
+              label: 'downloads'.tr(context),
             ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.search_outlined),
             activeIcon: const Icon(Icons.search),
-            label: 'search'.tr(),
+            label: 'search'.tr(context),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.person_outline),
             activeIcon: const Icon(Icons.person),
-            label: 'profile_title'.tr(),
+            label: 'profile_title'.tr(context),
           ),
         ];
 
         return Scaffold(
-          body: widget.navigationShell,
+          body: widget.child,
           bottomNavigationBar: BottomNavigationBar(
             items: items,
             currentIndex: _calculateSelectedIndex(context, downloadsEnabled),
@@ -508,11 +472,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   int _calculateSelectedIndex(BuildContext context, bool downloadsEnabled) {
-    int index = widget.navigationShell.currentIndex;
-    if (!downloadsEnabled && index >= 2) {
-      return index - 1;
-    }
-    return index;
+    final String location = GoRouterState.of(context).uri.path;
+    if (location.startsWith('/home')) return 0;
+    if (location.startsWith('/category')) return 1;
+    if (location.startsWith('/downloads')) return downloadsEnabled ? 2 : 0;
+    if (location.startsWith('/search')) return downloadsEnabled ? 3 : 2;
+    if (location.startsWith('/my-riyo')) return downloadsEnabled ? 4 : 3;
+    return 0;
   }
 
   void _onItemTapped(int index, BuildContext context, bool downloadsEnabled) {
@@ -520,9 +486,23 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (!downloadsEnabled && index >= 2) {
       targetIndex = index + 1;
     }
-    widget.navigationShell.goBranch(
-      targetIndex,
-      initialLocation: targetIndex == widget.navigationShell.currentIndex,
-    );
+
+    switch (targetIndex) {
+      case 0:
+        context.go('/home');
+        break;
+      case 1:
+        context.go('/category');
+        break;
+      case 2:
+        context.go('/downloads');
+        break;
+      case 3:
+        context.go('/search');
+        break;
+      case 4:
+        context.go('/my-riyo');
+        break;
+    }
   }
 }

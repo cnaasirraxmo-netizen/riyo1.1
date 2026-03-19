@@ -54,12 +54,7 @@ class HomeProvider extends ChangeNotifier {
     }
   }
 
-  bool _isDataLoaded = false;
-  bool get isDataLoaded => _isDataLoaded;
-
-  Future<void> loadConfig({String? token, bool forceRefresh = false}) async {
-    if (_isDataLoaded && !forceRefresh) return;
-
+  Future<void> loadConfig({String? token}) async {
     _isLoadingConfig = true;
     notifyListeners();
 
@@ -82,7 +77,6 @@ class HomeProvider extends ChangeNotifier {
       _sectionFutures['TV Shows'] = Future.value(homeData['trendingTV']);
 
       _featuredFuture = Future.value(homeData['trendingMovies']?.take(5).toList());
-      _isDataLoaded = true;
     } catch (e) {
       debugPrint('Error loading home config: $e');
     } finally {
@@ -92,9 +86,8 @@ class HomeProvider extends ChangeNotifier {
   }
 
   void refresh() {
-    _isDataLoaded = false;
     _sectionFutures.clear();
-    _featuredFuture = null;
+    _featuredFuture = null; // Will be recreated on next demand or loadConfig
     notifyListeners();
   }
 }

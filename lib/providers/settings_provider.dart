@@ -55,7 +55,6 @@ class SettingsProvider with ChangeNotifier {
   bool _loadPostersOnlyWhenVisible = true;
 
   // Language
-  String _appLanguage = 'English';
   String _subtitleLanguage = 'Auto detect';
   String _audioLanguagePreference = 'Original';
 
@@ -77,7 +76,6 @@ class SettingsProvider with ChangeNotifier {
   bool _simulateSlowNetwork = false;
 
   // Getters
-  String get language => _appLanguage;
   bool get isOffline => _simulateSlowNetwork; // Assuming this based on current fields or adding a new one
   ThemeMode get themeMode => _themeMode;
   bool get amoledMode => _amoledMode;
@@ -126,7 +124,6 @@ class SettingsProvider with ChangeNotifier {
   bool get disableBackgroundRefresh => _disableBackgroundRefresh;
   bool get loadPostersOnlyWhenVisible => _loadPostersOnlyWhenVisible;
 
-  String get appLanguage => _appLanguage;
   String get subtitleLanguage => _subtitleLanguage;
   String get audioLanguagePreference => _audioLanguagePreference;
 
@@ -205,7 +202,6 @@ class SettingsProvider with ChangeNotifier {
     _loadPostersOnlyWhenVisible = prefs.getBool('loadPostersOnlyWhenVisible') ?? true;
 
     // Language
-    _appLanguage = prefs.getString('appLanguage') ?? 'English';
     _subtitleLanguage = prefs.getString('subtitleLanguage') ?? 'Auto detect';
     _audioLanguagePreference = prefs.getString('audioLanguagePreference') ?? 'Original';
 
@@ -298,7 +294,6 @@ class SettingsProvider with ChangeNotifier {
   void setDisableBackgroundRefresh(bool value) { _disableBackgroundRefresh = value; _saveBool('disableBackgroundRefresh', value); notifyListeners(); }
   void setLoadPostersOnlyWhenVisible(bool value) { _loadPostersOnlyWhenVisible = value; _saveBool('loadPostersOnlyWhenVisible', value); notifyListeners(); }
 
-  void setAppLanguage(String lang) { _appLanguage = lang; _saveString('appLanguage', lang); notifyListeners(); }
   void setSubtitleLanguage(String lang) { _subtitleLanguage = lang; _saveString('subtitleLanguage', lang); notifyListeners(); }
   void setAudioLanguagePreference(String lang) { _audioLanguagePreference = lang; _saveString('audioLanguagePreference', lang); notifyListeners(); }
 

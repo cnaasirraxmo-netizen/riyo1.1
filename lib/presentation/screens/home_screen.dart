@@ -34,11 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-      if (!homeProvider.isDataLoaded) {
-        await homeProvider.loadConfig(token: auth.token);
-        if (mounted) {
-          _precacheHomeImages();
-        }
+      await homeProvider.loadConfig(token: auth.token);
+      if (mounted) {
+        _precacheHomeImages();
       }
     });
   }

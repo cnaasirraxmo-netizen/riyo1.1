@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:riyo/core/design_system.dart';
 import 'package:riyo/presentation/widgets/riyo_components.dart';
 import 'package:riyo/providers/auth_provider.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:riyo/core/localization.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'welcome_message'.tr(),
+                'welcome_message'.tr(context),
                 style: AppTypography.headlineLarge,
               ),
               const SizedBox(height: 8),
@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
               RiyoButton(
-                text: 'login_button'.tr(),
+                text: 'login_button'.tr(context),
                 isLoading: _isLoading,
                 onPressed: _handleLogin,
               ),

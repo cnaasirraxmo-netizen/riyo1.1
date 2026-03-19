@@ -99,20 +99,20 @@ func main() {
 	movies := r.Group("/movies")
 	movies.Use(middleware.Protect())
 	{
-		movies.GET("/", middleware.Cache(cache.TrendingTTL), handlers.GetMovies)
-		movies.GET("/coming-soon", middleware.Cache(cache.TrendingTTL), handlers.GetComingSoonMovies)
-		movies.GET("/:id", middleware.Cache(cache.MetadataTTL), handlers.GetMovieByID)
+		movies.GET("/", handlers.GetMovies)
+		movies.GET("/coming-soon", handlers.GetComingSoonMovies)
+		movies.GET("/:id", handlers.GetMovieByID)
 	}
 
 	config := r.Group("/config")
 	{
-		config.GET("/categories", middleware.Cache(cache.MetadataTTL), handlers.GetCategories)
+		config.GET("/categories", handlers.GetCategories)
 		config.POST("/categories", handlers.CreateCategory)
 		config.PUT("/categories/:id", handlers.UpdateCategory)
 		config.DELETE("/categories/:id", handlers.DeleteCategory)
 		config.POST("/categories/reorder", handlers.ReorderCategories)
 
-		config.GET("/home-sections", middleware.Cache(cache.MetadataTTL), handlers.GetHomeSections)
+		config.GET("/home-sections", handlers.GetHomeSections)
 		config.POST("/home-sections", handlers.CreateHomeSection)
 		config.PUT("/home-sections/:id", handlers.UpdateHomeSection)
 		config.DELETE("/home-sections/:id", handlers.DeleteHomeSection)
@@ -129,7 +129,7 @@ func main() {
 		users.PUT("/settings", handlers.UpdateUserSettings)
 	}
 
-	r.GET("/system-config", middleware.Cache(cache.MetadataTTL), handlers.GetSystemConfig)
+	r.GET("/system-config", handlers.GetSystemConfig)
 
 	// New API routes
 	handlers.RegisterNewRoutes(r)
