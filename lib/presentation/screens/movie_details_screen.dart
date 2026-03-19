@@ -12,6 +12,7 @@ import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
 class MovieDetailsScreen extends rp.ConsumerStatefulWidget {
@@ -110,8 +111,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                       _buildActionsBar(context, movie),
                       const SizedBox(height: 32),
                       _buildSynopsis(movie),
-                      const SizedBox(height: 32),
-                      _buildCastSection(movie),
                       const SizedBox(height: 32),
                       if (movie.isTvShow) _buildSeasonSelector(movie),
                       if (movie.isTvShow) _buildEpisodeList(),
@@ -298,8 +297,13 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                'My List',
                onTap: () => _toggleWatchlist(auth.token, movie.backendId ?? movie.id.toString())
              ),
-             _buildActionIconButton(Icons.thumb_up_outlined, 'Rate'),
-             _buildActionIconButton(Icons.share_rounded, 'Share'),
+             _buildActionIconButton(Icons.thumb_up_outlined, 'Rate', onTap: () {
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thank you for rating!')));
+             }),
+             _buildActionIconButton(Icons.share_rounded, 'Share', onTap: () {
+               final id = movie.backendId ?? movie.id.toString();
+               Share.share('Check out ${movie.title} on RIYO: https://riyoapp.com/movie/$id');
+             }),
              if (ref.watch(castingProvider).connectedDevice != null && !isComingSoon)
                _buildActionIconButton(
                  Icons.cast_connected,
@@ -416,39 +420,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCastSection(Movie movie) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Cast', style: AppTypography.titleLarge),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 110,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: movie.cast?.length ?? 0,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 20),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(20),
-                      child: Icon(Icons.person_rounded, color: Theme.of(context).colorScheme.primary),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(movie.cast![index], style: AppTypography.labelSmall),
-                  ],
-                ),
-              );
-            },
           ),
         ),
       ],

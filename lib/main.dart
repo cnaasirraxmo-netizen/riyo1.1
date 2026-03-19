@@ -60,6 +60,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:riyo/core/constants.dart';
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -162,10 +164,47 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   GoRouter? _router;
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
+    _initDeepLinks();
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+
+    // Handle initial link
+    try {
+      final initialLink = await _appLinks.getInitialLink();
+      if (initialLink != null) {
+        _handleDeepLink(initialLink);
+      }
+    } catch (e) {
+      debugPrint('Deep link error: $e');
+    }
+
+    // Handle incoming links
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    }, onError: (err) {
+      debugPrint('Deep link stream error: $err');
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.pathSegments.contains('movie')) {
+      final movieId = uri.pathSegments.last;
+      _router?.push('/movie/$movieId');
+    }
   }
 
   void _initRouter(AuthProvider authProvider) {
