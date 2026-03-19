@@ -11,6 +11,37 @@ class ApiService {
   static const String _backendUrl = Constants.apiBaseUrl;
   final LocalCacheService _cacheService = LocalCacheService();
 
+  Future<T> _cacheThenNetwork<T>({
+    required String cacheKey,
+    required String url,
+    required T Function(dynamic data) parser,
+    Map<String, String>? headers,
+  }) async {
+    final cached = _cacheService.getCachedData(cacheKey);
+    T? cachedResult;
+    if (cached != null) {
+      try {
+        cachedResult = parser(cached);
+      } catch (e) {
+        debugPrint('Cache parsing error for $cacheKey: $e');
+      }
+    }
+
+    try {
+      final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        unawaited(_cacheService.cacheData(cacheKey, data));
+        return parser(data);
+      }
+    } catch (e) {
+      debugPrint('ApiService network error for $url: $e');
+    }
+
+    if (cachedResult != null) return cachedResult;
+    throw Exception('network-request-failed');
+  }
+
   // NEW AGGREGATION METHODS
   Future<Map<String, List<Movie>>> getHomeData() async {
     try {
@@ -177,6 +208,19 @@ class ApiService {
       return data['isNotified'] ?? false;
     }
     return false;
+  }
+
+  Future<List<Movie>> getKidsHome() async {
+    const cacheKey = 'kids_home_data';
+    try {
+      return await _cacheThenNetwork<List<Movie>>(
+        cacheKey: cacheKey,
+        url: '$_backendUrl/api/v1/kids/home',
+        parser: (data) => _parseList(data),
+      );
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<List<Movie>> search(String query) async {

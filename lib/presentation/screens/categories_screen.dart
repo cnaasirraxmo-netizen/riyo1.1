@@ -95,6 +95,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       onTap: () {
                         if (category == 'Coming Soon') {
                           context.push('/coming-soon');
+                        } else if (category == 'Kids') {
+                          context.push('/kids');
                         } else {
                           context.push('/genre/$category');
                         }

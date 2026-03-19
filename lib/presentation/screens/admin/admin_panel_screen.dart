@@ -29,6 +29,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   final _genreController = TextEditingController();
   final _durationController = TextEditingController();
   final _contentRatingController = TextEditingController();
+  bool _isKidsContent = false;
   String _videoSourceType = 'upload'; // upload, url, library
   bool _isUploading = false;
   double _posterUploadProgress = 0;
@@ -244,6 +245,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           'genre': _genreController.text.split(',').map((e) => e.trim()).toList(),
           'duration': _durationController.text,
           'contentRating': _contentRatingController.text,
+          'isKidsContent': _isKidsContent,
           'isTrending': true, // New uploads are usually trending
         }),
       );
@@ -574,6 +576,15 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           _buildTextField(_genreController, 'Genres (Comma separated)'),
           const SizedBox(height: 16),
           _buildTextField(_contentRatingController, 'Maturity Rating (e.g. 13+, R)'),
+          const SizedBox(height: 24),
+          SwitchListTile(
+            title: const Text('Kids Content', style: TextStyle(color: Colors.white, fontSize: 14)),
+            subtitle: const Text('Mark this movie as safe for kids', style: TextStyle(color: Colors.grey, fontSize: 11)),
+            value: _isKidsContent,
+            onChanged: (val) => setState(() => _isKidsContent = val),
+            activeColor: Colors.orangeAccent,
+            contentPadding: EdgeInsets.zero,
+          ),
           const SizedBox(height: 32),
           ElevatedButton(
             onPressed: _isUploading ? null : _addMovie,

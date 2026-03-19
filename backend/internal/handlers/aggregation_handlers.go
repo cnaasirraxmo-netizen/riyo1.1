@@ -450,3 +450,33 @@ func SearchMovies(c *gin.Context) {
 
 	c.JSON(http.StatusOK, cached)
 }
+
+func GetKidsHome(c *gin.Context) {
+	collection := db.DB.Collection("movies")
+
+	projection := bson.M{
+		"title":       1,
+		"posterUrl":   1,
+		"year":        1,
+		"rating":      1,
+		"genre":       1,
+		"contentType": 1,
+		"isTvShow":    1,
+		"isPublished": 1,
+	}
+
+	opts := options.Find().SetLimit(50).SetSort(bson.M{"createdAt": -1}).SetProjection(projection)
+	filter := bson.M{"isKidsContent": true, "isPublished": true}
+
+	cursor, err := collection.Find(context.TODO(), filter, opts)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	defer cursor.Close(context.TODO())
+
+	var results []models.Movie
+	cursor.All(context.TODO(), &results)
+
+	c.JSON(http.StatusOK, results)
+}

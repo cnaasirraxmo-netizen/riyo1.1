@@ -27,6 +27,7 @@ import 'package:riyo/presentation/screens/my_riyo_screen.dart';
 import 'package:riyo/presentation/screens/search_screen.dart';
 import 'package:riyo/presentation/screens/coming_soon_screen.dart';
 import 'package:riyo/presentation/screens/genre_movies_screen.dart';
+import 'package:riyo/presentation/screens/kids/kids_home_screen.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
 import 'package:riyo/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyo/presentation/screens/download_settings_screen.dart';
@@ -273,6 +274,11 @@ class _MyAppState extends State<MyApp> {
               path: '/coming-soon',
               builder: (context, state) => const ComingSoonScreen(),
             ),
+        GoRoute(
+          path: '/kids',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const KidsHomeScreen(),
+        ),
             GoRoute(
               path: '/genre/:name',
               builder: (context, state) {
