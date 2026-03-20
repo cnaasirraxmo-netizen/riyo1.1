@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:riyo/core/design_system.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';

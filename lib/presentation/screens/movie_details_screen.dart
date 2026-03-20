@@ -121,9 +121,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-
     return Scaffold(
       body: FutureBuilder<Movie>(
         future: _movieFuture,

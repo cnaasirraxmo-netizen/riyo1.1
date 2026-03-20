@@ -44,35 +44,16 @@ class ApiService {
 
   // NEW AGGREGATION METHODS
   Future<Map<String, List<Movie>>> getHomeData() async {
-    try {
-      final response = await http.get(Uri.parse('$_backendUrl/api/v1/home')).timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        // Cache data for offline
-        _cacheService.cacheMovieList('home_trendingMovies', List<Map<String, dynamic>>.from(data['trendingMovies'] ?? []));
-        _cacheService.cacheMovieList('home_popularMovies', List<Map<String, dynamic>>.from(data['popularMovies'] ?? []));
-        _cacheService.cacheMovieList('home_topRatedMovies', List<Map<String, dynamic>>.from(data['topRatedMovies'] ?? []));
-        _cacheService.cacheMovieList('home_trendingTV', List<Map<String, dynamic>>.from(data['trendingTV'] ?? []));
-
-        return {
-          'trendingMovies': _parseList(data['trendingMovies']),
-          'popularMovies': _parseList(data['popularMovies']),
-          'topRatedMovies': _parseList(data['topRatedMovies']),
-          'trendingTV': _parseList(data['trendingTV']),
-        };
-      }
-    } catch (e) {
-      debugPrint('ApiService.getHomeData error: $e. Using cache.');
-    }
-
-    // Offline fallback
-    return {
-      'trendingMovies': _parseList(_cacheService.getCachedMovieList('home_trendingMovies')),
-      'popularMovies': _parseList(_cacheService.getCachedMovieList('home_popularMovies')),
-      'topRatedMovies': _parseList(_cacheService.getCachedMovieList('home_topRatedMovies')),
-      'trendingTV': _parseList(_cacheService.getCachedMovieList('home_trendingTV')),
-    };
+    return await _cacheThenNetwork<Map<String, List<Movie>>>(
+      cacheKey: 'home_data_aggregate',
+      url: '$_backendUrl/api/v1/home',
+      parser: (data) => {
+        'trendingMovies': _parseList(data['trendingMovies']),
+        'popularMovies': _parseList(data['popularMovies']),
+        'topRatedMovies': _parseList(data['topRatedMovies']),
+        'trendingTV': _parseList(data['trendingTV']),
+      },
+    );
   }
 
   Future<Map<String, dynamic>> getSources(String id, {int? season, int? episode}) async {
@@ -119,26 +100,12 @@ class ApiService {
   }
 
   Future<Movie> getMovieDetails(String movieId, {String? token}) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_backendUrl/movies/$movieId'),
-        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _cacheService.cacheMovie(movieId, data);
-        return Movie.fromJson(data);
-      }
-    } catch (e) {
-      debugPrint('ApiService.getMovieDetails error: $e. Using cache.');
-    }
-
-    final cached = _cacheService.getCachedMovie(movieId);
-    if (cached != null) {
-      return Movie.fromJson(cached);
-    }
-    throw Exception('Failed to load movie details');
+    return await _cacheThenNetwork<Movie>(
+      cacheKey: 'movie_details_$movieId',
+      url: '$_backendUrl/movies/$movieId',
+      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+      parser: (data) => Movie.fromJson(data),
+    );
   }
 
   Future<bool> toggleWatchlist(String movieId, String token) async {
@@ -224,11 +191,11 @@ class ApiService {
   }
 
   Future<List<Movie>> search(String query) async {
-    final response = await http.get(Uri.parse('$_backendUrl/api/v1/search?query=$query'));
-    if (response.statusCode == 200) {
-      return _parseList(json.decode(response.body));
-    }
-    return [];
+    return await _cacheThenNetwork<List<Movie>>(
+      cacheKey: 'search_results_${query.replaceAll(' ', '_')}',
+      url: '$_backendUrl/api/v1/search?query=$query',
+      parser: (data) => _parseList(data),
+    );
   }
 
   Future<void> preCacheVideo(String url) async {

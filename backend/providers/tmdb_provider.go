@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -29,8 +30,12 @@ type TMDbMovie struct {
 	ReleaseDate      string   `json:"release_date"`
 	VoteAverage      float64  `json:"vote_average"`
 	GenreIDs         []int    `json:"genre_ids"`
-	Runtime          int      `json:"runtime"`
-	Credits          *TMDbCredits `json:"credits"`
+	Genres           []struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"genres"`
+	Runtime int          `json:"runtime"`
+	Credits *TMDbCredits `json:"credits"`
 }
 
 type TMDbTVShow struct {
@@ -87,6 +92,11 @@ func (p *TMDbProvider) FetchPopularMovies() ([]TMDbMovie, error) {
 func (p *TMDbProvider) FetchTrendingTVShows() ([]TMDbTVShow, error) {
 	url := fmt.Sprintf("%s/trending/tv/day?api_key=%s", p.BaseURL, p.APIKey)
 	return p.fetchTVShows(url)
+}
+
+func (p *TMDbProvider) SearchMovies(query string) ([]TMDbMovie, error) {
+	searchURL := fmt.Sprintf("%s/search/movie?api_key=%s&query=%s", p.BaseURL, p.APIKey, url.QueryEscape(query))
+	return p.fetchMovies(searchURL)
 }
 
 func (p *TMDbProvider) fetchMovies(url string) ([]TMDbMovie, error) {

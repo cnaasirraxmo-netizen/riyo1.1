@@ -143,6 +143,8 @@ func main() {
 	admin.Use(middleware.Protect(), middleware.AdminOnly())
 	{
 		admin.GET("/stats", handlers.GetDashboardStats)
+		admin.GET("/tmdb/search", handlers.AdminSearchTMDb)
+		admin.GET("/tmdb/movie/:id", handlers.AdminGetTMDbDetails)
 		admin.POST("/movies", handlers.AdminCreateMovie)
 		admin.GET("/movies", handlers.AdminGetMovies)
 		admin.PUT("/movies/:id", handlers.AdminUpdateMovie)

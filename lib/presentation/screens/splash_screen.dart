@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:riyo/core/design_system.dart';
 import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/home_provider.dart';
 

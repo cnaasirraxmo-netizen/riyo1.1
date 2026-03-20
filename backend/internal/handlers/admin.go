@@ -44,6 +44,37 @@ func AdminCreateMovie(c *gin.Context) {
 	c.JSON(http.StatusCreated, movie)
 }
 
+func AdminSearchTMDb(c *gin.Context) {
+	query := c.Query("query")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Query is required"})
+		return
+	}
+
+	tmdb := providers.NewTMDbProvider()
+	results, err := tmdb.SearchMovies(query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func AdminGetTMDbDetails(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.Atoi(idStr)
+
+	tmdb := providers.NewTMDbProvider()
+	movie, err := tmdb.FetchMovieDetails(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, movie)
+}
+
 func AdminGetMovies(c *gin.Context) {
 	search := c.Query("search")
 	isTvShow := c.Query("isTvShow")
@@ -130,6 +161,22 @@ func AdminUpdateMovie(c *gin.Context) {
 	delete(updateData, "id")
 	updateData["updatedAt"] = time.Now()
 
+	// If sources are provided, ensure they are in the correct format
+	if sources, ok := updateData["sources"].([]interface{}); ok {
+		var formattedSources []models.StreamSource
+		for _, s := range sources {
+			if sMap, ok := s.(map[string]interface{}); ok {
+				formattedSources = append(formattedSources, models.StreamSource{
+					Label:    sMap["label"].(string),
+					URL:      sMap["url"].(string),
+					Type:     sMap["type"].(string),
+					Provider: sMap["provider"].(string),
+				})
+			}
+		}
+		updateData["sources"] = formattedSources
+	}
+
 	collection := db.DB.Collection("movies")
 	_, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": updateData})
 	if err != nil {
@@ -140,6 +187,7 @@ func AdminUpdateMovie(c *gin.Context) {
 	// Invalidate Cache
 	cache.InvalidateCache(fmt.Sprintf("movie_%s", idStr))
 	cache.InvalidateCache("home_data")
+	cache.InvalidateByPattern("movies_list_*")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Movie updated successfully"})
 }
