@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:riyo/core/design_system.dart';
@@ -18,8 +19,37 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  int _adTimerSeconds = 5;
+  bool _canSkipAd = false;
+  Timer? _adTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAdTimer();
+  }
+
+  @override
+  void dispose() {
+    _adTimer?.cancel();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _startAdTimer() {
+    _adTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_adTimerSeconds > 0) {
+        setState(() => _adTimerSeconds--);
+      } else {
+        setState(() => _canSkipAd = true);
+        _adTimer?.cancel();
+      }
+    });
+  }
 
   void _handleLogin() async {
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -59,9 +89,34 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: TextButton(
+              onPressed: _canSkipAd ? () {
+                Provider.of<AuthProvider>(context, listen: false).loginAsGuest().then((_) {
+                  if (mounted) context.go('/home');
+                });
+              } : null,
+              style: TextButton.styleFrom(
+                backgroundColor: _canSkipAd ? Colors.white10 : Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              child: Text(
+                _canSkipAd ? 'Skip & Guest' : 'Skip in $_adTimerSeconds...',
+                style: TextStyle(color: _canSkipAd ? Colors.white : Colors.white54, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
           child: Form(
             key: _formKey,
             child: Column(
@@ -84,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Email Address',
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Email and password are required.';
+                    if (value == null || value.isEmpty) return 'Email is required.';
                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                       return 'Please enter a valid email address.';
                     }
@@ -97,7 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Password',
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Email and password are required.';
+                    if (value == null || value.isEmpty) return 'Password is required.';
+                    if (value.length < 6) return 'Password must be at least 6 characters.';
                     return null;
                   },
                 ),
@@ -135,6 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   text: 'Continue with Google',
                   icon: Image.network('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg', height: 24, errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 28)),
                   onPressed: () async {
+                    if (_isLoading) return;
                     setState(() => _isLoading = true);
                     try {
                       await Provider.of<AuthProvider>(context, listen: false).loginWithGoogle();

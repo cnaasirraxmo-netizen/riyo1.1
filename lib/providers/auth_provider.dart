@@ -19,10 +19,12 @@ class AuthProvider with ChangeNotifier {
 
   static const String _backendUrl = Constants.apiBaseUrl;
   bool _isAuthenticated = false;
+  bool _isGuest = false;
   bool _isOnboardingComplete = false;
   bool _isInitialized = false;
 
   bool get isInitialized => _isInitialized;
+  bool get isGuest => _isGuest;
   String? _token;
   String? _role;
   User? _user;
@@ -50,6 +52,7 @@ class AuthProvider with ChangeNotifier {
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
     _isAuthenticated = prefs.getBool('isAuthenticated') ?? false;
+    _isGuest = prefs.getBool('isGuest') ?? false;
     _isOnboardingComplete = prefs.getBool('isOnboardingComplete') ?? false;
     _token = prefs.getString('token');
     _role = prefs.getString('role');
@@ -304,13 +307,35 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<void> loginAsGuest() async {
+    _isAuthenticated = true;
+    _isGuest = true;
+    _token = null;
+    _role = 'user';
+    _user = User(
+      id: 'guest_uid',
+      name: 'Guest User',
+      email: 'guest@riyo.app',
+      role: 'user',
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isAuthenticated', true);
+    await prefs.setBool('isGuest', true);
+    await prefs.setString('role', _role!);
+
+    notifyListeners();
+  }
+
   Future<void> _handleLoginSuccess(Map<String, dynamic> data) async {
     _token = data['token'];
     _role = data['role'];
     _user = User.fromJson(data);
     _isAuthenticated = true;
+    _isGuest = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isAuthenticated', true);
+    await prefs.setBool('isGuest', false);
     await prefs.setString('token', _token!);
     await prefs.setString('role', _role!);
     await prefs.setString('user', jsonEncode(_user!.toJson()));
@@ -419,11 +444,13 @@ class AuthProvider with ChangeNotifier {
     await _auth?.signOut();
     await _googleSignIn?.signOut();
     _isAuthenticated = false;
+    _isGuest = false;
     _token = null;
     _role = null;
     _user = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isAuthenticated', false);
+    await prefs.setBool('isGuest', false);
     await prefs.remove('token');
     await prefs.remove('role');
     await prefs.remove('user');

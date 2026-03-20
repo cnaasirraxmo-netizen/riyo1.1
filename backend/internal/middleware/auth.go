@@ -26,7 +26,12 @@ func Protect() gin.HandlerFunc {
 		jwtSecret := os.Getenv("JWT_SECRET")
 
 		if tokenStr == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "No authorization token provided"})
+			// Allow access to protected routes as Guest (with restricted permissions handled in handlers)
+			// But for strict routes, we still need to identify the user.
+			// Let's set a "isGuest" context if no token is provided but don't abort yet.
+			// The handler can then check c.Get("isGuest")
+			c.Set("isGuest", true)
+			c.Next()
 			return
 		}
 

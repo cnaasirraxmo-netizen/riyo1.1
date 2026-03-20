@@ -120,7 +120,7 @@ class _RiyoButtonState extends State<RiyoButton> {
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             )
-          : Text(_isDebouncing ? "Action already in progress" : widget.text),
+          : Text(widget.text),
     );
   }
 }

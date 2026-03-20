@@ -322,7 +322,15 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   void _toggleWatchlist(String? token, String movieId) async {
-    if (token == null) return;
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please sign in to add movies to your list'),
+          action: SnackBarAction(label: 'SIGN IN', onPressed: () => context.push('/login')),
+        ),
+      );
+      return;
+    }
     final res = await _apiService.toggleWatchlist(movieId, token);
     setState(() {
       _isInWatchlist = res;

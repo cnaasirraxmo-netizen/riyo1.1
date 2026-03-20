@@ -220,10 +220,17 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
   void _addMovie() async {
     if (_titleController.text.isEmpty) return;
-    if (_posterUrlController.text.isEmpty || _videoUrlController.text.isEmpty) {
+
+    final videoUrl = _videoUrlController.text;
+    if (_posterUrlController.text.isEmpty || videoUrl.isEmpty) {
        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please upload files first')));
        return;
     }
+
+    // Standardize source based on input
+    String videoType = 'direct';
+    if (videoUrl.contains('.m3u8')) videoType = 'hls';
+    if (videoUrl.contains('.mpd')) videoType = 'dash';
 
     setState(() => _isUploading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -246,7 +253,16 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           'duration': _durationController.text,
           'contentRating': _contentRatingController.text,
           'isKidsContent': _isKidsContent,
-          'isTrending': true, // New uploads are usually trending
+          'isTrending': true,
+          'isPublished': true,
+          'sources': [
+            {
+              'label': 'Primary',
+              'url': videoUrl,
+              'type': videoType,
+              'provider': 'local'
+            }
+          ]
         }),
       );
       if (!mounted) return;

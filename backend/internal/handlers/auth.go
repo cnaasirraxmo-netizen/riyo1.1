@@ -355,7 +355,15 @@ func GoogleLogin(c *gin.Context) {
 }
 
 func ChangePassword(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to change password"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 
 	var req struct {
@@ -389,7 +397,15 @@ func ChangePassword(c *gin.Context) {
 }
 
 func DeleteAccount(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Guest accounts cannot be deleted"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 
 	// Delete user from DB
@@ -403,7 +419,15 @@ func DeleteAccount(c *gin.Context) {
 }
 
 func LogoutFromAllDevices(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusOK, gin.H{"message": "Guest logged out"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 
 	// Clear all FCM tokens to effectively logout from push on all devices

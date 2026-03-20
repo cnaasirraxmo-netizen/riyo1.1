@@ -13,6 +13,15 @@ import (
 )
 
 func GetProfile(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusOK, gin.H{
+			"name": "Guest User",
+			"email": "guest@riyo.app",
+			"role": "user",
+			"watchlist": []interface{}{},
+		})
+		return
+	}
 	userVal, _ := c.Get("user")
 	user := userVal.(models.User)
 
@@ -54,7 +63,15 @@ func GetProfile(c *gin.Context) {
 }
 
 func UpdateProfile(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to update profile"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 
 	var req struct {
@@ -91,7 +108,15 @@ func UpdateProfile(c *gin.Context) {
 }
 
 func UpdateDeviceAndLocation(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusOK, gin.H{"message": "Guest device not tracked"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 
 	var req struct {
@@ -128,7 +153,15 @@ func UpdateDeviceAndLocation(c *gin.Context) {
 }
 
 func ToggleWatchlist(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to manage your watchlist"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 	movieIDStr := c.Param("movieId")
 	movieID, _ := bson.ObjectIDFromHex(movieIDStr)
@@ -168,7 +201,15 @@ func ToggleWatchlist(c *gin.Context) {
 }
 
 func ToggleNotifyMe(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to enable notifications"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 	movieIDStr := c.Param("movieId")
 	movieID, _ := bson.ObjectIDFromHex(movieIDStr)
@@ -212,6 +253,10 @@ func ToggleNotifyMe(c *gin.Context) {
 }
 
 func LogUsage(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusOK, gin.H{"message": "Guest usage not logged"})
+		return
+	}
 	var log models.UsageLog
 	if err := c.ShouldBindJSON(&log); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -237,6 +282,10 @@ func LogUsage(c *gin.Context) {
 }
 
 func AddReview(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to leave a review"})
+		return
+	}
 	movieIDStr := c.Param("id")
 	movieID, _ := bson.ObjectIDFromHex(movieIDStr)
 
@@ -246,7 +295,11 @@ func AddReview(c *gin.Context) {
 		return
 	}
 
-	userVal, _ := c.Get("user")
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 
 	review.ID = bson.NewObjectID()
