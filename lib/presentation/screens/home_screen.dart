@@ -105,11 +105,66 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return movies;
   }
 
+  void _verifyPin(BuildContext context, SettingsProvider settings, VoidCallback onMatched) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Kids Mode Active'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter parental PIN to exit Kids Mode'),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'PIN'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () {
+              if (controller.text == settings.kidsPin) {
+                Navigator.pop(context);
+                onMatched();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect PIN')));
+              }
+            },
+            child: const Text('EXIT'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final homeProvider = Provider.of<HomeProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    final settings = Provider.of<SettingsProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (settings.isKidsMode) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Kids World'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.exit_to_app),
+              onPressed: () => _verifyPin(context, settings, () => settings.setKidsMode(false)),
+            ),
+          ],
+        ),
+        body: const KidsHomeScreen(),
+      );
+    }
 
     return Scaffold(
       body: RefreshIndicator(

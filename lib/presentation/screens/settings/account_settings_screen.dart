@@ -89,7 +89,7 @@ class AccountSettingsScreen extends StatelessWidget {
             onPressed: () async {
               try {
                 await http.post(
-                  Uri.parse('${Constants.apiBaseUrl}/auth/logout-all'),
+                  Uri.parse('${Constants.apiBaseUrl}/users/logout-all'),
                   headers: {'Authorization': 'Bearer ${auth.token}'},
                 );
                 if (context.mounted) {

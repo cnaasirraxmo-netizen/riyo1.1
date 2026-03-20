@@ -72,13 +72,27 @@ func (p *BaseProvider) searchInternal(query string, isTvShow bool, season, episo
 		return nil, err
 	}
 
-	// Find the first result link
-	re := regexp.MustCompile(fmt.Sprintf(`(?i)<a\s+href=["'](%s/[^"']+)["']`, regexp.QuoteMeta(p.BaseURL)))
+	// Find result links - more flexible regex to handle both absolute and relative links
+	// It looks for links that look like content pages (usually avoiding common paths like /category/, /tag/, etc.)
+	re := regexp.MustCompile(`(?i)<a\s+[^>]*href=["']([^"']+)["'][^>]*>`)
 	matches := re.FindAllStringSubmatch(html, -1)
 
 	var allSources []models.StreamSource
 	for _, m := range matches {
-		contentURL := m[1]
+		link := m[1]
+		var contentURL string
+
+		if strings.HasPrefix(link, "http") {
+			if !strings.HasPrefix(link, p.BaseURL) {
+				continue
+			}
+			contentURL = link
+		} else if strings.HasPrefix(link, "/") {
+			contentURL = p.BaseURL + link
+		} else {
+			continue
+		}
+
 		if strings.Contains(contentURL, "/?s=") || contentURL == p.BaseURL+"/" {
 			continue
 		}

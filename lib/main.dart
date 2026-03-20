@@ -50,12 +50,14 @@ import 'package:riyo/presentation/screens/settings/storage_settings_screen.dart'
 import 'package:riyo/presentation/screens/settings/support_settings_screen.dart';
 import 'package:riyo/presentation/screens/settings/about_settings_screen.dart' as about;
 import 'package:riyo/presentation/screens/settings/developer_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/parental_control_screen.dart';
 import 'package:riyo/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:riyo/services/local_cache_service.dart';
 import 'package:riyo/core/localization.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -410,6 +412,7 @@ class _MyAppState extends State<MyApp> {
             GoRoute(path: 'support', builder: (context, state) => const SupportSettingsScreen()),
             GoRoute(path: 'about', builder: (context, state) => const about.AboutSettingsScreen()),
             GoRoute(path: 'developer', builder: (context, state) => const DeveloperSettingsScreen()),
+            GoRoute(path: 'parental-control', builder: (context, state) => const ParentalControlSettingsScreen()),
           ],
         ),
         GoRoute(
@@ -476,6 +479,15 @@ class _MyAppState extends State<MyApp> {
                 routerConfig: _router!,
                 title: 'RIYO',
                 themeMode: settings.themeMode,
+                localizationsDelegates: const [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                supportedLocales: const [
+                  Locale('en', ''),
+                  Locale('so', ''),
+                ],
                 builder: (context, child) {
                   return child!;
                 },

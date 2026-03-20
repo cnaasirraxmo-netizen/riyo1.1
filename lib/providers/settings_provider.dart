@@ -70,12 +70,18 @@ class SettingsProvider with ChangeNotifier {
   bool _hideSpoilers = true;
   bool _personalRecommendations = true;
 
+  // Parental Controls
+  bool _isKidsMode = false;
+  String _kidsPin = '';
+
   // Developer Options
   bool _isDeveloperModeEnabled = false;
   bool _enableDebugLogs = false;
   bool _simulateSlowNetwork = false;
 
   // Getters
+  bool get isKidsMode => _isKidsMode;
+  String get kidsPin => _kidsPin;
   bool get isOffline => _simulateSlowNetwork; // Assuming this based on current fields or adding a new one
   ThemeMode get themeMode => _themeMode;
   bool get amoledMode => _amoledMode;
@@ -217,6 +223,10 @@ class SettingsProvider with ChangeNotifier {
     _hideSpoilers = prefs.getBool('hideSpoilers') ?? true;
     _personalRecommendations = prefs.getBool('personalRecommendations') ?? true;
 
+    // Parental Controls
+    _isKidsMode = prefs.getBool('isKidsMode') ?? false;
+    _kidsPin = prefs.getString('kidsPin') ?? '';
+
     // Developer
     _isDeveloperModeEnabled = prefs.getBool('isDeveloperModeEnabled') ?? false;
     _enableDebugLogs = prefs.getBool('enableDebugLogs') ?? false;
@@ -306,6 +316,9 @@ class SettingsProvider with ChangeNotifier {
   void setHideHorrorMovies(bool value) { _hideHorrorMovies = value; _saveBool('hideHorrorMovies', value); notifyListeners(); }
   void setHideSpoilers(bool value) { _hideSpoilers = value; _saveBool('hideSpoilers', value); notifyListeners(); }
   void setPersonalRecommendations(bool value) { _personalRecommendations = value; _saveBool('personalRecommendations', value); notifyListeners(); }
+
+  void setKidsMode(bool value) { _isKidsMode = value; _saveBool('isKidsMode', value); notifyListeners(); }
+  void setKidsPin(String pin) { _kidsPin = pin; _saveString('kidsPin', pin); notifyListeners(); }
 
   void setDeveloperMode(bool value) { _isDeveloperModeEnabled = value; _saveBool('isDeveloperModeEnabled', value); notifyListeners(); }
   void setEnableDebugLogs(bool value) { _enableDebugLogs = value; _saveBool('enableDebugLogs', value); notifyListeners(); }

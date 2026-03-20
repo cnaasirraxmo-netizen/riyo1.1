@@ -100,6 +100,10 @@ func GetHome(c *gin.Context) {
 		proxiedSources := make([]models.StreamSource, len(sources))
 		baseURL := GetBaseURL(c.Request.Host)
 		for i, s := range sources {
+			if s.Type == "embed" {
+				proxiedSources[i] = s
+				continue
+			}
 			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
 			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 			proxiedSources[i] = s
@@ -333,6 +337,10 @@ func GetMovieSources(c *gin.Context) {
 		proxiedSources := make([]models.StreamSource, len(sources))
 		baseURL := GetBaseURL(c.Request.Host)
 		for i, s := range sources {
+			if s.Type == "embed" {
+				proxiedSources[i] = s
+				continue
+			}
 			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
 			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 			proxiedSources[i] = s
@@ -398,6 +406,10 @@ func GetTVSources(c *gin.Context) {
 		proxiedSources := make([]models.StreamSource, len(sources))
 		baseURL := GetBaseURL(c.Request.Host)
 		for i, s := range sources {
+			if s.Type == "embed" {
+				proxiedSources[i] = s
+				continue
+			}
 			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
 			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 			proxiedSources[i] = s

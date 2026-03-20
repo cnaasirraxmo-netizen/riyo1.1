@@ -15,6 +15,8 @@ type UserSettings struct {
 	FavoriteGenres           []string `bson:"favoriteGenres" json:"favoriteGenres"`
 	NotificationsEnabled     bool     `bson:"notificationsEnabled" json:"notificationsEnabled"`
 	AutoplayNextEpisode      bool     `bson:"autoplayNextEpisode" json:"autoplayNextEpisode"`
+	IsKidsMode               bool     `bson:"isKidsMode" json:"isKidsMode"`
+	KidsPin                  string   `bson:"kidsPin" json:"kidsPin"`
 }
 
 type User struct {

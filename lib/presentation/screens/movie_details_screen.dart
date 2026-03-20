@@ -79,8 +79,49 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     }
   }
 
+  void _verifyPin(BuildContext context, SettingsProvider settings, VoidCallback onMatched) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Parental Control'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter parental PIN to access this content'),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'PIN'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () {
+              if (controller.text == settings.kidsPin) {
+                Navigator.pop(context);
+                onMatched();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect PIN')));
+              }
+            },
+            child: const Text('VERIFY'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+
     return Scaffold(
       body: FutureBuilder<Movie>(
         future: _movieFuture,
@@ -175,7 +216,13 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
               child: FloatingActionButton.large(
                 onPressed: () {
                   final id = movie.backendId ?? movie.id.toString();
-                  context.push('/movie/$id/play');
+                  if (settings.isKidsMode && !movie.isKidsContent) {
+                    _verifyPin(context, settings, () {
+                      context.push('/movie/$id/play');
+                    });
+                  } else {
+                    context.push('/movie/$id/play');
+                  }
                 },
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
@@ -322,14 +369,24 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         ElevatedButton.icon(
           onPressed: () {
              final id = movie.backendId ?? movie.id.toString();
-             if (isComingSoon) {
-                if (movie.trailerUrl != null) {
-                  context.push('/movie/$id/play?url=${Uri.encodeComponent(movie.trailerUrl!)}');
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
-                }
+             final settings = Provider.of<SettingsProvider>(context, listen: false);
+
+             void navigate() {
+               if (isComingSoon) {
+                  if (movie.trailerUrl != null) {
+                    context.push('/movie/$id/play?url=${Uri.encodeComponent(movie.trailerUrl!)}');
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
+                  }
+               } else {
+                  context.push('/movie/$id/play');
+               }
+             }
+
+             if (settings.isKidsMode && !movie.isKidsContent) {
+               _verifyPin(context, settings, navigate);
              } else {
-                context.push('/movie/$id/play');
+               navigate();
              }
           },
           icon: Icon(isComingSoon ? Icons.play_circle_outline : Icons.play_arrow_rounded),

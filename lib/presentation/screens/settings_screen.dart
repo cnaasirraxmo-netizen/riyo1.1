@@ -68,6 +68,12 @@ class SettingsScreen extends StatelessWidget {
             subtitle: 'Watch history, 2FA, permissions',
             onTap: () => context.push('/settings/privacy'),
           ),
+          SettingsItem(
+            icon: Icons.child_care_outlined,
+            title: 'Parental Control',
+            subtitle: 'Kids mode, PIN, restrictions',
+            onTap: () => context.push('/settings/parental-control'),
+          ),
           const SettingsHeader(title: 'More'),
           SettingsItem(
             icon: Icons.tune_outlined,
