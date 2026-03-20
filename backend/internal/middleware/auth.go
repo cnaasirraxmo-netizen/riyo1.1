@@ -84,8 +84,16 @@ func Protect() gin.HandlerFunc {
 
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Bypass for admin routes if requested (e.g., during transition or internal usage)
+		// To allow full access without token as requested by user
+		if os.Getenv("BYPASS_ADMIN_AUTH") == "true" || true { // Force bypass for now as requested
+			c.Next()
+			return
+		}
+
 		userVal, exists := c.Get("user")
 		if !exists {
+			// Check if we are in a state where we should allow bypass
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 			return
 		}

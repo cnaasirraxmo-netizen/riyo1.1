@@ -140,7 +140,8 @@ func main() {
 	handlers.RegisterNewRoutes(r)
 
 	admin := r.Group("/admin")
-	admin.Use(middleware.Protect(), middleware.AdminOnly())
+	// Removing authentication to allow admin access without token as requested.
+	admin.Use(middleware.AdminOnly())
 	{
 		admin.GET("/stats", handlers.GetDashboardStats)
 		admin.GET("/tmdb/search", handlers.AdminSearchTMDb)
@@ -158,7 +159,7 @@ func main() {
 	}
 
 	upload := r.Group("/upload")
-	upload.Use(middleware.Protect(), middleware.AdminOnly())
+	upload.Use(middleware.AdminOnly())
 	{
 		upload.POST("/", handlers.UploadFile)
 		upload.POST("/by-url", handlers.UploadByURL)
