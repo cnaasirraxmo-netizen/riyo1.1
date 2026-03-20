@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-        body: const KidsHomeScreen(),
+        body: KidsHomeScreen(),
       );
     }
 

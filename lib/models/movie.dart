@@ -70,6 +70,7 @@ class Movie {
   final String accessType; // free, premium, subscription
   final int views;
   final bool isTvShow;
+  final bool isKidsContent;
   final int? seasonNumber;
   final List<Season>? seasons;
   final String? videoUrl;
@@ -114,6 +115,7 @@ class Movie {
     this.accessType = 'free',
     this.views = 0,
     this.isTvShow = false,
+    this.isKidsContent = false,
     this.seasonNumber,
     this.seasons,
     this.videoUrl,
@@ -155,6 +157,7 @@ class Movie {
       'status': status,
       'accessType': accessType,
       'isTvShow': isTvShow,
+      'isKidsContent': isKidsContent,
       'videoUrl': videoUrl,
       'trailerUrl': trailerUrl,
     };
@@ -225,6 +228,7 @@ class Movie {
       accessType: json['accessType'] ?? 'free',
       views: (json['views'] as num?)?.toInt() ?? 0,
       isTvShow: json['isTvShow'] ?? json['is_tv_show'] ?? false,
+      isKidsContent: json['isKidsContent'] ?? false,
       seasonNumber: json['season_number'],
       seasons: json['seasons'] != null ? (json['seasons'] as List).map((s) => Season.fromJson(s)).toList() : null,
       videoUrl: json['videoUrl'],
@@ -270,6 +274,7 @@ class Movie {
     String? trailerUrl,
     String? contentType,
     bool? isPublished,
+    bool? isKidsContent,
     String? fileSize,
     int? seasonNumber,
   }) {
@@ -299,6 +304,7 @@ class Movie {
       accessType: accessType,
       views: views,
       isTvShow: isTvShow,
+      isKidsContent: isKidsContent ?? this.isKidsContent,
       seasonNumber: seasonNumber ?? this.seasonNumber,
       seasons: seasons,
       videoUrl: videoUrl ?? this.videoUrl,
