@@ -22,7 +22,7 @@ import {
   Layers,
   Link as LinkIcon
 } from 'lucide-react';
-import { movieService } from '../services/api';
+import { movieService, api } from '../services/api';
 
 const Movies = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -34,7 +34,7 @@ const Movies = () => {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  const [newMovie, setNewMovie] = useState({
+  const initialMovieState = {
     title: '',
     shortDesc: '',
     description: '',
@@ -62,8 +62,12 @@ const Movies = () => {
     ],
     isTvShow: false,
     isTrending: false,
-    isFeatured: false
-  });
+    isFeatured: false,
+    isPublished: true,
+    isKidsContent: false
+  };
+
+  const [newMovie, setNewMovie] = useState(initialMovieState);
 
   useEffect(() => {
     fetchMovies();
@@ -91,12 +95,36 @@ const Movies = () => {
     try {
       await movieService.create(newMovie);
       setIsAddingNew(false);
+      setNewMovie(initialMovieState);
       fetchMovies();
-      // Reset form omitted for brevity in this tool call but would be here
     } catch (err) {
       console.error('Error creating movie:', err);
+      alert('Failed to create movie: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (e, field) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setNewMovie({ ...newMovie, [field]: response.data.url });
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Upload failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -121,6 +149,12 @@ const Movies = () => {
       ...newMovie,
       sources: [...newMovie.sources, { label: `Backup ${newMovie.sources.length}`, url: '', type: 'direct', provider: 'url' }]
     });
+  };
+
+  const removeSource = (index) => {
+    if (newMovie.sources.length <= 1) return;
+    const updatedSources = newMovie.sources.filter((_, i) => i !== index);
+    setNewMovie({ ...newMovie, sources: updatedSources });
   };
 
   return (
@@ -310,22 +344,25 @@ const Movies = () => {
                 {activeTab === 'media' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="admin-card border-dashed flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800/30">
+                      <div className="admin-card border-dashed flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800/30 relative">
                          <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600 mb-4"><Upload size={32} /></div>
                          <p className="text-sm font-bold">Main Poster</p>
                          <p className="text-[10px] text-gray-400 mt-1">Recommended: 1000x1500px</p>
+                         <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'posterUrl')} className="absolute inset-0 opacity-0 cursor-pointer" />
                          <input type="text" placeholder="Or paste URL here..." className="input-field w-full mt-4 text-xs" value={newMovie.posterUrl} onChange={e => setNewMovie({...newMovie, posterUrl: e.target.value})} />
                       </div>
-                      <div className="admin-card border-dashed flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800/30">
+                      <div className="admin-card border-dashed flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800/30 relative">
                          <div className="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full text-purple-600 mb-4"><ImageIcon size={32} /></div>
                          <p className="text-sm font-bold">Landscape Banner</p>
                          <p className="text-[10px] text-gray-400 mt-1">Recommended: 1920x1080px</p>
+                         <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'bannerUrl')} className="absolute inset-0 opacity-0 cursor-pointer" />
                          <input type="text" placeholder="Or paste URL here..." className="input-field w-full mt-4 text-xs" value={newMovie.bannerUrl} onChange={e => setNewMovie({...newMovie, bannerUrl: e.target.value})} />
                       </div>
-                      <div className="admin-card border-dashed flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800/30">
+                      <div className="admin-card border-dashed flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800/30 relative">
                          <div className="p-4 bg-orange-100 dark:bg-orange-900/30 rounded-full text-orange-600 mb-4"><Play size={32} /></div>
                          <p className="text-sm font-bold">Trailer Source</p>
                          <p className="text-[10px] text-gray-400 mt-1">YouTube or Direct Link</p>
+                         <input type="file" accept="video/*" onChange={(e) => handleFileUpload(e, 'trailerUrl')} className="absolute inset-0 opacity-0 cursor-pointer" />
                          <input type="text" placeholder="Link here..." className="input-field w-full mt-4 text-xs" value={newMovie.trailerUrl} onChange={e => setNewMovie({...newMovie, trailerUrl: e.target.value})} />
                       </div>
                     </div>
@@ -347,9 +384,29 @@ const Movies = () => {
                            </div>
                            <div className="md:col-span-2">
                              <label className="block text-[10px] font-bold mb-1 uppercase">Video URL / Provider Key</label>
-                             <div className="relative">
+                             <div className="relative group/upload">
                                <input type="text" className="input-field w-full pl-10" value={source.url} onChange={e => handleSourceChange(index, 'url', e.target.value)} />
                                <LinkIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                 <div className="relative">
+                                   <input type="file" accept="video/*" onChange={async (e) => {
+                                      const file = e.target.files[0];
+                                      if (!file) return;
+                                      setIsUploading(true);
+                                      const formData = new FormData();
+                                      formData.append('file', file);
+                                      try {
+                                        const response = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                                        handleSourceChange(index, 'url', response.data.url);
+                                      } catch (err) { alert('Upload failed'); }
+                                      finally { setIsUploading(false); }
+                                   }} className="absolute inset-0 opacity-0 cursor-pointer w-6 h-6" />
+                                   <Upload size={14} className="text-blue-600" />
+                                 </div>
+                             <button type="button" onClick={() => removeSource(index)} className="p-1 hover:bg-red-50 text-red-500 rounded">
+                               <X size={14} />
+                             </button>
+                               </div>
                              </div>
                            </div>
                            <div className="md:col-span-1">
@@ -357,6 +414,7 @@ const Movies = () => {
                              <select className="input-field w-full" value={source.type} onChange={e => handleSourceChange(index, 'type', e.target.value)}>
                                <option value="direct">Direct (.mp4)</option>
                                <option value="hls">HLS (.m3u8)</option>
+                               <option value="dash">DASH (.mpd)</option>
                                <option value="embed">Embed (Iframe)</option>
                              </select>
                            </div>

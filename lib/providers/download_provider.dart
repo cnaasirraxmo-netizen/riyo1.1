@@ -87,7 +87,14 @@ class DownloadProvider with ChangeNotifier {
 
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final extension = p.extension(videoUrl).split('?').first; // Handle URLs with query params
+      String extension = p.extension(videoUrl).split('?').first;
+      if (extension.isEmpty) {
+        // Try to detect extension from movie sources if available
+        if (movie.sources != null && movie.sources!.isNotEmpty) {
+          final sUrl = movie.sources!.first.url;
+          extension = p.extension(sUrl).split('?').first;
+        }
+      }
       final fileName = '${movie.id}${extension.isEmpty ? ".mp4" : extension}';
       final downloadDir = Directory(p.join(directory.path, 'downloads'));
       final filePath = p.join(downloadDir.path, fileName);

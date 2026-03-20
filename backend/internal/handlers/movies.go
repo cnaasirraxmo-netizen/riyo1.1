@@ -139,17 +139,21 @@ func GetMovieByID(c *gin.Context) {
 		err = collection.FindOne(context.TODO(), bson.M{"tmdbId": tmdbID}).Decode(&movie)
 	}
 
-	if movie.TMDbID == 0 {
+	if movie.ID.IsZero() {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Movie not found"})
 		return
 	}
 
-	// Now cache using deterministic key based on type and TMDb ID
+	// Now cache using deterministic key
 	prefix := "movie"
 	if movie.IsTvShow {
 		prefix = "tv"
 	}
-	cacheKey := fmt.Sprintf("%s_%d", prefix, movie.TMDbID)
+
+	cacheKey := fmt.Sprintf("%s_%s", prefix, movie.ID.Hex())
+	if movie.TMDbID != 0 {
+		cacheKey = fmt.Sprintf("%s_%d", prefix, movie.TMDbID)
+	}
 
 	cached, err := cache.GetOrSetCache(cacheKey, cache.MetadataTTL, func() (interface{}, error) {
 		return movie, nil

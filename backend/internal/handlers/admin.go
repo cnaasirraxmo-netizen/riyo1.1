@@ -37,6 +37,10 @@ func AdminCreateMovie(c *gin.Context) {
 		return
 	}
 
+	// Invalidate cache so it appears instantly
+	cache.InvalidateCache("home_data")
+	cache.InvalidateByPattern("movies_list_*")
+
 	c.JSON(http.StatusCreated, movie)
 }
 

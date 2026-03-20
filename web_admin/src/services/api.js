@@ -54,11 +54,11 @@ export const tvService = {
 
 export const systemService = {
   getConfig: async () => {
-    const response = await api.get('/admin/config');
+    const response = await api.get('/system-config');
     return response.data;
   },
   updateConfig: async (config) => {
-    const response = await api.post('/admin/config', config);
+    const response = await api.put('/admin/system-config', config);
     return response.data;
   },
   getStats: async () => {
@@ -67,4 +67,5 @@ export const systemService = {
   }
 };
 
+export { api };
 export default api;
