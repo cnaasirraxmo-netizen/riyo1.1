@@ -27,34 +27,46 @@ const PageLoader = () => (
 );
 
 const ProtectedRoute = ({ children }) => {
-  // Simple check for now, in real app check actual token
-  // const token = localStorage.getItem('token');
-  // if (!token) return <Navigate to="/login" />;
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+
+  if (!token || role !== 'admin') {
+    return <Navigate to="/login" replace />;
+  }
+
   return <AdminLayout>{children}</AdminLayout>;
 };
 
 function App() {
+  const [authTick, setAuthTick] = React.useState(0);
+
+  const handleLogin = (token, role) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('role', role);
+    setAuthTick(prev => prev + 1);
+  };
+
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
 
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/movies" element={<ProtectedRoute><Movies /></ProtectedRoute>} />
-          <Route path="/tv-shows" element={<ProtectedRoute><TVShows /></ProtectedRoute>} />
-          <Route path="/trailers" element={<ProtectedRoute><Trailers /></ProtectedRoute>} />
-          <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
-          <Route path="/featured" element={<ProtectedRoute><FeaturedContent /></ProtectedRoute>} />
-          <Route path="/sports" element={<ProtectedRoute><Sports /></ProtectedRoute>} />
-          <Route path="/kids" element={<ProtectedRoute><KidsContent /></ProtectedRoute>} />
-          <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
-          <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="/downloads" element={<ProtectedRoute><Downloads /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/system" element={<ProtectedRoute><SystemTools /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute key={`dash-${authTick}`}><Dashboard /></ProtectedRoute>} />
+          <Route path="/movies" element={<ProtectedRoute key={`mov-${authTick}`}><Movies /></ProtectedRoute>} />
+          <Route path="/tv-shows" element={<ProtectedRoute key={`tv-${authTick}`}><TVShows /></ProtectedRoute>} />
+          <Route path="/trailers" element={<ProtectedRoute key={`trail-${authTick}`}><Trailers /></ProtectedRoute>} />
+          <Route path="/categories" element={<ProtectedRoute key={`cat-${authTick}`}><Categories /></ProtectedRoute>} />
+          <Route path="/featured" element={<ProtectedRoute key={`feat-${authTick}`}><FeaturedContent /></ProtectedRoute>} />
+          <Route path="/sports" element={<ProtectedRoute key={`sport-${authTick}`}><Sports /></ProtectedRoute>} />
+          <Route path="/kids" element={<ProtectedRoute key={`kids-${authTick}`}><KidsContent /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute key={`users-${authTick}`}><Users /></ProtectedRoute>} />
+          <Route path="/subscriptions" element={<ProtectedRoute key={`subs-${authTick}`}><Subscriptions /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute key={`notif-${authTick}`}><Notifications /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute key={`anal-${authTick}`}><Analytics /></ProtectedRoute>} />
+          <Route path="/downloads" element={<ProtectedRoute key={`down-${authTick}`}><Downloads /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute key={`sett-${authTick}`}><Settings /></ProtectedRoute>} />
+          <Route path="/system" element={<ProtectedRoute key={`sys-${authTick}`}><SystemTools /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
