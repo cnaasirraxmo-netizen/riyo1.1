@@ -14,6 +14,7 @@ import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/presentation/screens/kids/kids_home_screen.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 import 'package:riyo/services/analytics_service.dart';
@@ -162,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-        body: KidsHomeScreen(),
+        body: const KidsHomeScreen(),
       );
     }
 

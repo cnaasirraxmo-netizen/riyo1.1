@@ -479,7 +479,7 @@ class _MyAppState extends State<MyApp> {
                 routerConfig: _router!,
                 title: 'RIYO',
                 themeMode: settings.themeMode,
-                localizationsDelegates: const [
+                localizationsDelegates: [
                   GlobalMaterialLocalizations.delegate,
                   GlobalWidgetsLocalizations.delegate,
                   GlobalCupertinoLocalizations.delegate,

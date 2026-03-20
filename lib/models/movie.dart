@@ -188,6 +188,7 @@ class Movie {
       'status': status,
       'accessType': accessType,
       'isTvShow': isTvShow,
+      'isKidsContent': isKidsContent,
       'videoUrl': videoUrl,
       'trailerUrl': trailerUrl,
       'trailerType': trailerType,

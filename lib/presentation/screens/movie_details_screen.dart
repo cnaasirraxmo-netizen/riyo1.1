@@ -122,6 +122,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
 
     return Scaffold(
       body: FutureBuilder<Movie>(
@@ -141,7 +142,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
 
           return CustomScrollView(
             slivers: [
-              _buildHeroSection(movie),
+              _buildHeroSection(context, movie),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
@@ -174,7 +175,8 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     );
   }
 
-  Widget _buildHeroSection(Movie movie) {
+  Widget _buildHeroSection(BuildContext context, Movie movie) {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
