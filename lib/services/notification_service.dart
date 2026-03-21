@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -20,7 +21,16 @@ class NotificationService {
   );
 
   static Future<void> initialize() async {
-    // Android initialization
+    // 1. Request permissions immediately
+    NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    debugPrint('User granted permission: ${settings.authorizationStatus}');
+
+    // 2. Android local notifications initialization
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('ic_notification');
 
@@ -40,14 +50,7 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(_channel);
 
-    // Request permissions for iOS/Android 13+
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    // Foreground listener
+    // 3. Foreground listener
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       _showNotification(message);
     });
@@ -55,9 +58,24 @@ class NotificationService {
     // Background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // Subscribe to all_users topic for broadcast notifications
+    // 5. Subscribe to all_users topic for broadcast notifications
     await FirebaseMessaging.instance.subscribeToTopic('all_users');
     debugPrint("Subscribed to all_users topic");
+
+    // 6. Instant Welcome Notification on first run
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      _checkAndShowInstantWelcome();
+    }
+  }
+
+  static Future<void> _checkAndShowInstantWelcome() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasShown = prefs.getBool('has_shown_welcome_notification') ?? false;
+
+    if (!hasShown) {
+      await showWelcomeNotification();
+      await prefs.setBool('has_shown_welcome_notification', true);
+    }
   }
 
   static Future<void> showWelcomeNotification() async {
@@ -80,6 +98,7 @@ class NotificationService {
 
   static void _showNotification(RemoteMessage message) async {
     RemoteNotification? notification = message.notification;
+    AndroidNotification? android = message.notification?.android;
 
     if (notification != null) {
       await _localNotificationsPlugin.show(
@@ -94,6 +113,7 @@ class NotificationService {
             icon: 'ic_notification',
             importance: Importance.max,
             priority: Priority.high,
+            ticker: 'ticker',
           ),
         ),
       );

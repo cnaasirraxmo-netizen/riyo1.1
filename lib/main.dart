@@ -566,19 +566,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _checkAndShowWelcomeNotification();
-    }
-  }
-
-  Future<void> _checkAndShowWelcomeNotification() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool hasShownWelcome = prefs.getBool('has_shown_welcome_notification') ?? false;
-
-    if (!hasShownWelcome) {
-      await NotificationService.showWelcomeNotification();
-      await prefs.setBool('has_shown_welcome_notification', true);
-    }
+    // Removed redundant welcome notification check as it's now handled instantly in NotificationService
   }
 
   @override
