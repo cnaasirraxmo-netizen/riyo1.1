@@ -18,7 +18,8 @@ import {
   Calendar,
   Filter,
   ArrowUpDown,
-  ChevronDown
+  ChevronDown,
+  Star
 } from 'lucide-react';
 import { movieService, api } from '../services/api';
 

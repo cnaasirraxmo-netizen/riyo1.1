@@ -163,7 +163,7 @@ func main() {
 	upload := r.Group("/upload")
 	upload.Use(middleware.Protect(), middleware.AdminOnly())
 	{
-		upload.POST("/", handlers.UploadFile)
+		upload.POST("", handlers.UploadFile)
 		upload.POST("/by-url", handlers.UploadByURL)
 		upload.GET("/", handlers.ListFiles)
 		upload.DELETE("/:key", handlers.DeleteFile)
