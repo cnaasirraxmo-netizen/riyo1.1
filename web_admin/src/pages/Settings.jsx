@@ -1,130 +1,140 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2 } from 'lucide-react';
-import { systemService } from '../services/api';
+import api from '../utils/api';
 
 const Settings = () => {
-  const [config, setConfig] = useState({
-    downloadsEnabled: true,
-    castingEnabled: true,
-    sportsEnabled: true,
-    kidsEnabled: true,
-    notificationsOn: true,
-    trailerAutoplay: true,
-    commentsEnabled: true
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchConfig();
+    fetchProfile();
   }, []);
 
-  const fetchConfig = async () => {
+  const fetchProfile = async () => {
     try {
-      const data = await systemService.getConfig();
-      setConfig(data);
+      const response = await api.get('/admin/profile');
+      setFormData(prev => ({
+        ...prev,
+        username: response.data.username,
+        email: response.data.email
+      }));
     } catch (err) {
-      console.error('Error fetching config:', err);
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to fetch profile', err);
     }
   };
 
-  const handleToggle = (key) => {
-    setConfig(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
+      setMessage({ type: 'error', text: 'Passwords do not match' });
+      return;
+    }
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setMessage(null);
+    setLoading(true);
+    setMessage({ type: '', text: '' });
     try {
-      await systemService.updateConfig(config);
-      setMessage({ type: 'success', text: 'Settings saved successfully!' });
+      await api.put('/admin/profile', {
+        username: formData.username,
+        email: formData.email,
+        oldPassword: formData.oldPassword,
+        newPassword: formData.newPassword || undefined
+      });
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setFormData(prev => ({ ...prev, oldPassword: '', newPassword: '', confirmPassword: '' }));
     } catch (err) {
-      console.error('Error saving config:', err);
-      setMessage({ type: 'error', text: 'Failed to save settings.' });
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Update failed' });
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-[#2271b1]" />
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-[#1d2327]">General Settings</h1>
+    <div className="p-8 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">Admin Settings</h1>
 
-      {message && (
-        <div className={`p-4 rounded-md ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'} border`}>
+      {message.text && (
+        <div className={`p-4 rounded-lg mb-6 ${message.type === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
           {message.text}
         </div>
       )}
 
-      <div className="admin-card max-w-4xl">
-        <div className="space-y-8">
-          <section>
-            <h2 className="text-md font-bold mb-4 border-b pb-2">App Visibility Control</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { label: 'Enable Downloads', key: 'downloadsEnabled' },
-                { label: 'Enable TV Casting', key: 'castingEnabled' },
-                { label: 'Enable Sports Section', key: 'sportsEnabled' },
-                { label: 'Enable Kids Mode', key: 'kidsEnabled' },
-                { label: 'Push Notifications', key: 'notificationsOn' },
-                { label: 'Trailer Autoplay', key: 'trailerAutoplay' },
-                { label: 'Comments & Reviews', key: 'commentsEnabled' }
-              ].map(item => (
-                <div key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
-                  <div>
-                    <p className="font-bold text-sm text-[#1d2327]">{item.label}</p>
-                    <p className="text-xs text-gray-500">Toggle {item.label.toLowerCase()} in the app</p>
-                  </div>
-                  <button
-                    onClick={() => handleToggle(item.key)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${config[item.key] ? 'bg-[#2271b1]' : 'bg-gray-200'}`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config[item.key] ? 'translate-x-6' : 'translate-x-1'}`}
-                    />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-md font-bold mb-4 border-b pb-2">Global Metadata</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold mb-1 uppercase text-gray-500">Site Title</label>
-                <input type="text" defaultValue="RIYO Platform" className="input-field w-full text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold mb-1 uppercase text-gray-500">Tagline</label>
-                <input type="text" defaultValue="Your ultimate streaming experience" className="input-field w-full text-sm" />
-              </div>
-            </div>
-          </section>
-
-          <div className="pt-4">
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="btn-primary"
-            >
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={18} />}
-              {isSaving ? 'Saving...' : 'Save All Changes'}
-            </button>
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Username</label>
+            <input
+              type="text"
+              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              value={formData.username}
+              onChange={e => setFormData({ ...formData, username: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Email Address</label>
+            <input
+              type="email"
+              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              value={formData.email}
+              onChange={e => setFormData({ ...formData, email: e.target.value })}
+            />
           </div>
         </div>
-      </div>
+
+        <hr className="border-gray-100" />
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-gray-700">Change Password</h2>
+          <p className="text-xs text-gray-500 uppercase font-medium tracking-wider">Leave new password blank to keep current</p>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Current Password (Required for any changes)</label>
+            <input
+              type="password"
+              required
+              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              value={formData.oldPassword}
+              onChange={e => setFormData({ ...formData, oldPassword: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-600 mb-2">New Password</label>
+              <input
+                type="password"
+                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                value={formData.newPassword}
+                onChange={e => setFormData({ ...formData, newPassword: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-600 mb-2">Confirm New Password</label>
+              <input
+                type="password"
+                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                value={formData.confirmPassword}
+                onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition-all disabled:opacity-50 shadow-lg shadow-indigo-200"
+          >
+            {loading ? 'SAVING CHANGES...' : 'SAVE ALL SETTINGS'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
