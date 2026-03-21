@@ -21,9 +21,15 @@ void VideoEngine::load(const std::string& url) {
     std::lock_guard<std::mutex> lock(m_stateMutex);
     m_url = url;
     m_position = 0.0;
-    m_duration = 300.0; // Mock 5 minutes for demonstration
+
+    // Improved detection for external links
+    bool isM3U8 = url.find(".m3u8") != std::string::npos;
+    bool isMP4 = url.find(".mp4") != std::string::npos;
+
+    LOGI("Loading URL: %s (Format: %s)", url.c_str(), isM3U8 ? "HLS" : (isMP4 ? "MP4" : "Unknown"));
+
+    m_duration = 0.0; // Reset duration until metadata is parsed
     updateState(PlayerState::LOADING);
-    LOGI("Loading URL: %s", url.c_str());
 
     if (m_isRunning) {
         m_isRunning = false;

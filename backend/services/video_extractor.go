@@ -93,6 +93,7 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 			// Use Universal Finder to discover direct links from embed
 			discovered := e.finder.FindSources(url)
 			for _, link := range discovered {
+			if e.finder.IsValidVideo(link) {
 				if isValid, ct := e.ValidateLink(link); isValid {
 					mu.Lock()
 					allSources = append(allSources, models.StreamSource{
@@ -103,6 +104,7 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 						Quality:  e.finder.DetectQuality(link),
 					})
 					mu.Unlock()
+				}
 				}
 			}
 		}(p)

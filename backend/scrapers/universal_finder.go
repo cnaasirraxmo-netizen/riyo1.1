@@ -12,13 +12,14 @@ func NewUniversalFinder() *UniversalFinder {
 }
 
 func (f *UniversalFinder) FindSources(url string) []string {
-	return f.recursiveFind(url, 0)
+	return f.recursiveFind(url, 0, make(map[string]bool))
 }
 
-func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
-	if depth > 4 {
+func (f *UniversalFinder) recursiveFind(url string, depth int, visited map[string]bool) []string {
+	if depth > 4 || visited[url] {
 		return nil
 	}
+	visited[url] = true
 
 	var allSources []string
 	var mu sync.Mutex
@@ -43,7 +44,7 @@ func (f *UniversalFinder) recursiveFind(url string, depth int) []string {
 		wg.Add(1)
 		go func(iframeURL string) {
 			defer wg.Done()
-			discovered := f.recursiveFind(iframeURL, depth+1)
+			discovered := f.recursiveFind(iframeURL, depth+1, visited)
 			mu.Lock()
 			allSources = append(allSources, discovered...)
 			mu.Unlock()
@@ -111,6 +112,18 @@ func (f *UniversalFinder) uniqueSources(sources []string) []string {
 		}
 	}
 	return list
+}
+
+func (f *UniversalFinder) IsValidVideo(url string) bool {
+	// Simple pre-filter check
+	lower := strings.ToLower(url)
+	validExts := []string{".m3u8", ".mp4", ".mpd", ".webm", ".mkv", ".f4v", ".flv", "/manifest/", "/playlist/"}
+	for _, ext := range validExts {
+		if strings.Contains(lower, ext) {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *UniversalFinder) DetectQuality(url string) string {

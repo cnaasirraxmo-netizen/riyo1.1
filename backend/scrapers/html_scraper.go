@@ -30,7 +30,8 @@ var (
 		regexp.MustCompile(`source\s+(?:src|data-src|data-video|data-main)=["'](https?://.*?)["']`),
 		regexp.MustCompile(`video_url\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`data-video-url=["'](https?://.*?)["']`),
-		regexp.MustCompile(`["'](https?://[^\s"']+\.(?:m3u8|mp4|mpd|webm|mkv))["']`),
+		regexp.MustCompile(`["'](https?://[^\s"']+\.(?:m3u8|mp4|mpd|webm|mkv|avi|mov|flv|f4v))["']`),
+		regexp.MustCompile(`(?:url|file|src)\s*[:=]\s*["'](https?://.*?)["']`),
 	}
 	jsVariableRes = []*regexp.Regexp{
 		regexp.MustCompile(`["']?file["']?\s*:\s*["'](https?://.*?)["']`),
@@ -183,8 +184,9 @@ func findURLsInJSON(data interface{}) []string {
 
 func FollowRedirects(url string) (string, error) {
 	// METHOD 6 – REDIRECT EXTRACTION
-	req, _ := http.NewRequest("HEAD", url, nil)
+	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("Range", "bytes=0-0")
 
 	resp, err := client.Do(req)
 	if err != nil {

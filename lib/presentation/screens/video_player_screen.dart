@@ -268,6 +268,13 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       return;
     }
 
+    // Front-end link validation (MX Player style link detection)
+    if (!_isValidLink(url)) {
+      debugPrint('Invalid or unreachable link detected on frontend: $url');
+      _handleSourceError();
+      return;
+    }
+
     _engine?.dispose();
     _engine = RiyoVideoEngine();
     _textureId = await TextureRegistryBridge.createTexture();
@@ -719,6 +726,17 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   void _showSettingsMenu() {
     _showBottomDialog('PLAYER SETTINGS', ['AUTO-PLAY NEXT', 'SKIP INTRO', 'SKIP CREDITS'], (val) {});
+  }
+
+  bool _isValidLink(String url) {
+    // Simple check: must be http/https and have a video extension
+    final lower = url.toLowerCase();
+    return lower.startsWith('http') &&
+           (lower.contains('.m3u8') ||
+            lower.contains('.mp4') ||
+            lower.contains('.mpd') ||
+            lower.contains('.webm') ||
+            lower.contains('.mkv'));
   }
 
   void _showBottomDialog(String title, List<String> options, Function(String) onSelect) {

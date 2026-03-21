@@ -103,13 +103,18 @@ func (p *BaseProvider) searchInternal(query string, isTvShow bool, season, episo
 
 		for _, link := range discovered {
 			isEmbed := strings.Contains(link, "embed") || strings.Contains(link, "player")
-			allSources = append(allSources, models.StreamSource{
-				Label:    p.Name,
-				URL:      link,
-				Type:     p.detectType(link, isEmbed),
-				Provider: strings.ToLower(p.Name),
-				Quality:  finder.DetectQuality(link),
-			})
+
+			// Validate that the link is actually a working video or embed
+			// We use a simple check here, full validation happens in VideoExtractor
+			if finder.IsValidVideo(link) || isEmbed {
+				allSources = append(allSources, models.StreamSource{
+					Label:    p.Name,
+					URL:      link,
+					Type:     p.detectType(link, isEmbed),
+					Provider: strings.ToLower(p.Name),
+					Quality:  finder.DetectQuality(link),
+				})
+			}
 		}
 
 		if len(allSources) > 0 {
