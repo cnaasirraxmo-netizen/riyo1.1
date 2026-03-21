@@ -16,6 +16,7 @@ import 'package:riyo/models/movie.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
 import 'package:riyo/core/casting/presentation/providers/casting_provider.dart';
 import 'package:riyo/core/casting/domain/entities/cast_media.dart';
+import 'package:riyo/services/analytics_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
 class VideoPlayerScreen extends rp.ConsumerStatefulWidget {
@@ -60,6 +61,11 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   Timer? _playbackTimer;
   StreamSubscription? _eventSubscription;
 
+  // Stale playback detection
+  double _lastPosition = -1;
+  int _stallCounter = 0;
+  bool _isStalled = false;
+
   @override
   void initState() {
     super.initState();
@@ -76,20 +82,36 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   }
 
   void _startPlaybackTimer() {
-    _playbackTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (_engine != null && _engine!.getState() == 2) {
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
+      if (_engine != null) {
+        final state = _engine!.getState();
         final pos = _engine!.getPosition();
         final dur = _engine!.getDuration();
-        setState(() {
-          _position = pos;
-          _duration = dur <= 0 ? 1 : dur;
-        });
-        _updateSubtitles(pos);
 
-        // Save progress to provider (and Hive) every 5 seconds
-        if (timer.tick % 10 == 0 && widget.movieId != null) {
-          Provider.of<PlaybackProvider>(context, listen: false)
-              .updateProgress(widget.movieId!, Duration(seconds: pos.toInt()));
+        if (state == 2) { // Playing
+           // Stall detection
+           if (pos == _lastPosition && pos > 0 && pos < dur - 1) {
+             _stallCounter++;
+             if (_stallCounter > 5) { // 5 seconds without position change while "playing"
+               setState(() => _isStalled = true);
+             }
+           } else {
+             _stallCounter = 0;
+             if (_isStalled) setState(() => _isStalled = false);
+           }
+           _lastPosition = pos;
+
+           setState(() {
+             _position = pos;
+             _duration = dur <= 0 ? 1 : dur;
+           });
+           _updateSubtitles(pos);
+
+           // Save progress every 5 seconds
+           if (timer.tick % 5 == 0 && widget.movieId != null) {
+             Provider.of<PlaybackProvider>(context, listen: false)
+                 .updateProgress(widget.movieId!, Duration(seconds: pos.toInt()));
+           }
         }
       }
     });
@@ -270,6 +292,9 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
     _engine!.play();
 
+    // Log video start event
+    AnalyticsService.logVideoStart(_movie?.title ?? "Unknown", widget.movieId);
+
     // 4. RESUME PLAYBACK - Seek to saved position
     if (widget.movieId != null) {
       final savedPos = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId!);
@@ -446,7 +471,37 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
                   ),
                 ),
               ),
+            if (_isStalled) _buildStallOverlay(),
             if (_isControlsVisible) _buildControls(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStallOverlay() {
+    return Container(
+      color: Colors.black54,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
+            const SizedBox(height: 16),
+            const Text('Playback issue detected', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isStalled = false;
+                  _stallCounter = 0;
+                });
+                _initPlayer(); // Restart player
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tap to retry'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
+            ),
           ],
         ),
       ),

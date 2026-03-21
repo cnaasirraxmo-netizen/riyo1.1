@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/presentation/screens/settings/settings_widgets.dart';
+import 'package:http/http.dart' as http;
+import 'package:riyo/core/constants.dart';
 
 class AccountSettingsScreen extends StatelessWidget {
   const AccountSettingsScreen({super.key});
@@ -44,18 +47,18 @@ class AccountSettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 30),
           const SettingsHeader(title: 'Account Settings'),
-          SettingsItem(icon: Icons.edit_outlined, title: 'Edit Profile', onTap: () {}),
-          SettingsItem(icon: Icons.lock_outline, title: 'Change Password', onTap: () {}),
+          SettingsItem(icon: Icons.edit_outlined, title: 'Edit Profile', onTap: () => context.push('/settings/account/edit-profile')),
+          SettingsItem(icon: Icons.lock_outline, title: 'Change Password', onTap: () => context.push('/settings/account/change-password')),
           SettingsItem(icon: Icons.email_outlined, title: 'Change Email', onTap: () {}),
           SettingsItem(icon: Icons.card_membership, title: 'Manage Subscription', onTap: () {}),
 
           const SettingsHeader(title: 'History & Lists'),
-          SettingsItem(icon: Icons.history, title: 'Watch History', onTap: () {}),
-          SettingsItem(icon: Icons.playlist_play, title: 'Watchlist', onTap: () {}),
+          SettingsItem(icon: Icons.history, title: 'Watch History', onTap: () => context.push('/my-riyo')),
+          SettingsItem(icon: Icons.playlist_play, title: 'Watchlist', onTap: () => context.push('/category')),
 
           const SettingsHeader(title: 'Devices'),
           SettingsItem(icon: Icons.devices, title: 'Connected Devices', onTap: () {}),
-          SettingsItem(icon: Icons.logout_outlined, title: 'Logout from all devices', onTap: () {}),
+          SettingsItem(icon: Icons.logout_outlined, title: 'Logout from all devices', onTap: () => _showLogoutAllDialog(context, auth)),
 
           const SettingsHeader(title: 'Danger Zone'),
           SettingsItem(
@@ -66,8 +69,61 @@ class AccountSettingsScreen extends StatelessWidget {
           SettingsItem(
             icon: Icons.delete_forever,
             title: 'Delete Account',
-            onTap: () {},
+            onTap: () => _showDeleteAccountDialog(context, auth),
             trailing: const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutAllDialog(BuildContext context, AuthProvider auth) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout from all devices?'),
+        content: const Text('You will remain logged in on this device, but all other active sessions will be terminated.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () async {
+              try {
+                await http.post(
+                  Uri.parse('${Constants.apiBaseUrl}/users/logout-all'),
+                  headers: {'Authorization': 'Bearer ${auth.token}'},
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged out from all other devices')));
+                }
+              } catch (e) {}
+            },
+            child: const Text('LOGOUT ALL'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, AuthProvider auth) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account?'),
+        content: const Text('This action is permanent and will delete all your profile data, history, and watchlist.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () async {
+              try {
+                await auth.deleteAccount();
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  context.go('/login');
+                }
+              } catch (e) {}
+            },
+            child: const Text('DELETE PERMANENTLY', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

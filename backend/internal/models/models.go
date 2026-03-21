@@ -15,19 +15,57 @@ type UserSettings struct {
 	FavoriteGenres           []string `bson:"favoriteGenres" json:"favoriteGenres"`
 	NotificationsEnabled     bool     `bson:"notificationsEnabled" json:"notificationsEnabled"`
 	AutoplayNextEpisode      bool     `bson:"autoplayNextEpisode" json:"autoplayNextEpisode"`
+	IsKidsMode               bool     `bson:"isKidsMode" json:"isKidsMode"`
+	KidsPin                  string   `bson:"kidsPin" json:"kidsPin"`
 }
 
 type User struct {
-	ID        bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
-	Name      string          `bson:"name" json:"name"`
-	Email     string          `bson:"email" json:"email"`
-	Password  string          `bson:"password" json:"-"`
-	Role      string          `bson:"role" json:"role"`
-	Watchlist []bson.ObjectID `bson:"watchlist" json:"watchlist"`
-	FCMTokens []string        `bson:"fcmTokens" json:"fcmTokens"`
-	Settings  UserSettings    `bson:"settings" json:"settings"`
-	CreatedAt time.Time       `bson:"createdAt" json:"createdAt"`
-	UpdatedAt time.Time       `bson:"updatedAt" json:"updatedAt"`
+	ID          bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
+	Name        string          `bson:"name" json:"name"`
+	Email       string          `bson:"email" json:"email"`
+	PhoneNumber string          `bson:"phoneNumber" json:"phoneNumber"`
+	Password    string          `bson:"password" json:"-"`
+	Role        string          `bson:"role" json:"role"`
+	Watchlist   []bson.ObjectID `bson:"watchlist" json:"watchlist"`
+	FCMTokens   []string        `bson:"fcmTokens" json:"fcmTokens"`
+	Settings    UserSettings    `bson:"settings" json:"settings"`
+	DeviceInfo  DeviceInfo      `bson:"deviceInfo" json:"deviceInfo"`
+	Location    LocationData    `bson:"location" json:"location"`
+	CreatedAt   time.Time       `bson:"createdAt" json:"createdAt"`
+	UpdatedAt   time.Time       `bson:"updatedAt" json:"updatedAt"`
+}
+
+type DeviceInfo struct {
+	Model     string `bson:"model" json:"model"`
+	OS        string `bson:"os" json:"os"`
+	IP        string `bson:"ip" json:"ip"`
+	DeviceID  string `bson:"deviceId" json:"deviceId"`
+	UserAgent string `bson:"userAgent" json:"userAgent"`
+}
+
+type LocationData struct {
+	Country string `bson:"country" json:"country"`
+	City    string `bson:"city" json:"city"`
+	Lat     string `bson:"lat" json:"lat"`
+	Lon     string `bson:"lon" json:"lon"`
+}
+
+type UsageLog struct {
+	ID        bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	UserID    bson.ObjectID `bson:"userId" json:"userId"`
+	Screen    string        `bson:"screen" json:"screen"`
+	Feature   string        `bson:"feature" json:"feature"`
+	Duration  int           `bson:"duration" json:"duration"` // in seconds
+	Timestamp time.Time     `bson:"timestamp" json:"timestamp"`
+}
+
+type Review struct {
+	ID        bson.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	UserID    bson.ObjectID `bson:"userId" json:"userId"`
+	MovieID   bson.ObjectID `bson:"movieId" json:"movieId"`
+	Rating    float64       `bson:"rating" json:"rating"`
+	Comment   string        `bson:"comment" json:"comment"`
+	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
 }
 
 type SystemConfig struct {
@@ -115,6 +153,7 @@ type Movie struct {
 	IsTrending    bool             `bson:"isTrending" json:"isTrending"`
 	IsFeatured    bool             `bson:"isFeatured" json:"isFeatured"`
 	IsTvShow      bool             `bson:"isTvShow" json:"isTvShow"`
+	IsKidsContent bool             `bson:"isKidsContent" json:"isKidsContent"`
 	IsPublished   bool             `bson:"isPublished" json:"isPublished"`
 	Seasons       []Season         `bson:"seasons" json:"seasons"`
 	NotifyUsers   []bson.ObjectID  `bson:"notifyUsers" json:"notifyUsers"`

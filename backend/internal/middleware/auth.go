@@ -26,6 +26,7 @@ func Protect() gin.HandlerFunc {
 		jwtSecret := os.Getenv("JWT_SECRET")
 
 		if tokenStr == "" {
+			fmt.Printf("[Protect] Missing Authorization header for %s %s\n", c.Request.Method, c.Request.URL.Path)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "No authorization token provided"})
 			return
 		}
@@ -61,7 +62,8 @@ func Protect() gin.HandlerFunc {
 
 		userID, err := bson.ObjectIDFromHex(userIDStr)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid user ID"})
+			fmt.Printf("[Protect] Malformed user ID in token: %s\n", userIDStr)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid user identity format"})
 			return
 		}
 
@@ -81,7 +83,7 @@ func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userVal, exists := c.Get("user")
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized. Token validation failed."})
 			return
 		}
 

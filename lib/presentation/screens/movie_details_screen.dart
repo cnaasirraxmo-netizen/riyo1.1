@@ -12,6 +12,8 @@ import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/providers/settings_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
 class MovieDetailsScreen extends rp.ConsumerStatefulWidget {
@@ -78,6 +80,45 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     }
   }
 
+  void _verifyPin(BuildContext context, SettingsProvider settings, VoidCallback onMatched) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Parental Control'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter parental PIN to access this content'),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'PIN'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () {
+              if (controller.text == settings.kidsPin) {
+                Navigator.pop(context);
+                onMatched();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect PIN')));
+              }
+            },
+            child: const Text('VERIFY'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,7 +139,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
 
           return CustomScrollView(
             slivers: [
-              _buildHeroSection(movie),
+              _buildHeroSection(context, movie),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
@@ -110,8 +151,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                       _buildActionsBar(context, movie),
                       const SizedBox(height: 32),
                       _buildSynopsis(movie),
-                      const SizedBox(height: 32),
-                      _buildCastSection(movie),
                       const SizedBox(height: 32),
                       if (movie.isTvShow) _buildSeasonSelector(movie),
                       if (movie.isTvShow) _buildEpisodeList(),
@@ -133,7 +172,8 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     );
   }
 
-  Widget _buildHeroSection(Movie movie) {
+  Widget _buildHeroSection(BuildContext context, Movie movie) {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
@@ -176,7 +216,13 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
               child: FloatingActionButton.large(
                 onPressed: () {
                   final id = movie.backendId ?? movie.id.toString();
-                  context.push('/movie/$id/play');
+                  if (settings.isKidsMode && !movie.isKidsContent) {
+                    _verifyPin(context, settings, () {
+                      context.push('/movie/$id/play');
+                    });
+                  } else {
+                    context.push('/movie/$id/play');
+                  }
                 },
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
@@ -273,7 +319,15 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   void _toggleWatchlist(String? token, String movieId) async {
-    if (token == null) return;
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please sign in to add movies to your list'),
+          action: SnackBarAction(label: 'SIGN IN', onPressed: () => context.push('/login')),
+        ),
+      );
+      return;
+    }
     final res = await _apiService.toggleWatchlist(movieId, token);
     setState(() {
       _isInWatchlist = res;
@@ -298,8 +352,13 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                'My List',
                onTap: () => _toggleWatchlist(auth.token, movie.backendId ?? movie.id.toString())
              ),
-             _buildActionIconButton(Icons.thumb_up_outlined, 'Rate'),
-             _buildActionIconButton(Icons.share_rounded, 'Share'),
+             _buildActionIconButton(Icons.thumb_up_outlined, 'Rate', onTap: () {
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thank you for rating!')));
+             }),
+             _buildActionIconButton(Icons.share_rounded, 'Share', onTap: () {
+               final id = movie.backendId ?? movie.id.toString();
+               Share.share('Check out ${movie.title} on RIYO: https://riyoapp.com/movie/$id');
+             }),
              if (ref.watch(castingProvider).connectedDevice != null && !isComingSoon)
                _buildActionIconButton(
                  Icons.cast_connected,
@@ -318,14 +377,24 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         ElevatedButton.icon(
           onPressed: () {
              final id = movie.backendId ?? movie.id.toString();
-             if (isComingSoon) {
-                if (movie.trailerUrl != null) {
-                  context.push('/movie/$id/play?url=${Uri.encodeComponent(movie.trailerUrl!)}');
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
-                }
+             final settings = Provider.of<SettingsProvider>(context, listen: false);
+
+             void navigate() {
+               if (isComingSoon) {
+                  if (movie.trailerUrl != null) {
+                    context.push('/movie/$id/play?url=${Uri.encodeComponent(movie.trailerUrl!)}');
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
+                  }
+               } else {
+                  context.push('/movie/$id/play');
+               }
+             }
+
+             if (settings.isKidsMode && !movie.isKidsContent) {
+               _verifyPin(context, settings, navigate);
              } else {
-                context.push('/movie/$id/play');
+               navigate();
              }
           },
           icon: Icon(isComingSoon ? Icons.play_circle_outline : Icons.play_arrow_rounded),
@@ -416,39 +485,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCastSection(Movie movie) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Cast', style: AppTypography.titleLarge),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 110,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: movie.cast?.length ?? 0,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 20),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(20),
-                      child: Icon(Icons.person_rounded, color: Theme.of(context).colorScheme.primary),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(movie.cast![index], style: AppTypography.labelSmall),
-                  ],
-                ),
-              );
-            },
           ),
         ),
       ],

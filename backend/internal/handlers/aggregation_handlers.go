@@ -100,6 +100,17 @@ func GetHome(c *gin.Context) {
 		proxiedSources := make([]models.StreamSource, len(sources))
 		baseURL := GetBaseURL(c.Request.Host)
 		for i, s := range sources {
+			if s.Type == "embed" {
+				proxiedSources[i] = s
+				continue
+			}
+
+			// Detect if it's already proxied to avoid double proxying
+			if strings.Contains(s.URL, "/api/v1/stream/") {
+				proxiedSources[i] = s
+				continue
+			}
+
 			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
 			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 			proxiedSources[i] = s
@@ -152,11 +163,15 @@ func ProxyStream(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	// Detect if it's an HLS manifest
+	// Detect if it's an HLS manifest or DASH
 	contentType := resp.Header.Get("Content-Type")
 	isM3U8 := strings.Contains(targetURL, ".m3u8") ||
 		strings.Contains(contentType, "mpegurl") ||
-		strings.Contains(contentType, "x-mpegURL")
+		strings.Contains(contentType, "x-mpegURL") ||
+		strings.Contains(contentType, "vnd.apple.mpegurl")
+
+	isDASH := strings.Contains(targetURL, ".mpd") ||
+		strings.Contains(contentType, "dash+xml")
 
 	if isM3U8 {
 		body, err := io.ReadAll(resp.Body)
@@ -168,6 +183,24 @@ func ProxyStream(c *gin.Context) {
 		rewrittenManifest := rewriteHLSManifest(string(body), targetURL, c.Request.Host)
 
 		// Copy headers back to the client, but update Content-Length
+		for name, values := range resp.Header {
+			if name != "Content-Length" {
+				for _, value := range values {
+					c.Header(name, value)
+				}
+			}
+		}
+		c.Header("Content-Length", strconv.Itoa(len(rewrittenManifest)))
+		c.String(resp.StatusCode, rewrittenManifest)
+	} else if isDASH {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to read manifest"})
+			return
+		}
+
+		rewrittenManifest := rewriteDASHManifest(string(body), targetURL, c.Request.Host)
+
 		for name, values := range resp.Header {
 			if name != "Content-Length" {
 				for _, value := range values {
@@ -248,6 +281,56 @@ func rewriteHLSManifest(manifest, originalURL, requestHost string) string {
 	return strings.Join(outputLines, lineSeparator)
 }
 
+func rewriteDASHManifest(manifest, originalURL, requestHost string) string {
+	baseURL := os.Getenv("API_BASE_URL")
+	if baseURL == "" {
+		scheme := "https"
+		if strings.Contains(requestHost, "localhost") {
+			scheme = "http"
+		}
+		baseURL = fmt.Sprintf("%s://%s", scheme, requestHost)
+	}
+
+	parsedURL, _ := url.Parse(originalURL)
+
+	// DASH manifests are XML. We need to find BaseURL tags and segment URLs.
+	// This is a simplified regex approach for common DASH structures.
+
+	// 1. Rewrite BaseURL tags
+	reBaseURL := regexp.MustCompile(`(?i)<BaseURL>(.*?)</BaseURL>`)
+	manifest = reBaseURL.ReplaceAllStringFunc(manifest, func(match string) string {
+		submatch := reBaseURL.FindStringSubmatch(match)
+		if len(submatch) > 1 {
+			resolvedURL := resolveURL(submatch[1], parsedURL)
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
+			return fmt.Sprintf("<BaseURL>%s/api/v1/stream/%s/</BaseURL>", baseURL, encodedURL)
+		}
+		return match
+	})
+
+	// 2. Rewrite media/initialization attributes in SegmentTemplate
+	reAttribs := regexp.MustCompile(`(?i)(media|initialization|sourceURL)=["'](.*?)["']`)
+	manifest = reAttribs.ReplaceAllStringFunc(manifest, func(match string) string {
+		submatch := reAttribs.FindStringSubmatch(match)
+		if len(submatch) > 2 {
+			attrName := submatch[1]
+			attrVal := submatch[2]
+
+			// Don't encode if it's already an absolute URL through our proxy
+			if strings.Contains(attrVal, "/api/v1/stream/") {
+				return match
+			}
+
+			resolvedURL := resolveURL(attrVal, parsedURL)
+			encodedURL := base64.URLEncoding.EncodeToString([]byte(resolvedURL))
+			return fmt.Sprintf(`%s="%s/api/v1/stream/%s"`, attrName, baseURL, encodedURL)
+		}
+		return match
+	})
+
+	return manifest
+}
+
 func resolveURL(link string, parsedBase *url.URL) string {
 	if strings.HasPrefix(link, "//") {
 		return "https:" + link
@@ -292,12 +375,15 @@ func GetMovieSources(c *gin.Context) {
 		collection.FindOne(context.TODO(), bson.M{"tmdbId": tmdbID}).Decode(&movie)
 	}
 
-	if movie.TMDbID == 0 {
+	if movie.ID.IsZero() {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Movie not found"})
 		return
 	}
 
-	cacheKey := fmt.Sprintf("movie_sources_%d", movie.TMDbID)
+	cacheKey := fmt.Sprintf("movie_sources_%s", movie.ID.Hex())
+	if movie.TMDbID != 0 {
+		cacheKey = fmt.Sprintf("movie_sources_%d", movie.TMDbID)
+	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
 		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
 		subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
@@ -333,6 +419,16 @@ func GetMovieSources(c *gin.Context) {
 		proxiedSources := make([]models.StreamSource, len(sources))
 		baseURL := GetBaseURL(c.Request.Host)
 		for i, s := range sources {
+			if s.Type == "embed" {
+				proxiedSources[i] = s
+				continue
+			}
+
+			if strings.Contains(s.URL, "/api/v1/stream/") {
+				proxiedSources[i] = s
+				continue
+			}
+
 			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
 			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 			proxiedSources[i] = s
@@ -357,12 +453,15 @@ func GetTVSources(c *gin.Context) {
 		collection.FindOne(context.TODO(), bson.M{"tmdbId": tmdbID}).Decode(&movie)
 	}
 
-	if movie.TMDbID == 0 {
+	if movie.ID.IsZero() {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Not found"})
 		return
 	}
 
-	cacheKey := fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
+	cacheKey := fmt.Sprintf("tv_sources_%s_%d_%d", movie.ID.Hex(), season, episode)
+	if movie.TMDbID != 0 {
+		cacheKey = fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
+	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
 		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
 		subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
@@ -398,6 +497,16 @@ func GetTVSources(c *gin.Context) {
 		proxiedSources := make([]models.StreamSource, len(sources))
 		baseURL := GetBaseURL(c.Request.Host)
 		for i, s := range sources {
+			if s.Type == "embed" {
+				proxiedSources[i] = s
+				continue
+			}
+
+			if strings.Contains(s.URL, "/api/v1/stream/") {
+				proxiedSources[i] = s
+				continue
+			}
+
 			encodedURL := base64.URLEncoding.EncodeToString([]byte(s.URL))
 			s.URL = fmt.Sprintf("%s/api/v1/stream/%s", baseURL, encodedURL)
 			proxiedSources[i] = s
@@ -449,4 +558,34 @@ func SearchMovies(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, cached)
+}
+
+func GetKidsHome(c *gin.Context) {
+	collection := db.DB.Collection("movies")
+
+	projection := bson.M{
+		"title":       1,
+		"posterUrl":   1,
+		"year":        1,
+		"rating":      1,
+		"genre":       1,
+		"contentType": 1,
+		"isTvShow":    1,
+		"isPublished": 1,
+	}
+
+	opts := options.Find().SetLimit(50).SetSort(bson.M{"createdAt": -1}).SetProjection(projection)
+	filter := bson.M{"isKidsContent": true, "isPublished": true}
+
+	cursor, err := collection.Find(context.TODO(), filter, opts)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	defer cursor.Close(context.TODO())
+
+	var results []models.Movie
+	cursor.All(context.TODO(), &results)
+
+	c.JSON(http.StatusOK, results)
 }

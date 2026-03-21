@@ -99,14 +99,14 @@ func main() {
 	movies := r.Group("/movies")
 	movies.Use(middleware.Protect())
 	{
-		movies.GET("/", handlers.GetMovies)
-		movies.GET("/coming-soon", handlers.GetComingSoonMovies)
-		movies.GET("/:id", handlers.GetMovieByID)
+		movies.GET("/", middleware.Cache(12*time.Hour), handlers.GetMovies)
+		movies.GET("/coming-soon", middleware.Cache(24*time.Hour), handlers.GetComingSoonMovies)
+		movies.GET("/:id", middleware.Cache(24*time.Hour), handlers.GetMovieByID)
 	}
 
 	config := r.Group("/config")
 	{
-		config.GET("/categories", handlers.GetCategories)
+		config.GET("/categories", middleware.Cache(24*time.Hour), handlers.GetCategories)
 		config.POST("/categories", handlers.CreateCategory)
 		config.PUT("/categories/:id", handlers.UpdateCategory)
 		config.DELETE("/categories/:id", handlers.DeleteCategory)
@@ -123,10 +123,15 @@ func main() {
 	users.Use(middleware.Protect())
 	{
 		users.GET("/profile", handlers.GetProfile)
+		users.PUT("/profile", handlers.UpdateProfile)
 		users.POST("/watchlist/:movieId", handlers.ToggleWatchlist)
 		users.POST("/notify-me/:movieId", handlers.ToggleNotifyMe)
 		users.GET("/settings", handlers.GetUserSettings)
 		users.PUT("/settings", handlers.UpdateUserSettings)
+		users.PUT("/analytics/device", handlers.UpdateDeviceAndLocation)
+		users.POST("/change-password", handlers.ChangePassword)
+		users.DELETE("/account", handlers.DeleteAccount)
+		users.POST("/logout-all", handlers.LogoutFromAllDevices)
 	}
 
 	r.GET("/system-config", handlers.GetSystemConfig)
@@ -138,12 +143,15 @@ func main() {
 	admin.Use(middleware.Protect(), middleware.AdminOnly())
 	{
 		admin.GET("/stats", handlers.GetDashboardStats)
+		admin.GET("/tmdb/search", handlers.AdminSearchTMDb)
+		admin.GET("/tmdb/movie/:id", handlers.AdminGetTMDbDetails)
 		admin.POST("/movies", handlers.AdminCreateMovie)
 		admin.GET("/movies", handlers.AdminGetMovies)
 		admin.PUT("/movies/:id", handlers.AdminUpdateMovie)
 		admin.PUT("/movies/:id/publish", handlers.AdminPublishMovie)
 		admin.DELETE("/movies/:id", handlers.AdminDeleteMovie)
 		admin.GET("/users", handlers.AdminGetUsers)
+		admin.GET("/users/:id", handlers.AdminGetUserDetails)
 		admin.PUT("/system-config", handlers.AdminUpdateSystemConfig)
 		admin.POST("/notifications", handlers.SendAdminNotification)
 		admin.GET("/notifications/history", handlers.GetNotificationHistory)

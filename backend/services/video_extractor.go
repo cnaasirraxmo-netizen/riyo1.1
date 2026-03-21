@@ -111,15 +111,8 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 	wg.Wait()
 	deduped := e.deduplicateSources(allSources)
 
-	// Return raw sources, filter out embeds
-	var finalSources []models.StreamSource
-	for _, s := range deduped {
-		if s.Type != "embed" {
-			finalSources = append(finalSources, s)
-		}
-	}
-
-	return e.rankSources(finalSources)
+	// Return raw sources, including embeds as fallback
+	return e.rankSources(deduped)
 }
 
 func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.StreamSource {

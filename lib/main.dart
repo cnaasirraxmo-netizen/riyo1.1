@@ -27,6 +27,8 @@ import 'package:riyo/presentation/screens/my_riyo_screen.dart';
 import 'package:riyo/presentation/screens/search_screen.dart';
 import 'package:riyo/presentation/screens/coming_soon_screen.dart';
 import 'package:riyo/presentation/screens/genre_movies_screen.dart';
+import 'package:riyo/presentation/screens/kids/kids_home_screen.dart';
+import 'package:riyo/presentation/widgets/state_widgets.dart';
 import 'package:riyo/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyo/presentation/screens/download_settings_screen.dart';
 import 'package:riyo/presentation/screens/support/contacts_screen.dart';
@@ -35,6 +37,8 @@ import 'package:riyo/presentation/screens/support/privacy_screen.dart';
 import 'package:riyo/presentation/screens/support/about_screen.dart';
 import 'package:riyo/presentation/screens/settings/appearance_settings_screen.dart';
 import 'package:riyo/presentation/screens/settings/account_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/edit_profile_screen.dart';
+import 'package:riyo/presentation/screens/settings/change_password_screen.dart';
 import 'package:riyo/presentation/screens/settings/notification_settings_screen.dart';
 import 'package:riyo/presentation/screens/settings/playback_settings_screen.dart';
 import 'package:riyo/presentation/screens/settings/download_settings_screen.dart' as ds;
@@ -46,12 +50,20 @@ import 'package:riyo/presentation/screens/settings/storage_settings_screen.dart'
 import 'package:riyo/presentation/screens/settings/support_settings_screen.dart';
 import 'package:riyo/presentation/screens/settings/about_settings_screen.dart' as about;
 import 'package:riyo/presentation/screens/settings/developer_settings_screen.dart';
+import 'package:riyo/presentation/screens/settings/parental_control_screen.dart';
 import 'package:riyo/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:riyo/services/local_cache_service.dart';
+import 'package:riyo/core/localization.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:riyo/core/constants.dart';
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -107,14 +119,6 @@ void main() async {
   };
 
   try {
-    debugPrint('Starting EasyLocalization initialization...');
-    await EasyLocalization.ensureInitialized().timeout(
-      const Duration(seconds: 5),
-      onTimeout: () {
-        debugPrint('EasyLocalization initialization timed out after 5 seconds');
-      },
-    );
-
     debugPrint('Starting Firebase initialization...');
     try {
       await Firebase.initializeApp().timeout(
@@ -146,12 +150,7 @@ void main() async {
   }
 
   runApp(
-    EasyLocalization(
-      supportedLocales: const [Locale('en'), Locale('so'), Locale('ar'), Locale('es')],
-      path: 'assets/lang',
-      fallbackLocale: const Locale('en'),
-      child: const rp.ProviderScope(child: MyApp()),
-    ),
+    const rp.ProviderScope(child: MyApp()),
   );
 }
 
@@ -167,10 +166,47 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   GoRouter? _router;
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
+    _initDeepLinks();
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+
+    // Handle initial link
+    try {
+      final initialLink = await _appLinks.getInitialLink();
+      if (initialLink != null) {
+        _handleDeepLink(initialLink);
+      }
+    } catch (e) {
+      debugPrint('Deep link error: $e');
+    }
+
+    // Handle incoming links
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    }, onError: (err) {
+      debugPrint('Deep link stream error: $err');
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.pathSegments.contains('movie')) {
+      final movieId = uri.pathSegments.last;
+      _router?.push('/movie/$movieId');
+    }
   }
 
   void _initRouter(AuthProvider authProvider) {
@@ -178,9 +214,20 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: _rootNavigatorKey,
       initialLocation: '/splash',
       refreshListenable: authProvider,
+      observers: [
+        _AnalyticsObserver(authProvider),
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      ],
       errorBuilder: (context, state) {
-        debugPrint('GoRouter Error: ${state.error}. Redirecting to /home');
-        return const HomeScreen(); // Fallback UI for unknown routes
+        return Scaffold(
+          body: StateWidget(
+            icon: Icons.error_outline_rounded,
+            title: 'Page not found',
+            description: 'The page you are looking for does not exist or has been moved.',
+            primaryActionText: 'Go Home',
+            onPrimaryAction: () => context.go('/home'),
+          ),
+        );
       },
       redirect: (context, state) {
         try {
@@ -235,50 +282,92 @@ class _MyAppState extends State<MyApp> {
           path: '/forgot-password',
           builder: (context, state) => const SafeScreen(child: ForgotPasswordScreen()),
         ),
-        ShellRoute(
-          navigatorKey: _shellNavigatorKey,
-          builder: (context, state, child) {
-            return MainScreen(child: child);
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            return MainScreen(navigationShell: navigationShell);
           },
-          routes: [
-            GoRoute(
-              path: '/home',
-              builder: (context, state) => const HomeScreen(),
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/home',
+                  name: 'home',
+                  builder: (context, state) => const HomeScreen(),
+                  routes: [
+                    GoRoute(
+                      path: 'genre/:name',
+                      builder: (context, state) {
+                        final name = state.pathParameters['name']!;
+                        return GenreMoviesScreen(genreName: name);
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/category',
-              builder: (context, state) => const CategoriesScreen(),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/category',
+                  name: 'categories',
+                  builder: (context, state) => const CategoriesScreen(),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/downloads',
-              builder: (context, state) => const DownloadsScreen(),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/downloads',
+                  name: 'downloads',
+                  builder: (context, state) => const DownloadsScreen(),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/search',
-              builder: (context, state) => const SearchScreen(),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/search',
+                  name: 'search',
+                  builder: (context, state) => const SearchScreen(),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/my-riyo',
-              builder: (context, state) => const MyRiyoScreen(),
-            ),
-            GoRoute(
-              path: '/coming-soon',
-              builder: (context, state) => const ComingSoonScreen(),
-            ),
-            GoRoute(
-              path: '/genre/:name',
-              builder: (context, state) {
-                final name = state.pathParameters['name']!;
-                return GenreMoviesScreen(genreName: name);
-              },
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/my-riyo',
+                  name: 'profile',
+                  builder: (context, state) => const MyRiyoScreen(),
+                ),
+              ],
             ),
           ],
+        ),
+        GoRoute(
+          path: '/coming-soon',
+          builder: (context, state) => const ComingSoonScreen(),
+        ),
+        GoRoute(
+          path: '/kids',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const KidsHomeScreen(),
         ),
         GoRoute(
           path: '/movie/:id',
           parentNavigatorKey: _rootNavigatorKey,
           builder: (context, state) {
-            final id = state.pathParameters['id']!;
+            final id = state.pathParameters['id'];
+            if (id == null || id == 'null' || id.isEmpty) {
+               return Scaffold(
+                 body: StateWidget(
+                   icon: Icons.movie_filter_outlined,
+                   title: 'Invalid navigation request',
+                   description: 'Movie details cannot be loaded without a valid ID.',
+                   primaryActionText: 'Go Back',
+                   onPrimaryAction: () => context.pop(),
+                 ),
+               );
+            }
             return MovieDetailsScreen(movieId: id);
           },
         ),
@@ -304,7 +393,14 @@ class _MyAppState extends State<MyApp> {
           builder: (context, state) => const SettingsScreen(),
           routes: [
             GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
-            GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
+            GoRoute(
+              path: 'account',
+              builder: (context, state) => const AccountSettingsScreen(),
+              routes: [
+                GoRoute(path: 'edit-profile', builder: (context, state) => const EditProfileScreen()),
+                GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
+              ]
+            ),
             GoRoute(path: 'notifications', builder: (context, state) => const NotificationSettingsScreen()),
             GoRoute(path: 'playback', builder: (context, state) => const PlaybackSettingsScreen()),
             GoRoute(path: 'downloads', builder: (context, state) => const ds.DownloadSettingsScreen()),
@@ -316,6 +412,7 @@ class _MyAppState extends State<MyApp> {
             GoRoute(path: 'support', builder: (context, state) => const SupportSettingsScreen()),
             GoRoute(path: 'about', builder: (context, state) => const about.AboutSettingsScreen()),
             GoRoute(path: 'developer', builder: (context, state) => const DeveloperSettingsScreen()),
+            GoRoute(path: 'parental-control', builder: (context, state) => const ParentalControlSettingsScreen()),
           ],
         ),
         GoRoute(
@@ -382,9 +479,15 @@ class _MyAppState extends State<MyApp> {
                 routerConfig: _router!,
                 title: 'RIYO',
                 themeMode: settings.themeMode,
-                localizationsDelegates: context.localizationDelegates,
-                supportedLocales: context.supportedLocales,
-                locale: context.locale,
+                localizationsDelegates: [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                supportedLocales: const [
+                  Locale('en', ''),
+                  Locale('so', ''),
+                ],
                 builder: (context, child) {
                   return child!;
                 },
@@ -400,10 +503,49 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-class MainScreen extends StatefulWidget {
-  final Widget child;
+class _AnalyticsObserver extends NavigatorObserver {
+  final AuthProvider auth;
+  _AnalyticsObserver(this.auth);
 
-  const MainScreen({super.key, required this.child});
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _logScreen(route);
+  }
+
+  void _logScreen(Route<dynamic> route) {
+    if (route.settings.name != null) {
+      _sendAnalytics(route.settings.name!);
+    } else if (route is PageRoute) {
+      // Try to get path from state if possible, or just use route type for now
+      // This is a bit limited with GoRouter without a custom observer that has access to state
+    }
+  }
+
+  Future<void> _sendAnalytics(String screenName) async {
+    if (!auth.isAuthenticated || auth.token == null) return;
+    try {
+      await http.post(
+        Uri.parse('${Constants.apiBaseUrl}/api/v1/analytics/usage'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+        },
+        body: jsonEncode({
+          'screen': screenName,
+          'feature': 'navigation',
+        }),
+      );
+    } catch (e) {
+      debugPrint('Analytics error: $e');
+    }
+  }
+}
+
+class MainScreen extends StatefulWidget {
+  final StatefulNavigationShell navigationShell;
+
+  const MainScreen({super.key, required this.navigationShell});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -449,37 +591,37 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           BottomNavigationBarItem(
             icon: const Icon(Icons.home_outlined),
             activeIcon: const Icon(Icons.home),
-            label: 'home'.tr(),
+            label: 'home'.tr(context),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.grid_view_outlined),
             activeIcon: const Icon(Icons.grid_view),
-            label: 'categories'.tr(),
+            label: 'categories'.tr(context),
           ),
           if (downloadsEnabled)
             BottomNavigationBarItem(
               icon: const Icon(Icons.download_outlined),
               activeIcon: const Icon(Icons.download),
-              label: 'downloads'.tr(),
+              label: 'downloads'.tr(context),
             ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.search_outlined),
             activeIcon: const Icon(Icons.search),
-            label: 'search'.tr(),
+            label: 'search'.tr(context),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.person_outline),
             activeIcon: const Icon(Icons.person),
-            label: 'profile_title'.tr(),
+            label: 'profile_title'.tr(context),
           ),
         ];
 
         return Scaffold(
-          body: widget.child,
+          body: widget.navigationShell,
           bottomNavigationBar: BottomNavigationBar(
             items: items,
-            currentIndex: _calculateSelectedIndex(context, downloadsEnabled),
-            onTap: (index) => _onItemTapped(index, context, downloadsEnabled),
+            currentIndex: _calculateSelectedIndex(downloadsEnabled),
+            onTap: (index) => _onItemTapped(index, downloadsEnabled),
             type: BottomNavigationBarType.fixed,
           ),
         );
@@ -487,38 +629,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
   }
 
-  int _calculateSelectedIndex(BuildContext context, bool downloadsEnabled) {
-    final String location = GoRouterState.of(context).uri.path;
-    if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/category')) return 1;
-    if (location.startsWith('/downloads')) return downloadsEnabled ? 2 : 0;
-    if (location.startsWith('/search')) return downloadsEnabled ? 3 : 2;
-    if (location.startsWith('/my-riyo')) return downloadsEnabled ? 4 : 3;
-    return 0;
+  int _calculateSelectedIndex(bool downloadsEnabled) {
+    int index = widget.navigationShell.currentIndex;
+    if (!downloadsEnabled && index >= 2) {
+      return index - 1;
+    }
+    return index;
   }
 
-  void _onItemTapped(int index, BuildContext context, bool downloadsEnabled) {
+  void _onItemTapped(int index, bool downloadsEnabled) {
     int targetIndex = index;
     if (!downloadsEnabled && index >= 2) {
       targetIndex = index + 1;
     }
-
-    switch (targetIndex) {
-      case 0:
-        context.go('/home');
-        break;
-      case 1:
-        context.go('/category');
-        break;
-      case 2:
-        context.go('/downloads');
-        break;
-      case 3:
-        context.go('/search');
-        break;
-      case 4:
-        context.go('/my-riyo');
-        break;
-    }
+    widget.navigationShell.goBranch(targetIndex, initialLocation: targetIndex == widget.navigationShell.currentIndex);
   }
 }

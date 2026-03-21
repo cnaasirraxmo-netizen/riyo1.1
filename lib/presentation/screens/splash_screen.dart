@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:riyo/core/design_system.dart';
 import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/providers/home_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -39,6 +39,19 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     _controller.forward().then((_) => _navigateToNext());
+    _preFetchData();
+  }
+
+  void _preFetchData() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Start loading home config immediately in background
+      if (authProvider.isAuthenticated) {
+        homeProvider.loadConfig(token: authProvider.token);
+      }
+    });
   }
 
   Future<void> _navigateToNext() async {

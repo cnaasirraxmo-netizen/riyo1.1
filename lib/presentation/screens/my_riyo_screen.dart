@@ -150,6 +150,13 @@ class MyRiyoScreen extends StatelessWidget {
           onTap: () => context.push('/settings'),
         ),
         const SizedBox(height: 12),
+        _buildSettingsButton(
+          context,
+          icon: Icons.child_care_rounded,
+          text: 'Kids Mode',
+          onTap: () => context.push('/kids'),
+        ),
+        const SizedBox(height: 12),
          _buildSettingsButton(
           context,
           icon: Icons.subscriptions_outlined,

@@ -9,6 +9,7 @@ import 'package:riyo/providers/settings_provider.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
+import 'package:riyo/services/analytics_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -58,6 +59,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _hasSearched = true;
       });
     }
+      AnalyticsService.logSearch(query);
 
     try {
       List<Movie> filteredMovies;

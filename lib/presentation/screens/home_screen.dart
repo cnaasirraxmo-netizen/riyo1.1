@@ -14,8 +14,11 @@ import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
 import 'package:riyo/presentation/widgets/shimmer_loading.dart';
+import 'package:riyo/presentation/screens/kids/kids_home_screen.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
 import 'package:riyo/core/casting/presentation/widgets/cast_button.dart';
+import 'package:riyo/services/analytics_service.dart';
+import 'package:riyo/core/localization.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,13 +27,14 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final ApiService _apiService = ApiService();
   int _currentCarouselIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
@@ -39,6 +43,22 @@ class _HomeScreenState extends State<HomeScreen> {
         _precacheHomeImages();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      // Auto refresh stale data on resume
+      homeProvider.loadConfig(token: auth.token, forceRefresh: true);
+    }
   }
 
   void _precacheHomeImages() {
@@ -86,11 +106,66 @@ class _HomeScreenState extends State<HomeScreen> {
     return movies;
   }
 
+  void _verifyPin(BuildContext context, SettingsProvider settings, VoidCallback onMatched) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Kids Mode Active'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter parental PIN to exit Kids Mode'),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'PIN'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () {
+              if (controller.text == settings.kidsPin) {
+                Navigator.pop(context);
+                onMatched();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect PIN')));
+              }
+            },
+            child: const Text('EXIT'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final homeProvider = Provider.of<HomeProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    final settings = Provider.of<SettingsProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (settings.isKidsMode) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Kids World'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.exit_to_app),
+              onPressed: () => _verifyPin(context, settings, () => settings.setKidsMode(false)),
+            ),
+          ],
+        ),
+        body: const KidsHomeScreen(),
+      );
+    }
 
     return Scaffold(
       body: RefreshIndicator(
@@ -118,8 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Chip(
-                          label: const Text('OFFLINE',
-                              style: TextStyle(
+                          label: Text('offline_badge'.tr(context),
+                              style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white)),
@@ -138,7 +213,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   IconButton(
                       icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => context.push('/settings')),
+                      onPressed: () {
+                        AnalyticsService.logButtonClick('home_settings_button');
+                        context.push('/settings');
+                      }),
                 ],
                 pinned: true,
                 floating: true,
@@ -228,11 +306,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? [
                                   Padding(
                                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                                    child: Text('My Downloads',
+                                    child: Text('downloads'.tr(context),
                                         style: AppTypography.headlineMedium),
                                   ),
                                   _buildMovieCategory(
-                                      "Available Offline",
+                                      'available_offline'.tr(context),
                                       Future.value(snapshot.data ?? [])),
                                   const SizedBox(height: 100),
                                 ]
@@ -355,7 +433,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       context.push('/movie/$id/play');
                                     },
                                     icon: const Icon(Icons.play_arrow_rounded),
-                                    label: const Text('Play Now'),
+                                    label: Text('play_now'.tr(context)),
                                     style: ElevatedButton.styleFrom(
                                       minimumSize: const Size(140, 48),
                                     ),
@@ -426,7 +504,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                  child: Text('Continue Watching', style: AppTypography.titleLarge),
+                  child: Text('continue_watching'.tr(context), style: AppTypography.titleLarge),
                 ),
                 SizedBox(
                   height: 180,
@@ -552,7 +630,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return _buildMovieShimmerList();
               }
               if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text('No movies found.'));
+                return Center(child: Text('no_movies_found'.tr(context)));
               }
               final movies = snapshot.data!;
               return ListView.builder(

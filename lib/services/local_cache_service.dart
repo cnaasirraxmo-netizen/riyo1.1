@@ -11,6 +11,7 @@ class LocalCacheService {
   late Box _moviesBox;
   late Box _progressBox;
   late Box _historyBox;
+  late Box _appCacheBox;
 
   bool _isInitialized = false;
   final _connectivity = Connectivity();
@@ -27,6 +28,7 @@ class LocalCacheService {
       _moviesBox = await Hive.openBox('movies_cache');
       _progressBox = await Hive.openBox('playback_progress');
       _historyBox = await Hive.openBox('watch_history');
+      _appCacheBox = await Hive.openBox('app_general_cache');
       _isInitialized = true;
       debugPrint('LocalCacheService initialized successfully.');
     } catch (e) {
@@ -52,6 +54,14 @@ class LocalCacheService {
   }
 
   // Generic Cache Methods
+  Future<void> cacheData(String key, dynamic data) async {
+    await _appCacheBox.put(key, data);
+  }
+
+  dynamic getCachedData(String key) {
+    return _appCacheBox.get(key);
+  }
+
   Future<void> cacheMovie(String id, Map<String, dynamic> movieData) async {
     await _moviesBox.put(id, movieData);
   }

@@ -19,6 +19,7 @@ import (
 type RegisterRequest struct {
 	Name          string `json:"name" binding:"required"`
 	Email         string `json:"email" binding:"required,email"`
+	PhoneNumber   string `json:"phoneNumber"`
 	FirebaseToken string `json:"firebaseToken" binding:"required"`
 	FCMToken      string `json:"fcmToken"`
 }
@@ -198,13 +199,14 @@ func Register(c *gin.Context) {
 	}
 
 	user := models.User{
-		ID:        bson.NewObjectID(),
-		Name:      req.Name,
-		Email:     req.Email,
-		Role:      "user",
-		FCMTokens: []string{},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:          bson.NewObjectID(),
+		Name:        req.Name,
+		Email:       req.Email,
+		PhoneNumber: req.PhoneNumber,
+		Role:        "user",
+		FCMTokens:   []string{},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	if req.FCMToken != "" {
@@ -350,6 +352,92 @@ func GoogleLogin(c *gin.Context) {
 		"token": token,
 		"uid":   fbToken.UID,
 	})
+}
+
+func ChangePassword(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to change password"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	user := userVal.(models.User)
+
+	var req struct {
+		OldPassword string `json:"oldPassword" binding:"required"`
+		NewPassword string `json:"newPassword" binding:"required,min=6"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Verify old password
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.OldPassword))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Incorrect old password"})
+		return
+	}
+
+	// Hash new password
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+
+	collection := db.DB.Collection("users")
+	_, err = collection.UpdateOne(context.TODO(), bson.M{"_id": user.ID}, bson.M{"$set": bson.M{"password": string(hashedPassword), "updatedAt": time.Now()}})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
+func DeleteAccount(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Guest accounts cannot be deleted"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	user := userVal.(models.User)
+
+	// Delete user from DB
+	_, err := db.DB.Collection("users").DeleteOne(context.TODO(), bson.M{"_id": user.ID})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete account"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Account deleted successfully"})
+}
+
+func LogoutFromAllDevices(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusOK, gin.H{"message": "Guest logged out"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	user := userVal.(models.User)
+
+	// Clear all FCM tokens to effectively logout from push on all devices
+	_, err := db.DB.Collection("users").UpdateOne(context.TODO(), bson.M{"_id": user.ID}, bson.M{"$set": bson.M{"fcmTokens": []string{}, "updatedAt": time.Now()}})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to logout from devices"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out from all devices"})
 }
 
 // Helpers

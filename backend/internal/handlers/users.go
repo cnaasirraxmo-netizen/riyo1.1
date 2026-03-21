@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/riyobox/backend/internal/db"
@@ -12,6 +13,15 @@ import (
 )
 
 func GetProfile(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusOK, gin.H{
+			"name": "Guest User",
+			"email": "guest@riyo.app",
+			"role": "user",
+			"watchlist": []interface{}{},
+		})
+		return
+	}
 	userVal, _ := c.Get("user")
 	user := userVal.(models.User)
 
@@ -52,8 +62,106 @@ func GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, results[0])
 }
 
+func UpdateProfile(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to update profile"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	user := userVal.(models.User)
+
+	var req struct {
+		Name        string `json:"name"`
+		PhoneNumber string `json:"phoneNumber"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	collection := db.DB.Collection("users")
+	update := bson.M{
+		"$set": bson.M{
+			"updatedAt": time.Now(),
+		},
+	}
+
+	if req.Name != "" {
+		update["$set"].(bson.M)["name"] = req.Name
+	}
+	if req.PhoneNumber != "" {
+		update["$set"].(bson.M)["phoneNumber"] = req.PhoneNumber
+	}
+
+	_, err := collection.UpdateOne(context.TODO(), bson.M{"_id": user.ID}, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile updated"})
+}
+
+func UpdateDeviceAndLocation(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusOK, gin.H{"message": "Guest device not tracked"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	user := userVal.(models.User)
+
+	var req struct {
+		DeviceInfo models.DeviceInfo   `json:"deviceInfo"`
+		Location   models.LocationData `json:"location"`
+		PhoneNumber string             `json:"phoneNumber"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	collection := db.DB.Collection("users")
+	update := bson.M{
+		"$set": bson.M{
+			"deviceInfo": req.DeviceInfo,
+			"location":   req.Location,
+			"updatedAt":  time.Now(),
+		},
+	}
+
+	if req.PhoneNumber != "" {
+		update["$set"].(bson.M)["phoneNumber"] = req.PhoneNumber
+	}
+
+	_, err := collection.UpdateOne(context.TODO(), bson.M{"_id": user.ID}, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Analytics updated"})
+}
+
 func ToggleWatchlist(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to manage your watchlist"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 	movieIDStr := c.Param("movieId")
 	movieID, _ := bson.ObjectIDFromHex(movieIDStr)
@@ -93,7 +201,15 @@ func ToggleWatchlist(c *gin.Context) {
 }
 
 func ToggleNotifyMe(c *gin.Context) {
-	userVal, _ := c.Get("user")
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to enable notifications"})
+		return
+	}
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	user := userVal.(models.User)
 	movieIDStr := c.Param("movieId")
 	movieID, _ := bson.ObjectIDFromHex(movieIDStr)
@@ -134,4 +250,68 @@ func ToggleNotifyMe(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": message, "isNotified": isNotified})
+}
+
+func LogUsage(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusOK, gin.H{"message": "Guest usage not logged"})
+		return
+	}
+	var log models.UsageLog
+	if err := c.ShouldBindJSON(&log); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	userVal, exists := c.Get("user")
+	if exists {
+		user := userVal.(models.User)
+		log.UserID = user.ID
+	}
+
+	log.ID = bson.NewObjectID()
+	log.Timestamp = time.Now()
+
+	_, err := db.DB.Collection("usagelogs").InsertOne(context.TODO(), log)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Usage logged"})
+}
+
+func AddReview(c *gin.Context) {
+	if isGuest, _ := c.Get("isGuest"); isGuest == true {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Please sign in to leave a review"})
+		return
+	}
+	movieIDStr := c.Param("id")
+	movieID, _ := bson.ObjectIDFromHex(movieIDStr)
+
+	var review models.Review
+	if err := c.ShouldBindJSON(&review); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	userVal, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	user := userVal.(models.User)
+
+	review.ID = bson.NewObjectID()
+	review.UserID = user.ID
+	review.MovieID = movieID
+	review.CreatedAt = time.Now()
+
+	_, err := db.DB.Collection("reviews").InsertOne(context.TODO(), review)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, review)
 }

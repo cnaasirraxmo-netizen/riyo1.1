@@ -55,7 +55,6 @@ class SettingsProvider with ChangeNotifier {
   bool _loadPostersOnlyWhenVisible = true;
 
   // Language
-  String _appLanguage = 'English';
   String _subtitleLanguage = 'Auto detect';
   String _audioLanguagePreference = 'Original';
 
@@ -71,13 +70,18 @@ class SettingsProvider with ChangeNotifier {
   bool _hideSpoilers = true;
   bool _personalRecommendations = true;
 
+  // Parental Controls
+  bool _isKidsMode = false;
+  String _kidsPin = '';
+
   // Developer Options
   bool _isDeveloperModeEnabled = false;
   bool _enableDebugLogs = false;
   bool _simulateSlowNetwork = false;
 
   // Getters
-  String get language => _appLanguage;
+  bool get isKidsMode => _isKidsMode;
+  String get kidsPin => _kidsPin;
   bool get isOffline => _simulateSlowNetwork; // Assuming this based on current fields or adding a new one
   ThemeMode get themeMode => _themeMode;
   bool get amoledMode => _amoledMode;
@@ -126,7 +130,6 @@ class SettingsProvider with ChangeNotifier {
   bool get disableBackgroundRefresh => _disableBackgroundRefresh;
   bool get loadPostersOnlyWhenVisible => _loadPostersOnlyWhenVisible;
 
-  String get appLanguage => _appLanguage;
   String get subtitleLanguage => _subtitleLanguage;
   String get audioLanguagePreference => _audioLanguagePreference;
 
@@ -205,7 +208,6 @@ class SettingsProvider with ChangeNotifier {
     _loadPostersOnlyWhenVisible = prefs.getBool('loadPostersOnlyWhenVisible') ?? true;
 
     // Language
-    _appLanguage = prefs.getString('appLanguage') ?? 'English';
     _subtitleLanguage = prefs.getString('subtitleLanguage') ?? 'Auto detect';
     _audioLanguagePreference = prefs.getString('audioLanguagePreference') ?? 'Original';
 
@@ -220,6 +222,10 @@ class SettingsProvider with ChangeNotifier {
     _hideHorrorMovies = prefs.getBool('hideHorrorMovies') ?? false;
     _hideSpoilers = prefs.getBool('hideSpoilers') ?? true;
     _personalRecommendations = prefs.getBool('personalRecommendations') ?? true;
+
+    // Parental Controls
+    _isKidsMode = prefs.getBool('isKidsMode') ?? false;
+    _kidsPin = prefs.getString('kidsPin') ?? '';
 
     // Developer
     _isDeveloperModeEnabled = prefs.getBool('isDeveloperModeEnabled') ?? false;
@@ -298,7 +304,6 @@ class SettingsProvider with ChangeNotifier {
   void setDisableBackgroundRefresh(bool value) { _disableBackgroundRefresh = value; _saveBool('disableBackgroundRefresh', value); notifyListeners(); }
   void setLoadPostersOnlyWhenVisible(bool value) { _loadPostersOnlyWhenVisible = value; _saveBool('loadPostersOnlyWhenVisible', value); notifyListeners(); }
 
-  void setAppLanguage(String lang) { _appLanguage = lang; _saveString('appLanguage', lang); notifyListeners(); }
   void setSubtitleLanguage(String lang) { _subtitleLanguage = lang; _saveString('subtitleLanguage', lang); notifyListeners(); }
   void setAudioLanguagePreference(String lang) { _audioLanguagePreference = lang; _saveString('audioLanguagePreference', lang); notifyListeners(); }
 
@@ -311,6 +316,9 @@ class SettingsProvider with ChangeNotifier {
   void setHideHorrorMovies(bool value) { _hideHorrorMovies = value; _saveBool('hideHorrorMovies', value); notifyListeners(); }
   void setHideSpoilers(bool value) { _hideSpoilers = value; _saveBool('hideSpoilers', value); notifyListeners(); }
   void setPersonalRecommendations(bool value) { _personalRecommendations = value; _saveBool('personalRecommendations', value); notifyListeners(); }
+
+  void setKidsMode(bool value) { _isKidsMode = value; _saveBool('isKidsMode', value); notifyListeners(); }
+  void setKidsPin(String pin) { _kidsPin = pin; _saveString('kidsPin', pin); notifyListeners(); }
 
   void setDeveloperMode(bool value) { _isDeveloperModeEnabled = value; _saveBool('isDeveloperModeEnabled', value); notifyListeners(); }
   void setEnableDebugLogs(bool value) { _enableDebugLogs = value; _saveBool('enableDebugLogs', value); notifyListeners(); }
