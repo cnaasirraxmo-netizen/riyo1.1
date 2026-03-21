@@ -193,8 +193,16 @@ const Movies = () => {
     }
 
     setIsSubmitting(true);
+
+    // Parse duration: handle both "120" and "120 min" formats
+    const rawDuration = formData.duration?.toString() || "";
+    const parsedDuration = parseInt(rawDuration.replace(/[^0-9]/g, "")) || 0;
+
     const submissionData = {
       ...formData,
+      year: parseInt(formData.year) || new Date().getFullYear(),
+      duration: parsedDuration,
+      rating: parseFloat(formData.rating) || 0,
       isPublished: formData.status === 'Active',
       genre: formData.genre.split(',').map(g => g.trim()).filter(g => g),
       sources: [
