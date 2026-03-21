@@ -91,6 +91,7 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 			mu.Unlock()
 
 			// Use Universal Finder to discover direct links from embed
+			// This now includes Headless scanning for JS-heavy pages
 			discovered := e.finder.FindSources(url)
 			for _, link := range discovered {
 			if e.finder.IsValidVideo(link) {

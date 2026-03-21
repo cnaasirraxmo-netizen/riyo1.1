@@ -5,14 +5,25 @@ import (
 	"sync"
 )
 
-type UniversalFinder struct{}
+type UniversalFinder struct {
+	headless *HeadlessScraper
+}
 
 func NewUniversalFinder() *UniversalFinder {
-	return &UniversalFinder{}
+	return &UniversalFinder{
+		headless: NewHeadlessScraper(),
+	}
 }
 
 func (f *UniversalFinder) FindSources(url string) []string {
-	return f.recursiveFind(url, 0, make(map[string]bool))
+	// 1. FAST PATH: Static HTML/Regex
+	fastSources := f.recursiveFind(url, 0, make(map[string]bool))
+	if len(fastSources) > 0 {
+		return fastSources
+	}
+
+	// 2. DYNAMIC PATH: Headless Browser
+	return f.headless.ExtractDynamicSources(url)
 }
 
 func (f *UniversalFinder) recursiveFind(url string, depth int, visited map[string]bool) []string {
