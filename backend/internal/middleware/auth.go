@@ -26,12 +26,8 @@ func Protect() gin.HandlerFunc {
 		jwtSecret := os.Getenv("JWT_SECRET")
 
 		if tokenStr == "" {
-			// Allow access to protected routes as Guest (with restricted permissions handled in handlers)
-			// But for strict routes, we still need to identify the user.
-			// Let's set a "isGuest" context if no token is provided but don't abort yet.
-			// The handler can then check c.Get("isGuest")
-			c.Set("isGuest", true)
-			c.Next()
+			fmt.Printf("[Protect] Missing Authorization header for %s %s\n", c.Request.Method, c.Request.URL.Path)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "No authorization token provided"})
 			return
 		}
 
@@ -66,7 +62,8 @@ func Protect() gin.HandlerFunc {
 
 		userID, err := bson.ObjectIDFromHex(userIDStr)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid user ID"})
+			fmt.Printf("[Protect] Malformed user ID in token: %s\n", userIDStr)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid user identity format"})
 			return
 		}
 
@@ -84,17 +81,9 @@ func Protect() gin.HandlerFunc {
 
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Bypass for admin routes if requested (e.g., during transition or internal usage)
-		// To allow full access without token as requested by user
-		if os.Getenv("BYPASS_ADMIN_AUTH") == "true" || true { // Force bypass for now as requested
-			c.Next()
-			return
-		}
-
 		userVal, exists := c.Get("user")
 		if !exists {
-			// Check if we are in a state where we should allow bypass
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized. Token validation failed."})
 			return
 		}
 

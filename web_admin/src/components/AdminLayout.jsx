@@ -21,7 +21,7 @@ const AdminLayout = ({ children }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
-    window.location.reload();
+    navigate('/login');
   };
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
