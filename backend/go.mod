@@ -47,6 +47,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.8 // indirect
 	github.com/aws/smithy-go v1.24.2 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
@@ -82,6 +83,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
+	github.com/pquerna/otp v1.5.0 // indirect
 	github.com/redis/go-redis/v9 v9.18.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect

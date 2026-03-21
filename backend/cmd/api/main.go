@@ -155,6 +155,9 @@ func main() {
 		admin.PUT("/system-config", handlers.AdminUpdateSystemConfig)
 		admin.POST("/notifications", handlers.SendAdminNotification)
 		admin.GET("/notifications/history", handlers.GetNotificationHistory)
+		admin.PUT("/profile", handlers.UpdateAdminProfile)
+		admin.GET("/2fa/setup", handlers.Setup2FA)
+		admin.POST("/2fa/verify", handlers.VerifyAndEnable2FA)
 	}
 
 	upload := r.Group("/upload")

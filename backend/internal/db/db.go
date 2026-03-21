@@ -88,15 +88,17 @@ func seedHomeSections() {
 
 func createDefaultAdmin() {
 	collection := DB.Collection("users")
-	adminEmail := "admin@example.com"
+	adminEmail := "aabahatechnologyada@gmail.com"
 	var existingAdmin models.User
 	err := collection.FindOne(context.TODO(), bson.M{"email": adminEmail}).Decode(&existingAdmin)
 
 	if err == mongo.ErrNoDocuments {
 		fmt.Println("Creating default admin account...")
-		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("sahan00"), bcrypt.DefaultCost)
 		admin := models.User{
-			Name:      "Super Admin",
+			ID:        bson.NewObjectID(),
+			Name:      "Sahan",
+			Username:  "sahan",
 			Email:     adminEmail,
 			Password:  string(hashedPassword),
 			Role:      "admin",

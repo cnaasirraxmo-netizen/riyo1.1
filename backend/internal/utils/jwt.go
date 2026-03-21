@@ -10,6 +10,10 @@ import (
 )
 
 func GenerateToken(id bson.ObjectID) (string, error) {
+	return GenerateTokenWithDuration(id, time.Hour*24*30)
+}
+
+func GenerateTokenWithDuration(id bson.ObjectID, duration time.Duration) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		return "", errors.New("JWT_SECRET is missing from environment variables")
@@ -17,7 +21,7 @@ func GenerateToken(id bson.ObjectID) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":  id.Hex(),
-		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
+		"exp": time.Now().Add(duration).Unix(),
 	})
 
 	return token.SignedString([]byte(jwtSecret))

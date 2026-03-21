@@ -30,6 +30,8 @@ const Downloads = lazy(() => import('./pages/Downloads'));
 const Settings = lazy(() => import('./pages/Settings'));
 const SystemTools = lazy(() => import('./pages/SystemTools'));
 const Login = lazy(() => import('./pages/Login'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 const PageLoader = () => (
   <div className="h-full w-full flex items-center justify-center bg-[#f0f0f1]">
@@ -49,6 +51,8 @@ function App() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route element={<ProtectedRoute key={authTick}><Outlet /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />

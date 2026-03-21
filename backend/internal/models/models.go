@@ -20,19 +20,24 @@ type UserSettings struct {
 }
 
 type User struct {
-	ID          bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
-	Name        string          `bson:"name" json:"name"`
-	Email       string          `bson:"email" json:"email"`
-	PhoneNumber string          `bson:"phoneNumber" json:"phoneNumber"`
-	Password    string          `bson:"password" json:"-"`
-	Role        string          `bson:"role" json:"role"`
-	Watchlist   []bson.ObjectID `bson:"watchlist" json:"watchlist"`
-	FCMTokens   []string        `bson:"fcmTokens" json:"fcmTokens"`
-	Settings    UserSettings    `bson:"settings" json:"settings"`
-	DeviceInfo  DeviceInfo      `bson:"deviceInfo" json:"deviceInfo"`
-	Location    LocationData    `bson:"location" json:"location"`
-	CreatedAt   time.Time       `bson:"createdAt" json:"createdAt"`
-	UpdatedAt   time.Time       `bson:"updatedAt" json:"updatedAt"`
+	ID             bson.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
+	Name           string          `bson:"name" json:"name"`
+	Username       string          `bson:"username" json:"username"`
+	Email          string          `bson:"email" json:"email"`
+	PhoneNumber    string          `bson:"phoneNumber" json:"phoneNumber"`
+	Password       string          `bson:"password" json:"-"`
+	Role           string          `bson:"role" json:"role"`
+	TwoFASecret    string          `bson:"2faSecret" json:"-"`
+	LoginAttempts  int             `bson:"loginAttempts" json:"-"`
+	LastLogin      *time.Time      `bson:"lastLogin" json:"lastLogin,omitempty"`
+	LockedUntil    *time.Time      `bson:"lockedUntil" json:"-"`
+	Watchlist      []bson.ObjectID `bson:"watchlist" json:"watchlist"`
+	FCMTokens      []string        `bson:"fcmTokens" json:"fcmTokens"`
+	Settings       UserSettings    `bson:"settings" json:"settings"`
+	DeviceInfo     DeviceInfo      `bson:"deviceInfo" json:"deviceInfo"`
+	Location       LocationData    `bson:"location" json:"location"`
+	CreatedAt      time.Time       `bson:"createdAt" json:"createdAt"`
+	UpdatedAt      time.Time       `bson:"updatedAt" json:"updatedAt"`
 }
 
 type DeviceInfo struct {

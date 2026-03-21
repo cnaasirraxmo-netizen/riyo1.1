@@ -12,6 +12,7 @@ import (
 	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
+	"github.com/riyobox/backend/providers"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"

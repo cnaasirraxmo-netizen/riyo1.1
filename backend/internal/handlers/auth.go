@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/internal/utils"
+	"github.com/pquerna/otp/totp"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -25,9 +26,12 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	Email         string `json:"email" binding:"required,email"`
-	FirebaseToken string `json:"firebaseToken" binding:"required"`
+	Identifier    string `json:"identifier" binding:"required"` // Email or Username
+	Password      string `json:"password"`
+	FirebaseToken string `json:"firebaseToken"`
 	FCMToken      string `json:"fcmToken"`
+	RememberMe    bool   `json:"rememberMe"`
+	TwoFACode     string `json:"2faCode"`
 }
 
 type GoogleLoginRequest struct {
@@ -98,6 +102,8 @@ func ForgotPassword(c *gin.Context) {
 	subject := "YourApp Password Reset Code"
 	body := fmt.Sprintf("Hi,\n\nYour password reset code is: %s\n\nThis code expires in 15 minutes.", code)
 
+	// Integration with Firebase for sending reset links (via SDK if possible)
+	// For this task, we will send the code via our email utility
 	go utils.SendEmail(req.Email, subject, body)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Reset code sent to your email"})
@@ -247,42 +253,104 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Verify Firebase Token
-	fbToken, err := utils.VerifyFirebaseToken(req.FirebaseToken)
+	collection := db.DB.Collection("users")
+	var user models.User
+	err := collection.FindOne(context.TODO(), bson.M{
+		"$or": []bson.M{
+			{"email": req.Identifier},
+			{"username": req.Identifier},
+		},
+	}).Decode(&user)
+
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid Firebase token"})
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid credentials"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Database error"})
 		return
 	}
 
-	collection := db.DB.Collection("users")
-	var user models.User
-	err = collection.FindOne(context.TODO(), bson.M{"email": req.Email}).Decode(&user)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "User not found in database"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	// Check if account is locked
+	if user.LockedUntil != nil && user.LockedUntil.After(time.Now()) {
+		c.JSON(http.StatusForbidden, gin.H{"message": fmt.Sprintf("Account locked until %v", user.LockedUntil.Format(time.RFC822))})
 		return
 	}
+
+	// Admin login with password
+	if user.Role == "admin" && req.Password != "" {
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
+		if err != nil {
+			// Increment login attempts
+			newAttempts := user.LoginAttempts + 1
+			update := bson.M{"$set": bson.M{"loginAttempts": newAttempts}}
+			if newAttempts >= 5 {
+				lockTime := time.Now().Add(15 * time.Minute)
+				update["$set"].(bson.M)["lockedUntil"] = lockTime
+				// Log suspicious activity
+				fmt.Printf("[SECURITY] Account %s locked due to too many failed attempts\n", user.Email)
+			}
+			collection.UpdateOne(context.TODO(), bson.M{"_id": user.ID}, update)
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid credentials"})
+			return
+		}
+
+		// Check 2FA if enabled
+		if user.TwoFASecret != "" {
+			if req.TwoFACode == "" {
+				c.JSON(http.StatusOK, gin.H{"require2FA": true})
+				return
+			}
+			valid := totp.Validate(req.TwoFACode, user.TwoFASecret)
+			if !valid {
+				c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid 2FA code"})
+				return
+			}
+		}
+	} else if req.FirebaseToken != "" {
+		// Regular user login with Firebase
+		_, err := utils.VerifyFirebaseToken(req.FirebaseToken)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid Firebase token"})
+			return
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Authentication method not provided"})
+		return
+	}
+
+	// Success: Reset attempts and update last login
+	now := time.Now()
+	collection.UpdateOne(context.TODO(), bson.M{"_id": user.ID}, bson.M{
+		"$set": bson.M{
+			"loginAttempts": 0,
+			"lastLogin":      now,
+			"lockedUntil":    nil,
+		},
+	})
 
 	if req.FCMToken != "" {
 		addFCMToken(context.TODO(), user.ID, req.FCMToken)
 	}
 
-	token, err := utils.GenerateToken(user.ID)
+	duration := time.Hour
+	if req.RememberMe {
+		duration = time.Hour * 24 * 30
+	}
+
+	token, err := utils.GenerateTokenWithDuration(user.ID, duration)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate token"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"_id":   user.ID,
-		"name":  user.Name,
-		"email": user.Email,
-		"role":  user.Role,
-		"token": token,
-		"uid":   fbToken.UID,
+		"_id":      user.ID,
+		"name":     user.Name,
+		"username": user.Username,
+		"email":    user.Email,
+		"role":     user.Role,
+		"token":    token,
 	})
 }
 
