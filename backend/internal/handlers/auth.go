@@ -518,7 +518,12 @@ func addFCMToken(ctx context.Context, userID bson.ObjectID, token string) {
 	collection.UpdateOne(ctx, bson.M{"_id": userID}, bson.M{"$addToSet": bson.M{"fcmTokens": token}})
 
 	// Subscribe to "all_users" topic for broadcasts
-	go utils.SubscribeToTopic(context.Background(), []string{token}, "all_users")
+	go func() {
+		err := utils.SubscribeToTopic(context.Background(), []string{token}, "all_users")
+		if err != nil {
+			fmt.Printf("[FCM] Failed to subscribe token %s to topic: %v\n", token, err)
+		}
+	}()
 }
 
 func sendWelcomeNotification(ctx context.Context, userID bson.ObjectID, tokens []string) {

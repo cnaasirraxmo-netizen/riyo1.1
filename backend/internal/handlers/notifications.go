@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/riyobox/backend/internal/db"
+	"fmt"
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/internal/utils"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -38,7 +39,7 @@ func SendAdminNotification(c *gin.Context) {
 				status = "failed"
 			}
 
-			db.DB.Collection("notifications").InsertOne(ctx, models.Notification{
+			notif := models.Notification{
 				ID:        bson.NewObjectID(),
 				Title:     req.Title,
 				Message:   req.Message,
@@ -46,7 +47,14 @@ func SendAdminNotification(c *gin.Context) {
 				Status:    status,
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
-			})
+			}
+
+			if err != nil {
+				// Record error for debugging
+				fmt.Printf("[NOTIF] Topic broadcast failed: %v\n", err)
+			}
+
+			db.DB.Collection("notifications").InsertOne(ctx, notif)
 		}()
 
 		c.JSON(http.StatusOK, gin.H{"message": "Broadcast notification queued"})

@@ -46,7 +46,6 @@ func InitFirebase() {
 	msgClient, err := app.Messaging(context.Background())
 	if err != nil {
 		log.Printf("Error getting Firebase messaging client: %v", err)
-		// We don't necessarily want to fatal here if only messaging fails
 	}
 
 	FirebaseApp = app
@@ -90,6 +89,12 @@ func SendPushNotification(ctx context.Context, tokens []string, title, body stri
 					Title: title,
 					Body:  body,
 				},
+				Android: &messaging.AndroidConfig{
+					Notification: &messaging.AndroidNotification{
+						ChannelID: "high_importance_channel",
+						Priority:  messaging.PriorityHigh,
+					},
+				},
 				Data: data,
 			}
 			_, err := FirebaseMessaging.Send(ctx, message)
@@ -104,6 +109,12 @@ func SendPushNotification(ctx context.Context, tokens []string, title, body stri
 			Notification: &messaging.Notification{
 				Title: title,
 				Body:  body,
+			},
+			Android: &messaging.AndroidConfig{
+				Notification: &messaging.AndroidNotification{
+					ChannelID: "high_importance_channel",
+					Priority:  messaging.PriorityHigh,
+				},
 			},
 			Data: data,
 		}
@@ -145,6 +156,12 @@ func SendToTopic(ctx context.Context, topic, title, body string, data map[string
 		Notification: &messaging.Notification{
 			Title: title,
 			Body:  body,
+		},
+		Android: &messaging.AndroidConfig{
+			Notification: &messaging.AndroidNotification{
+				ChannelID: "high_importance_channel",
+				Priority:  messaging.PriorityHigh,
+			},
 		},
 		Data: data,
 	}
