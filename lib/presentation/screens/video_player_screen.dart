@@ -157,17 +157,23 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         _movie = await apiService.getMovieDetails(widget.movieId!, token: auth.token);
 
         // Check for local download first
-        if (_movie?.localPath != null && await File(_movie!.localPath!).exists()) {
-          _sources.insert(
-            0,
-            StreamSource(
-              label: 'Offline (Downloaded)',
-              url: _movie!.localPath!,
-              type: _movie!.localPath!.contains('.m3u8') ? 'hls' : 'direct',
-              provider: 'local',
-              quality: 'Original',
-            ),
-          );
+        if (_movie?.localPath != null) {
+          final file = File(_movie!.localPath!);
+          if (await file.exists()) {
+            final size = await file.length();
+            if (size > 1024) { // Basic sanity check: > 1KB
+              _sources.insert(
+                0,
+                StreamSource(
+                  label: 'Offline (Downloaded)',
+                  url: _movie!.localPath!,
+                  type: _movie!.localPath!.contains('.m3u8') ? 'hls' : 'direct',
+                  provider: 'local',
+                  quality: 'Original',
+                ),
+              );
+            }
+          }
         }
 
         final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
@@ -724,9 +730,11 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
   void _showSpeedMenu() {
     _showBottomDialog('PLAYBACK SPEED', ['0.5x', '1.0x', '1.5x', '2.0x'], (val) {
+      final speed = double.parse(val.replaceAll('x', ''));
       setState(() {
-        _playbackSpeed = double.parse(val.replaceAll('x', ''));
+        _playbackSpeed = speed;
       });
+      _engine?.setSpeed(speed);
     });
   }
 

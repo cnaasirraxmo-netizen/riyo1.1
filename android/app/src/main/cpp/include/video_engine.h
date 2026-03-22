@@ -43,11 +43,16 @@ public:
     void load(const std::string& url);
     void play();
     void pause();
+    void stop();
     void seek(double time_seconds);
     void setQuality(int level);
+    void setVolume(float volume);
+    void setSpeed(float speed);
+    void setAspectRatio(int mode);
     PlayerState getState() const;
     double getPosition() const;
     double getDuration() const;
+    double getBufferingProgress() const;
 
     void setEventCallback(EventCallback callback);
 
@@ -63,6 +68,10 @@ private:
 
     double m_position;
     double m_duration;
+    float m_volume;
+    float m_speed;
+    int m_aspectRatioMode;
+    double m_bufferingProgress;
 
     bool m_isRunning;
     std::unique_ptr<std::thread> m_engineThread;

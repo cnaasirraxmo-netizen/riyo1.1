@@ -33,6 +33,11 @@ void player_pause(void* handle) {
     player->pause();
 }
 
+void player_stop(void* handle) {
+    auto player = static_cast<VideoEngine*>(handle);
+    player->stop();
+}
+
 void player_seek(void* handle, double time) {
     auto player = static_cast<VideoEngine*>(handle);
     player->seek(time);
@@ -41,6 +46,21 @@ void player_seek(void* handle, double time) {
 void player_set_quality(void* handle, int level) {
     auto player = static_cast<VideoEngine*>(handle);
     player->setQuality(level);
+}
+
+void player_set_volume(void* handle, float volume) {
+    auto player = static_cast<VideoEngine*>(handle);
+    player->setVolume(volume);
+}
+
+void player_set_speed(void* handle, float speed) {
+    auto player = static_cast<VideoEngine*>(handle);
+    player->setSpeed(speed);
+}
+
+void player_set_aspect_ratio(void* handle, int mode) {
+    auto player = static_cast<VideoEngine*>(handle);
+    player->setAspectRatio(mode);
 }
 
 int player_get_state(void* handle) {
@@ -56,6 +76,11 @@ double player_get_position(void* handle) {
 double player_get_duration(void* handle) {
     auto player = static_cast<VideoEngine*>(handle);
     return player->getDuration();
+}
+
+double player_get_buffering_progress(void* handle) {
+    auto player = static_cast<VideoEngine*>(handle);
+    return player->getBufferingProgress();
 }
 
 typedef void (*NativeEventCallback)(int event, const char* data);
