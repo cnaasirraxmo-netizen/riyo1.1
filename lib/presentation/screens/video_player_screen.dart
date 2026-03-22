@@ -343,9 +343,18 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     // Automatic switch to another source if one fails
     _eventSubscription?.cancel();
     _eventSubscription = _engine!.eventStream.listen((event) {
-      if (event['event'] == 3) { // Assume 3 is ERROR event from native engine
-        debugPrint('Native player error received, switching source...');
+      final eventType = event['event'] as int;
+      final data = event['data'] as String;
+
+      if (eventType == 4) { // Assume 4 is ERROR
+        debugPrint('Native player error received: $data. Switching source...');
         _handleSourceError();
+      } else if (eventType == 8) { // POSITION_UPDATE
+         final pos = double.tryParse(data) ?? _position;
+         if (mounted) setState(() => _position = pos);
+      } else if (eventType == 9) { // DURATION_UPDATE
+         final dur = double.tryParse(data) ?? _duration;
+         if (mounted) setState(() => _duration = dur);
       }
     });
 

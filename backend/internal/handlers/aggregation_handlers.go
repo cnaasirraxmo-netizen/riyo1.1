@@ -49,6 +49,7 @@ func GetHome(c *gin.Context) {
 			"isPublished": 1,
 			"status":      1,
 			"accessType":  1,
+			"videoUrl":    1,
 		}
 
 		opts := options.Find().SetLimit(10).SetSort(bson.M{"createdAt": -1}).SetProjection(projection)

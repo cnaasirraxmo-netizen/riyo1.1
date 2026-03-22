@@ -67,6 +67,7 @@ func GetMovies(c *gin.Context) {
 				"isPublished": 1,
 				"status":      1,
 				"accessType":  1,
+				"videoUrl":    1,
 			})
 
 		collection := db.DB.Collection("movies")
