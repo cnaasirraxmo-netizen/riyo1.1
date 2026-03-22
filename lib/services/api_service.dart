@@ -71,11 +71,12 @@ class ApiService {
 
   // RESTORED METHODS TO FIX CI COMPILATION ERRORS
 
-  Future<List<Movie>> getTrendingMovies({String? token, String? genre, bool isFeatured = false, int page = 1, int limit = 20}) async {
+  Future<List<Movie>> getTrendingMovies({String? token, String? genre, bool isFeatured = false, String? sourceType, int page = 1, int limit = 20}) async {
     String url = '$_backendUrl/movies';
     final List<String> params = [];
     if (genre != null) params.add('genre=$genre');
     if (isFeatured) params.add('isFeatured=true');
+    if (sourceType != null) params.add('sourceType=$sourceType');
     params.add('page=$page');
     params.add('limit=$limit');
 
@@ -83,6 +84,17 @@ class ApiService {
 
     final response = await http.get(
       Uri.parse(url),
+      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+    );
+    if (response.statusCode == 200) {
+      return _parseList(json.decode(response.body));
+    }
+    return [];
+  }
+
+  Future<List<Movie>> getAdminMovies({String? token, int page = 1, int limit = 20}) async {
+    final response = await http.get(
+      Uri.parse('$_backendUrl/movies/admin?page=$page&limit=$limit'),
       headers: token != null ? {'Authorization': 'Bearer $token'} : {},
     );
     if (response.statusCode == 200) {

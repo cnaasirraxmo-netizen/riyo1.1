@@ -139,6 +139,11 @@ type Movie struct {
 	BannerURL     string           `bson:"bannerUrl" json:"bannerUrl"`
 	ThumbnailURL  string           `bson:"thumbnailUrl" json:"thumbnailUrl"`
 	VideoURL      string           `bson:"videoUrl" json:"videoUrl"` // For backward compatibility
+	DirectURL     string           `bson:"directUrl" json:"directUrl"`
+	EmbedURLs     map[string]string `bson:"embedUrls" json:"embedUrls"`
+	VideoURLs     map[string]string `bson:"videoUrls" json:"videoUrls"`
+	SourceType    string           `bson:"sourceType" json:"sourceType"` // admin, scraped
+	IsScraped     bool             `bson:"isScraped" json:"isScraped"`
 	Sources       []StreamSource   `bson:"sources" json:"sources"`
 	TrailerURL    string           `bson:"trailerUrl" json:"trailerUrl"`
 	TrailerType   string           `bson:"trailerType" json:"trailerType"` // local, youtube, link

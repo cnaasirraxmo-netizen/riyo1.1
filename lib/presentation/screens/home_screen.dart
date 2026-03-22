@@ -327,7 +327,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                           auth.token, home)),
                                   const SizedBox(height: 24),
                                   _buildContinueWatchingSection(auth.token),
-                                  ...home.sections.map((sec) {
+                                  if (home.sections.any((s) => s['type'] == 'admin_only'))
+                                    _buildMovieCategory(
+                                        'RIYOBOX EXCLUSIVES',
+                                        home.getSectionFuture('RIYOBOX EXCLUSIVES', 'admin_only', token: auth.token)),
+                                  ...home.sections.where((s) => s['type'] != 'admin_only').map((sec) {
                                     if (sec['type'] == 'continue_watching') {
                                       return _buildContinueWatchingSection(
                                           auth.token);

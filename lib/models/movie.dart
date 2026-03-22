@@ -74,6 +74,11 @@ class Movie {
   final int? seasonNumber;
   final List<Season>? seasons;
   final String? videoUrl;
+  final String? directUrl;
+  final Map<String, String>? embedUrls;
+  final Map<String, String>? videoUrls;
+  final String? sourceType;
+  final bool isScraped;
   final List<StreamSource>? sources;
   final String? trailerUrl;
   final String? trailerType;
@@ -119,6 +124,11 @@ class Movie {
     this.seasonNumber,
     this.seasons,
     this.videoUrl,
+    this.directUrl,
+    this.embedUrls,
+    this.videoUrls,
+    this.sourceType,
+    this.isScraped = false,
     this.sources,
     this.trailerUrl,
     this.trailerType,
@@ -159,6 +169,10 @@ class Movie {
       'isTvShow': isTvShow,
       'isKidsContent': isKidsContent,
       'videoUrl': videoUrl,
+      'directUrl': directUrl,
+      'embedUrls': embedUrls,
+      'sourceType': sourceType,
+      'isScraped': isScraped,
       'trailerUrl': trailerUrl,
     };
   }
@@ -190,6 +204,10 @@ class Movie {
       'isTvShow': isTvShow,
       'isKidsContent': isKidsContent,
       'videoUrl': videoUrl,
+      'directUrl': directUrl,
+      'embedUrls': embedUrls,
+      'sourceType': sourceType,
+      'isScraped': isScraped,
       'trailerUrl': trailerUrl,
       'trailerType': trailerType,
       'seasons': seasons?.map((s) => s.toMap()).toList(),
@@ -233,6 +251,11 @@ class Movie {
       seasonNumber: json['season_number'],
       seasons: json['seasons'] != null ? (json['seasons'] as List).map((s) => Season.fromJson(s)).toList() : null,
       videoUrl: json['videoUrl'],
+      directUrl: json['directUrl'],
+      embedUrls: json['embedUrls'] != null ? Map<String, String>.from(json['embedUrls']) : null,
+      videoUrls: json['videoUrls'] != null ? Map<String, String>.from(json['videoUrls']) : null,
+      sourceType: json['sourceType'],
+      isScraped: json['isScraped'] ?? false,
       sources: json['sources'] != null ? (json['sources'] as List).map((s) => StreamSource.fromJson(s)).toList() : null,
       trailerUrl: json['trailerUrl'] ?? json['trailer_url'],
       trailerType: json['trailerType'],

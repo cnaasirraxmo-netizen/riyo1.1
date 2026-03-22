@@ -32,6 +32,7 @@ func GetHome(c *gin.Context) {
 	cached, err := cache.GetOrSetCache("home_data", cache.TrendingTTL, func() (interface{}, error) {
 		collection := db.DB.Collection("movies")
 
+		adminMovies := []models.Movie{}
 		trendingMovies := []models.Movie{}
 		popularMovies := []models.Movie{}
 		topRatedMovies := []models.Movie{}
@@ -50,24 +51,47 @@ func GetHome(c *gin.Context) {
 			"status":      1,
 			"accessType":  1,
 			"videoUrl":    1,
+			"directUrl":   1,
+			"embedUrls":   1,
+			"sourceType":  1,
 		}
 
 		opts := options.Find().SetLimit(10).SetSort(bson.M{"createdAt": -1}).SetProjection(projection)
 
-		cursor, _ := collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": false, "isPublished": true}, opts)
-		cursor.All(context.TODO(), &trendingMovies)
+		cursor, err := collection.Find(c.Request.Context(), bson.M{"sourceType": "admin", "isPublished": true}, opts)
+		if err == nil {
+			cursor.All(c.Request.Context(), &adminMovies)
+			cursor.Close(c.Request.Context())
+		}
 
-		cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, opts)
-		cursor.All(context.TODO(), &popularMovies)
+		// Trending/Popular/TopRated should be scraped content primarily
+		cursor, err = collection.Find(c.Request.Context(), bson.M{"isTrending": true, "isTvShow": false, "isPublished": true, "sourceType": bson.M{"$ne": "admin"}}, opts)
+		if err == nil {
+			cursor.All(c.Request.Context(), &trendingMovies)
+			cursor.Close(c.Request.Context())
+		}
+
+		cursor, err = collection.Find(c.Request.Context(), bson.M{"isTvShow": false, "isPublished": true, "sourceType": bson.M{"$ne": "admin"}}, opts)
+		if err == nil {
+			cursor.All(c.Request.Context(), &popularMovies)
+			cursor.Close(c.Request.Context())
+		}
 
 		optsRating := options.Find().SetLimit(10).SetSort(bson.M{"rating": -1}).SetProjection(projection)
-		cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, optsRating)
-		cursor.All(context.TODO(), &topRatedMovies)
+		cursor, err = collection.Find(c.Request.Context(), bson.M{"isTvShow": false, "isPublished": true, "sourceType": bson.M{"$ne": "admin"}}, optsRating)
+		if err == nil {
+			cursor.All(c.Request.Context(), &topRatedMovies)
+			cursor.Close(c.Request.Context())
+		}
 
-		cursor, _ = collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": true, "isPublished": true}, opts)
-		cursor.All(context.TODO(), &trendingTV)
+		cursor, err = collection.Find(c.Request.Context(), bson.M{"isTrending": true, "isTvShow": true, "isPublished": true, "sourceType": bson.M{"$ne": "admin"}}, opts)
+		if err == nil {
+			cursor.All(c.Request.Context(), &trendingTV)
+			cursor.Close(c.Request.Context())
+		}
 
 		return gin.H{
+			"adminMovies":    adminMovies,
 			"trendingMovies": trendingMovies,
 			"popularMovies":  popularMovies,
 			"topRatedMovies": topRatedMovies,
@@ -387,7 +411,10 @@ func GetMovieSources(c *gin.Context) {
 		cacheKey = fmt.Sprintf("movie_sources_%d", movie.TMDbID)
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		scrapedSources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+		var scrapedSources []models.StreamSource
+		if movie.SourceType != "admin" {
+			scrapedSources = VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+		}
 
 		var allSources []models.StreamSource
 
@@ -487,7 +514,10 @@ func GetTVSources(c *gin.Context) {
 		cacheKey = fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		scrapedSources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
+		var scrapedSources []models.StreamSource
+		if movie.SourceType != "admin" {
+			scrapedSources = VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
+		}
 
 		var allSources []models.StreamSource
 
