@@ -87,6 +87,7 @@ func main() {
 
 	// Routes
 	auth := r.Group("/auth")
+	auth.Use(middleware.AuthRateLimit())
 	{
 		auth.POST("/register", handlers.Register)
 		auth.POST("/login", handlers.Login)

@@ -99,12 +99,20 @@ func ForgotPassword(c *gin.Context) {
 	}
 
 	// Send Email
-	subject := "YourApp Password Reset Code"
+	subject := "Riyo Password Reset Code"
 	body := fmt.Sprintf("Hi,\n\nYour password reset code is: %s\n\nThis code expires in 15 minutes.", code)
 
-	// Integration with Firebase for sending reset links (via SDK if possible)
-	// For this task, we will send the code via our email utility
+	// Send reset link/code via email service (SendGrid/SMTP)
 	go utils.SendEmail(req.Email, subject, body)
+
+	// Optional: Use Firebase's native password reset link (if configured)
+	if utils.FirebaseAuth != nil {
+		link, err := utils.FirebaseAuth.PasswordResetLink(context.Background(), req.Email)
+		if err == nil {
+			fmt.Printf("Firebase Reset Link (Internal Log): %s\n", link)
+			// You could also send this link to the user
+		}
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Reset code sent to your email"})
 }

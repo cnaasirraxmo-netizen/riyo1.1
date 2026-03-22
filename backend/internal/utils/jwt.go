@@ -10,7 +10,7 @@ import (
 )
 
 func GenerateToken(id bson.ObjectID) (string, error) {
-	return GenerateTokenWithDuration(id, time.Hour*24*30)
+	return GenerateTokenWithDuration(id, time.Hour)
 }
 
 func GenerateTokenWithDuration(id bson.ObjectID, duration time.Duration) (string, error) {

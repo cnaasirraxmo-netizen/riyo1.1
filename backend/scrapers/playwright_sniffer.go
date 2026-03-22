@@ -45,6 +45,13 @@ func (s *PlaywrightSniffer) Sniff(targetURL string, headless bool, cookies []pla
 
 	browser, err := s.pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
 		Headless: playwright.Bool(headless),
+		Args: []string{
+			"--no-sandbox",
+			"--disable-setuid-sandbox",
+			"--disable-dev-shm-usage",
+			"--single-process",
+			"--no-zygote",
+		},
 	})
 	if err != nil {
 		return nil, err
