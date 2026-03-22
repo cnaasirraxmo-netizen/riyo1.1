@@ -28,6 +28,9 @@ var (
 )
 
 func NewPlaywrightSniffer() *PlaywrightSniffer {
+	if os.Getenv("DISABLE_BROWSER") == "true" {
+		return nil
+	}
 	snifferOnce.Do(func() {
 		pw, err := playwright.Run()
 		if err != nil {

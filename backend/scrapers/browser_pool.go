@@ -1,6 +1,7 @@
 package scrapers
 
 import (
+	"os"
 	"sync"
 	"time"
 
@@ -23,6 +24,9 @@ var (
 
 // GetBrowserPool returns the singleton instance
 func GetBrowserPool() *BrowserPool {
+	if os.Getenv("DISABLE_BROWSER") == "true" {
+		return nil
+	}
 	poolOnce.Do(func() {
 		// Launch Chromium with memory-friendly options
 		l := launcher.New().
@@ -50,6 +54,9 @@ func GetBrowserPool() *BrowserPool {
 
 // GetPage retrieves a page from the pool or creates a temporary one
 func (p *BrowserPool) GetPage(timeout time.Duration) (*rod.Page, func()) {
+	if p == nil {
+		return nil, func() {}
+	}
 	select {
 	case page := <-p.pages:
 		// Return page to pool when done
