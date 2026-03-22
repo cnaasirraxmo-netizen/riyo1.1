@@ -19,6 +19,7 @@ import (
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/services"
+	"github.com/riyobox/backend/scrapers"
 	"github.com/riyobox/backend/utils"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -586,6 +587,31 @@ func GetKidsHome(c *gin.Context) {
 
 	var results []models.Movie
 	cursor.All(context.TODO(), &results)
+
+	c.JSON(http.StatusOK, results)
+}
+
+func SniffMedia(c *gin.Context) {
+	var req struct {
+		URL      string `json:"url" binding:"required"`
+		Headless bool   `json:"headless"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	sniffer := scrapers.NewPlaywrightSniffer()
+	if sniffer == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Sniffer service unavailable"})
+		return
+	}
+
+	results, err := sniffer.Sniff(req.URL, req.Headless, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, results)
 }

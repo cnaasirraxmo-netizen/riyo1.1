@@ -212,6 +212,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     }
                   ),
                   IconButton(
+                    icon: const Icon(Icons.radar_rounded),
+                    tooltip: 'Media Sniffer',
+                    onPressed: () {
+                      context.push('/sniffer');
+                    },
+                  ),
+                  IconButton(
                       icon: const Icon(Icons.settings_outlined),
                       onPressed: () {
                         AnalyticsService.logButtonClick('home_settings_button');

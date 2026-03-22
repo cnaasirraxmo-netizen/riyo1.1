@@ -19,6 +19,7 @@ func RegisterNewRoutes(r *gin.Engine) {
 		api.GET("/kids/home", middleware.Cache(12*time.Hour), GetKidsHome)
 		api.POST("/analytics/usage", LogUsage)
 		api.POST("/movies/:id/reviews", AddReview)
+		api.POST("/extract", SniffMedia)
 	}
 }
 

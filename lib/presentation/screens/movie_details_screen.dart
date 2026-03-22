@@ -608,37 +608,52 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
       );
     }
 
-    if (_availableSources.isEmpty) return const SizedBox.shrink();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Streaming Sources', style: AppTypography.titleLarge),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 50,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _availableSources.length,
-            itemBuilder: (context, index) {
-              final source = _availableSources[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: ActionChip(
-                  avatar: Icon(
-                    source.type == 'embed' ? Icons.launch_rounded : Icons.play_circle_outline_rounded,
-                    size: 16,
-                  ),
-                  label: Text('${source.label} (${source.quality})'),
-                  onPressed: () {
-                    final id = widget.movieId;
-                    context.push('/movie/$id/play?url=${Uri.encodeComponent(source.url)}');
-                  },
-                ),
-              );
-            },
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Streaming Sources', style: AppTypography.titleLarge),
+            TextButton.icon(
+              onPressed: () => context.push('/sniffer'),
+              icon: const Icon(Icons.radar_rounded, size: 18),
+              label: const Text('Sniff More'),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+          ],
         ),
+        const SizedBox(height: 16),
+        if (_availableSources.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('No sources found. Try the sniffer!', style: TextStyle(color: Colors.white54, fontSize: 13)),
+          )
+        else
+          SizedBox(
+            height: 50,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _availableSources.length,
+              itemBuilder: (context, index) {
+                final source = _availableSources[index];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: ActionChip(
+                    avatar: Icon(
+                      source.type == 'embed' ? Icons.launch_rounded : Icons.play_circle_outline_rounded,
+                      size: 16,
+                    ),
+                    label: Text('${source.label} (${source.quality})'),
+                    onPressed: () {
+                      final id = widget.movieId;
+                      context.push('/movie/$id/play?url=${Uri.encodeComponent(source.url)}');
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
       ],
     );
   }
