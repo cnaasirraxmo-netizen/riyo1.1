@@ -25,8 +25,9 @@ class VideoPlayerScreen extends rp.ConsumerStatefulWidget {
   final String? videoUrl;
   final int? season;
   final int? episode;
+  final String? provider;
 
-  const VideoPlayerScreen({super.key, this.movieId, this.videoUrl, this.season, this.episode});
+  const VideoPlayerScreen({super.key, this.movieId, this.videoUrl, this.season, this.episode, this.provider});
 
   @override
   rp.ConsumerState<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
@@ -236,6 +237,16 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           }
 
           _selectedSource = _sources[_currentSourceIndex];
+
+          // If a specific provider was requested, try to select it
+          if (widget.provider != null) {
+             final pIndex = _sources.indexWhere((s) => s.provider == widget.provider);
+             if (pIndex != -1) {
+               _currentSourceIndex = pIndex;
+               _selectedSource = _sources[pIndex];
+             }
+          }
+
           if (mounted) _initPlayer();
         } else if (widget.videoUrl != null) {
           if (mounted) _initPlayer();
@@ -308,6 +319,12 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       debugPrint('Invalid or unreachable link detected on frontend: $url');
       _handleSourceError();
       return;
+    }
+
+    // For Admin/Local sources, we skip finding best stream and play instantly
+    final isInstantSource = _selectedSource?.provider == 'admin' || _selectedSource?.provider == 'local';
+    if (isInstantSource) {
+      debugPrint('Instant playback requested for ${_selectedSource?.provider} source');
     }
 
     _engine?.dispose();
@@ -506,7 +523,11 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
                       const CircularProgressIndicator(color: Colors.purple),
                       const SizedBox(height: 16),
                       Text(
-                        _isLoadingSource ? 'Finding best stream...' : 'Buffering...',
+                        _isLoadingSource
+                            ? (_selectedSource?.provider == 'admin' || _selectedSource?.provider == 'local'
+                                ? 'Starting instant playback...'
+                                : 'Finding best stream...')
+                            : 'Buffering...',
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ],

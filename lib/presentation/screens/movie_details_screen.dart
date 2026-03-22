@@ -601,60 +601,76 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Streaming Sources', style: AppTypography.titleLarge),
+          Text('Available Servers', style: AppTypography.titleLarge),
           const SizedBox(height: 16),
           Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
         ],
       );
     }
 
+    final adminSources = _availableSources.where((s) => s.provider == 'admin' || s.provider == 'local').toList();
+    final communitySources = _availableSources.where((s) => s.provider != 'admin' && s.provider != 'local').toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Streaming Sources', style: AppTypography.titleLarge),
-            TextButton.icon(
-              onPressed: () => context.push('/sniffer'),
-              icon: const Icon(Icons.radar_rounded, size: 18),
-              label: const Text('Sniff More'),
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-            ),
-          ],
-        ),
+        Text('Available Servers', style: AppTypography.titleLarge),
         const SizedBox(height: 16),
-        if (_availableSources.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('No sources found. Try the sniffer!', style: TextStyle(color: Colors.white54, fontSize: 13)),
-          )
-        else
+        if (adminSources.isNotEmpty) ...[
+          const Text('OFFICIAL SERVER (FAST)', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5)),
+          const SizedBox(height: 8),
+          ...adminSources.map((s) => _buildSourceItem(s, isOfficial: true)),
+          const SizedBox(height: 16),
+        ],
+        if (communitySources.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('COMMUNITY SERVERS', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5)),
+              TextButton.icon(
+                onPressed: () => context.push('/sniffer'),
+                icon: const Icon(Icons.radar_rounded, size: 14, color: Colors.grey),
+                label: const Text('SEARCH MORE', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             height: 50,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: _availableSources.length,
-              itemBuilder: (context, index) {
-                final source = _availableSources[index];
-                return Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: ActionChip(
-                    avatar: Icon(
-                      source.type == 'embed' ? Icons.launch_rounded : Icons.play_circle_outline_rounded,
-                      size: 16,
-                    ),
-                    label: Text('${source.label} (${source.quality})'),
-                    onPressed: () {
-                      final id = widget.movieId;
-                      context.push('/movie/$id/play?url=${Uri.encodeComponent(source.url)}');
-                    },
-                  ),
-                );
-              },
+              itemCount: communitySources.length,
+              itemBuilder: (context, index) => _buildSourceItem(communitySources[index]),
             ),
           ),
+        ],
+        if (_availableSources.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('No sources found. Try the sniffer!', style: TextStyle(color: Colors.white38, fontSize: 13)),
+          ),
       ],
+    );
+  }
+
+  Widget _buildSourceItem(StreamSource source, {bool isOfficial = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: ActionChip(
+        backgroundColor: isOfficial ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : null,
+        side: isOfficial ? BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)) : null,
+        avatar: Icon(
+          isOfficial ? Icons.verified_rounded : (source.type == 'embed' ? Icons.launch_rounded : Icons.play_circle_outline_rounded),
+          size: 16,
+          color: isOfficial ? Colors.amber : null,
+        ),
+        label: Text('${source.label} (${source.quality})'),
+        onPressed: () {
+          final id = widget.movieId;
+          context.push('/movie/$id/play?url=${Uri.encodeComponent(source.url)}&provider=${source.provider}');
+        },
+      ),
     );
   }
 

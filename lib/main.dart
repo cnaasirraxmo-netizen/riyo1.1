@@ -381,11 +381,13 @@ class _MyAppState extends State<MyApp> {
             final url = state.uri.queryParameters['url'];
             final s = state.uri.queryParameters['s'];
             final e = state.uri.queryParameters['e'];
+            final p = state.uri.queryParameters['provider'];
             return VideoPlayerScreen(
               movieId: id == 'external' ? null : id,
               videoUrl: url,
               season: s != null ? int.tryParse(s) : null,
               episode: e != null ? int.tryParse(e) : null,
+              provider: p,
             );
           },
         ),

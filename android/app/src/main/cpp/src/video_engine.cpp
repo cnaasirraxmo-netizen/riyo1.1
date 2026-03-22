@@ -123,10 +123,20 @@ void VideoEngine::engineThread() {
             std::lock_guard<std::mutex> lock(m_stateMutex);
             if (m_state == PlayerState::PLAYING) {
                 m_position += 0.1 * m_speed;
+
+                // Simulate metadata arrival
+                if (m_duration <= 0.0) {
+                    m_duration = 3600.0; // Mock 1 hour duration
+                    emitEvent(Event::DURATION_UPDATE, std::to_string(m_duration));
+                }
+
                 if (m_position >= m_duration) {
                     m_position = m_duration;
                     updateState(PlayerState::ENDED);
                 }
+
+                // Regular position update events
+                emitEvent(Event::POSITION_UPDATE, std::to_string(m_position));
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
