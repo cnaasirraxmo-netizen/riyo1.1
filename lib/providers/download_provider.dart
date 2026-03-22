@@ -108,6 +108,13 @@ class DownloadProvider with ChangeNotifier {
         throw FileSystemException("Could not create downloads directory", downloadDir.path, e as dynamic);
       }
 
+      if (videoUrl.contains('.m3u8')) {
+        // HLS Downloader logic (Minimal - downloads manifest)
+        // For a full HLS downloader, we'd need to parse the manifest and download segments.
+        // For now, we'll download the manifest and allow the player to attempt playback.
+        final dio = Dio();
+        await dio.download(videoUrl, filePath, cancelToken: cancelToken);
+      } else {
       final dio = Dio();
       await dio.download(
         videoUrl,
@@ -124,6 +131,7 @@ class DownloadProvider with ChangeNotifier {
           }
         },
       );
+      }
 
       _downloadingMovies.removeWhere((m) => m.id == movie.id);
       final downloadedMovie = movie.copyWith(

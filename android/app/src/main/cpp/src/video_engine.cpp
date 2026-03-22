@@ -6,7 +6,7 @@
 
 namespace riyo {
 
-VideoEngine::VideoEngine() : m_state(PlayerState::IDLE), m_isRunning(false), m_position(0.0), m_duration(0.0) {
+VideoEngine::VideoEngine() : m_state(PlayerState::IDLE), m_isRunning(false), m_position(0.0), m_duration(0.0), m_volume(1.0f), m_speed(1.0f), m_aspectRatioMode(0), m_bufferingProgress(0.0) {
     LOGI("VideoEngine initialized");
 }
 
@@ -56,6 +56,12 @@ void VideoEngine::pause() {
     }
 }
 
+void VideoEngine::stop() {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    updateState(PlayerState::IDLE);
+    m_position = 0.0;
+}
+
 void VideoEngine::seek(double time_seconds) {
     std::lock_guard<std::mutex> lock(m_stateMutex);
     m_position = time_seconds;
@@ -66,6 +72,24 @@ void VideoEngine::seek(double time_seconds) {
 void VideoEngine::setQuality(int level) {
     LOGI("Setting quality to: %d", level);
     emitEvent(Event::QUALITY_CHANGE, std::to_string(level));
+}
+
+void VideoEngine::setVolume(float volume) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    m_volume = volume;
+    LOGI("Setting volume: %f", volume);
+}
+
+void VideoEngine::setSpeed(float speed) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    m_speed = speed;
+    LOGI("Setting speed: %f", speed);
+}
+
+void VideoEngine::setAspectRatio(int mode) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    m_aspectRatioMode = mode;
+    LOGI("Setting aspect ratio mode: %d", mode);
 }
 
 PlayerState VideoEngine::getState() const {
@@ -83,6 +107,11 @@ double VideoEngine::getDuration() const {
     return m_duration;
 }
 
+double VideoEngine::getBufferingProgress() const {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    return m_bufferingProgress;
+}
+
 void VideoEngine::setEventCallback(EventCallback callback) {
     m_eventCallback = callback;
 }
@@ -93,7 +122,7 @@ void VideoEngine::engineThread() {
         {
             std::lock_guard<std::mutex> lock(m_stateMutex);
             if (m_state == PlayerState::PLAYING) {
-                m_position += 0.1;
+                m_position += 0.1 * m_speed;
                 if (m_position >= m_duration) {
                     m_position = m_duration;
                     updateState(PlayerState::ENDED);

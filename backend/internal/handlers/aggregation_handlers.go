@@ -386,11 +386,33 @@ func GetMovieSources(c *gin.Context) {
 		cacheKey = fmt.Sprintf("movie_sources_%d", movie.TMDbID)
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+		scrapedSources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+
+		var allSources []models.StreamSource
+
+		// 1. Admin direct VideoURL (Highest Priority)
+		if movie.VideoURL != "" {
+			allSources = append(allSources, models.StreamSource{
+				Label:    "Official Server",
+				URL:      movie.VideoURL,
+				Type:     VideoExt.DetectType(movie.VideoURL, ""),
+				Provider: "admin",
+				Quality:  "Auto",
+			})
+		}
+
+		// 2. Admin specific Sources
+		if len(movie.Sources) > 0 {
+			allSources = append(allSources, movie.Sources...)
+		}
+
+		// 3. Scraped sources
+		allSources = append(allSources, scrapedSources...)
+
 		subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
 
 		return gin.H{
-			"sources":   sources,
+			"sources":   allSources,
 			"subtitles": subtitles,
 		}, nil
 	})
@@ -464,11 +486,38 @@ func GetTVSources(c *gin.Context) {
 		cacheKey = fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		sources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
+		scrapedSources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
+
+		var allSources []models.StreamSource
+
+		// Find admin episode sources (Highest Priority)
+		for _, s := range movie.Seasons {
+			if s.Number == season {
+				for _, e := range s.Episodes {
+					if e.Number == episode {
+						if e.VideoURL != "" {
+							allSources = append(allSources, models.StreamSource{
+								Label:    "Official Server",
+								URL:      e.VideoURL,
+								Type:     VideoExt.DetectType(e.VideoURL, ""),
+								Provider: "admin",
+								Quality:  "Auto",
+							})
+						}
+						allSources = append(allSources, e.Sources...)
+						break
+					}
+				}
+				break
+			}
+		}
+
+		allSources = append(allSources, scrapedSources...)
+
 		subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
 
 		return gin.H{
-			"sources":   sources,
+			"sources":   allSources,
 			"subtitles": subtitles,
 		}, nil
 	})
