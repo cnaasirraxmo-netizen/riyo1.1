@@ -20,12 +20,13 @@ func GetMovies(c *gin.Context) {
 	isTrending := c.Query("isTrending")
 	isFeatured := c.Query("isFeatured")
 	contentType := c.Query("contentType")
+	sourceType := c.Query("sourceType")
 	search := c.Query("search")
 	pageStr := c.DefaultQuery("page", "1")
 	limitStr := c.DefaultQuery("limit", "20")
 
 	// Create a deterministic cache key from query params
-	cacheKey := fmt.Sprintf("movies_list_%s_%s_%s_%s_%s_%s_%s", genre, isTrending, isFeatured, contentType, search, pageStr, limitStr)
+	cacheKey := fmt.Sprintf("movies_list_%s_%s_%s_%s_%s_%s_%s_%s", genre, isTrending, isFeatured, contentType, sourceType, search, pageStr, limitStr)
 
 	cached, err := cache.GetOrSetCache(cacheKey, cache.TrendingTTL, func() (interface{}, error) {
 		page, _ := strconv.Atoi(pageStr)
@@ -43,6 +44,9 @@ func GetMovies(c *gin.Context) {
 		}
 		if contentType != "" {
 			query["contentType"] = contentType
+		}
+		if sourceType != "" {
+			query["sourceType"] = sourceType
 		}
 		if search != "" {
 			query["$or"] = []bson.M{
@@ -68,6 +72,70 @@ func GetMovies(c *gin.Context) {
 				"status":      1,
 				"accessType":  1,
 				"videoUrl":    1,
+				"directUrl":   1,
+				"sourceType":  1,
+			})
+
+		collection := db.DB.Collection("movies")
+		cursor, err := collection.Find(context.TODO(), query, opts)
+		if err != nil {
+			return nil, err
+		}
+		defer cursor.Close(context.TODO())
+
+		var movies []models.Movie
+		if err = cursor.All(context.TODO(), &movies); err != nil {
+			return nil, err
+		}
+
+		total, _ := collection.CountDocuments(context.TODO(), query)
+
+		return gin.H{
+			"movies": movies,
+			"page":   page,
+			"pages":  math.Ceil(float64(total) / float64(limit)),
+			"total":  total,
+		}, nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, cached)
+}
+
+func GetAdminMovies(c *gin.Context) {
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "20")
+
+	cacheKey := fmt.Sprintf("movies_admin_%s_%s", pageStr, limitStr)
+
+	cached, err := cache.GetOrSetCache(cacheKey, cache.TrendingTTL, func() (interface{}, error) {
+		page, _ := strconv.Atoi(pageStr)
+		limit, _ := strconv.Atoi(limitStr)
+
+		query := bson.M{"isPublished": true, "sourceType": "admin"}
+		skip := int64((page - 1) * limit)
+		opts := options.Find().
+			SetSort(bson.M{"createdAt": -1}).
+			SetSkip(skip).
+			SetLimit(int64(limit)).
+			SetProjection(bson.M{
+				"title":       1,
+				"posterUrl":   1,
+				"year":        1,
+				"rating":      1,
+				"genre":       1,
+				"contentType": 1,
+				"isTvShow":    1,
+				"isPublished": 1,
+				"status":      1,
+				"accessType":  1,
+				"videoUrl":    1,
+				"directUrl":   1,
+				"sourceType":  1,
 			})
 
 		collection := db.DB.Collection("movies")

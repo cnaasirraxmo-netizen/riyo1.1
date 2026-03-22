@@ -45,6 +45,8 @@ const Movies = () => {
     genre: '',
     posterUrl: '',
     videoUrl: '',
+    source_type: 'admin',
+    is_scraped: false,
     status: 'Active', // Active or Draft
     isFeatured: false,
     isPublished: true,
@@ -204,6 +206,9 @@ const Movies = () => {
       duration: parsedDuration,
       rating: parseFloat(formData.rating) || 0,
       isPublished: formData.status === 'Active',
+      sourceType: formData.source_type || 'admin',
+      isScraped: formData.is_scraped || false,
+      directUrl: formData.videoUrl,
       genre: formData.genre.split(',').map(g => g.trim()).filter(g => g),
       sources: [
         {

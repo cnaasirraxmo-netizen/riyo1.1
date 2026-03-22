@@ -32,6 +32,7 @@ func GetHome(c *gin.Context) {
 	cached, err := cache.GetOrSetCache("home_data", cache.TrendingTTL, func() (interface{}, error) {
 		collection := db.DB.Collection("movies")
 
+		adminMovies := []models.Movie{}
 		trendingMovies := []models.Movie{}
 		popularMovies := []models.Movie{}
 		topRatedMovies := []models.Movie{}
@@ -50,11 +51,16 @@ func GetHome(c *gin.Context) {
 			"status":      1,
 			"accessType":  1,
 			"videoUrl":    1,
+			"directUrl":   1,
+			"sourceType":  1,
 		}
 
 		opts := options.Find().SetLimit(10).SetSort(bson.M{"createdAt": -1}).SetProjection(projection)
 
-		cursor, _ := collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": false, "isPublished": true}, opts)
+		cursor, _ := collection.Find(context.TODO(), bson.M{"sourceType": "admin", "isPublished": true}, opts)
+		cursor.All(context.TODO(), &adminMovies)
+
+		cursor, _ = collection.Find(context.TODO(), bson.M{"isTrending": true, "isTvShow": false, "isPublished": true}, opts)
 		cursor.All(context.TODO(), &trendingMovies)
 
 		cursor, _ = collection.Find(context.TODO(), bson.M{"isTvShow": false, "isPublished": true}, opts)
@@ -68,6 +74,7 @@ func GetHome(c *gin.Context) {
 		cursor.All(context.TODO(), &trendingTV)
 
 		return gin.H{
+			"adminMovies":    adminMovies,
 			"trendingMovies": trendingMovies,
 			"popularMovies":  popularMovies,
 			"topRatedMovies": topRatedMovies,

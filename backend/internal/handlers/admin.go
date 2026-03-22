@@ -30,6 +30,8 @@ func AdminCreateMovie(c *gin.Context) {
 	movie.UpdatedAt = time.Now()
 	movie.Views = 0
 	movie.DailyViews = make(map[string]int64)
+	movie.SourceType = "admin"
+	movie.IsScraped = false
 
 	collection := db.DB.Collection("movies")
 	_, err := collection.InsertOne(context.TODO(), movie)
@@ -106,6 +108,11 @@ func AdminGetMovies(c *gin.Context) {
 	}
 	if accessType != "" {
 		query["accessType"] = accessType
+	}
+
+	sourceType := c.Query("sourceType")
+	if sourceType != "" {
+		query["sourceType"] = sourceType
 	}
 
 	skip := int64((page - 1) * limit)

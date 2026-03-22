@@ -39,6 +39,9 @@ class HomeProvider extends ChangeNotifier {
       case 'genre':
         future = _apiService.getTrendingMovies(token: token, genre: genre);
         break;
+      case 'admin_only':
+        future = _apiService.getAdminMovies(token: token);
+        break;
       default:
         future = Future.value([]);
     }
@@ -69,6 +72,7 @@ class HomeProvider extends ChangeNotifier {
       // Use new aggregation route for home data
       final homeData = await _apiService.getHomeData();
       _sections = [
+        {'title': 'Original Content', 'type': 'admin_only'},
         {'title': 'Trending Movies', 'type': 'trending_new'},
         {'title': 'Popular Movies', 'type': 'popular_new'},
         {'title': 'Top Rated', 'type': 'top_rated_new'},
@@ -76,6 +80,7 @@ class HomeProvider extends ChangeNotifier {
       ];
 
       _sectionFutures.clear();
+      _sectionFutures['Original Content'] = Future.value(homeData['adminMovies']);
       _sectionFutures['Trending Movies'] = Future.value(homeData['trendingMovies']);
       _sectionFutures['Popular Movies'] = Future.value(homeData['popularMovies']);
       _sectionFutures['Top Rated'] = Future.value(homeData['topRatedMovies']);

@@ -387,7 +387,12 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
                   }
                } else {
-                  context.push('/movie/$id/play');
+                  if (movie.sourceType == 'admin' && (movie.directUrl != null || movie.videoUrl != null)) {
+                    final url = movie.directUrl ?? movie.videoUrl;
+                    context.push('/movie/$id/play?url=${Uri.encodeComponent(url!)}&provider=admin');
+                  } else {
+                    context.push('/movie/$id/play');
+                  }
                }
              }
 
