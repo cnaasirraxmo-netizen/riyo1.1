@@ -65,8 +65,6 @@ func GetHome(c *gin.Context) {
 		}
 
 		// Trending/Popular/TopRated should be scraped content primarily
-		scrapedFilter := bson.M{"sourceType": bson.M{"$ne": "admin"}, "isPublished": true}
-
 		cursor, err = collection.Find(c.Request.Context(), bson.M{"isTrending": true, "isTvShow": false, "isPublished": true, "sourceType": bson.M{"$ne": "admin"}}, opts)
 		if err == nil {
 			cursor.All(c.Request.Context(), &trendingMovies)
