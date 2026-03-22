@@ -21,6 +21,9 @@ func GetMovies(c *gin.Context) {
 	isFeatured := c.Query("isFeatured")
 	contentType := c.Query("contentType")
 	sourceType := c.Query("sourceType")
+	if sourceType == "" {
+		sourceType = c.Query("type") // Support "type" as requested
+	}
 	search := c.Query("search")
 	pageStr := c.DefaultQuery("page", "1")
 	limitStr := c.DefaultQuery("limit", "20")
@@ -45,7 +48,7 @@ func GetMovies(c *gin.Context) {
 		if contentType != "" {
 			query["contentType"] = contentType
 		}
-		if sourceType != "" {
+		if sourceType != "" && sourceType != "all" {
 			query["sourceType"] = sourceType
 		}
 		if search != "" {
@@ -73,6 +76,7 @@ func GetMovies(c *gin.Context) {
 				"accessType":  1,
 				"videoUrl":    1,
 				"directUrl":   1,
+				"embedUrls":   1,
 				"sourceType":  1,
 			})
 
@@ -135,6 +139,7 @@ func GetAdminMovies(c *gin.Context) {
 				"accessType":  1,
 				"videoUrl":    1,
 				"directUrl":   1,
+				"embedUrls":   1,
 				"sourceType":  1,
 			})
 

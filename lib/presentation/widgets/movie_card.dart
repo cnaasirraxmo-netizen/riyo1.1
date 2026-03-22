@@ -72,6 +72,26 @@ class MovieCard extends StatelessWidget {
                 ),
               ),
             ),
+          Positioned(
+            bottom: 10,
+            left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: movie.sourceType == 'admin' ? Colors.green : Colors.blueAccent.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                movie.sourceType == 'admin' ? 'DIRECT PLAY' : 'STREAM',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ),
           if (movie.isDownloaded || LocalCacheService().getCachedMovie(movie.backendId ?? movie.id.toString()) != null)
             Positioned(
               top: 10,

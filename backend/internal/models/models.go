@@ -140,6 +140,7 @@ type Movie struct {
 	ThumbnailURL  string           `bson:"thumbnailUrl" json:"thumbnailUrl"`
 	VideoURL      string           `bson:"videoUrl" json:"videoUrl"` // For backward compatibility
 	DirectURL     string           `bson:"directUrl" json:"directUrl"`
+	EmbedURLs     map[string]string `bson:"embedUrls" json:"embedUrls"`
 	VideoURLs     map[string]string `bson:"videoUrls" json:"videoUrls"`
 	SourceType    string           `bson:"sourceType" json:"sourceType"` // admin, scraped
 	IsScraped     bool             `bson:"isScraped" json:"isScraped"`

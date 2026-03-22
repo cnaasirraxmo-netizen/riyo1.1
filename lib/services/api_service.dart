@@ -94,7 +94,7 @@ class ApiService {
 
   Future<List<Movie>> getAdminMovies({String? token, int page = 1, int limit = 20}) async {
     final response = await http.get(
-      Uri.parse('$_backendUrl/api/v1/movies/admin?page=$page&limit=$limit'),
+      Uri.parse('$_backendUrl/movies/admin?page=$page&limit=$limit'),
       headers: token != null ? {'Authorization': 'Bearer $token'} : {},
     );
     if (response.statusCode == 200) {

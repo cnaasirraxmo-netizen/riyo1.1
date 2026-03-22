@@ -75,6 +75,7 @@ class Movie {
   final List<Season>? seasons;
   final String? videoUrl;
   final String? directUrl;
+  final Map<String, String>? embedUrls;
   final Map<String, String>? videoUrls;
   final String? sourceType;
   final bool isScraped;
@@ -124,6 +125,7 @@ class Movie {
     this.seasons,
     this.videoUrl,
     this.directUrl,
+    this.embedUrls,
     this.videoUrls,
     this.sourceType,
     this.isScraped = false,
@@ -168,6 +170,7 @@ class Movie {
       'isKidsContent': isKidsContent,
       'videoUrl': videoUrl,
       'directUrl': directUrl,
+      'embedUrls': embedUrls,
       'sourceType': sourceType,
       'isScraped': isScraped,
       'trailerUrl': trailerUrl,
@@ -202,6 +205,7 @@ class Movie {
       'isKidsContent': isKidsContent,
       'videoUrl': videoUrl,
       'directUrl': directUrl,
+      'embedUrls': embedUrls,
       'sourceType': sourceType,
       'isScraped': isScraped,
       'trailerUrl': trailerUrl,
@@ -248,6 +252,7 @@ class Movie {
       seasons: json['seasons'] != null ? (json['seasons'] as List).map((s) => Season.fromJson(s)).toList() : null,
       videoUrl: json['videoUrl'],
       directUrl: json['directUrl'],
+      embedUrls: json['embedUrls'] != null ? Map<String, String>.from(json['embedUrls']) : null,
       videoUrls: json['videoUrls'] != null ? Map<String, String>.from(json['videoUrls']) : null,
       sourceType: json['sourceType'],
       isScraped: json['isScraped'] ?? false,
