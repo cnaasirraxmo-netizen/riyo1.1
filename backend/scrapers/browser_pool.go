@@ -8,6 +8,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 )
 
+// BrowserPool manages a pool of pages
 type BrowserPool struct {
 	browser *rod.Browser
 	pages   chan *rod.Page
@@ -20,53 +21,68 @@ var (
 	poolOnce     sync.Once
 )
 
+// GetBrowserPool returns the singleton instance
 func GetBrowserPool() *BrowserPool {
 	poolOnce.Do(func() {
-		// Setup launcher with stealth and performance options
+		// Launch Chromium with memory-friendly options
 		l := launcher.New().
 			Headless(true).
 			Set("no-sandbox").
 			Set("disable-setuid-sandbox").
 			Set("disable-dev-shm-usage").
 			Set("disable-accelerated-2d-canvas").
-			Set("disable-gpu")
+			Set("disable-gpu").
+			Set("single-process").
+			Set("no-zygote")
 
 		url := l.MustLaunch()
 		browser := rod.New().ControlURL(url).MustConnect()
 
-		maxSize := 5
+		maxSize := 2 // keep pool small for memory
 		poolInstance = &BrowserPool{
 			browser: browser,
 			pages:   make(chan *rod.Page, maxSize),
 			maxSize: maxSize,
 		}
-
-		// Initialize pages
-		for i := 0; i < maxSize; i++ {
-			page := browser.MustPage("")
-			poolInstance.pages <- page
-		}
 	})
 	return poolInstance
 }
 
+// GetPage retrieves a page from the pool or creates a temporary one
 func (p *BrowserPool) GetPage(timeout time.Duration) (*rod.Page, func()) {
 	select {
 	case page := <-p.pages:
-		return page, func() {
-			p.pages <- page
-		}
+		// Return page to pool when done
+		return page, func() { p.pages <- page }
 	case <-time.After(timeout):
-		// If pool is empty and timeout reached, create a temporary page
-		// or return nil. For simplicity, we return a new one if possible.
-		return p.browser.MustPage(""), func() {
-			// Don't put back in channel if pool is full
-		}
+		// Timeout: create temporary page, close after use
+		page := p.browser.MustPage("")
+		return page, func() { page.MustClose() }
 	}
 }
 
+// PutPage adds a page back to the pool safely
+func (p *BrowserPool) PutPage(page *rod.Page) {
+	select {
+	case p.pages <- page:
+		// successfully returned
+	default:
+		// pool full, close the page
+		page.MustClose()
+	}
+}
+
+// Close closes the browser and all pages
 func (p *BrowserPool) Close() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.browser != nil {
+		close(p.pages) // close channel
+		for page := range p.pages {
+			page.MustClose()
+		}
 		p.browser.MustClose()
+		p.browser = nil
 	}
 }
