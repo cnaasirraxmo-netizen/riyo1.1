@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:riyo/core/video_engine/riyo_video_engine.dart';
-import 'package:riyo/core/video_engine/texture_bridge.dart';
+import 'package:riyo/core/player/base_player.dart';
+import 'package:riyo/core/player/player_factory.dart';
 import 'package:riyo/core/video_engine/srt_parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:screen_brightness/screen_brightness.dart';
@@ -34,20 +34,17 @@ class VideoPlayerScreen extends rp.ConsumerStatefulWidget {
 }
 
 class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
-  RiyoVideoEngine? _engine;
-  int? _textureId;
+  BaseVideoPlayer? _player;
   bool _isControlsVisible = true;
   Timer? _hideControlsTimer;
   double _currentVolume = 0.5;
   double _currentBrightness = 0.5;
   double _playbackSpeed = 1.0;
   String _selectedQuality = 'Auto';
-  String _selectedAudio = 'English';
   String _selectedSubtitle = 'Off';
   List<Map<String, dynamic>> _availableSubtitles = [];
   List<SubtitleEntry> _subtitleEntries = [];
   String _currentSubtitleText = '';
-  Timer? _subtitleTimer;
 
   Movie? _movie;
   List<StreamSource> _sources = [];
@@ -56,18 +53,6 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   bool _isError = false;
   bool _isLoadingSource = true;
 
-  // Real-time tracking
-  double _position = 0;
-  double _duration = 1;
-  double _bufferPosition = 0;
-  Timer? _playbackTimer;
-  StreamSubscription? _eventSubscription;
-
-  // Stale playback detection
-  double _lastPosition = -1;
-  int _stallCounter = 0;
-  bool _isStalled = false;
-
   @override
   void initState() {
     super.initState();
@@ -75,78 +60,12 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     WakelockPlus.enable();
     _fetchData();
     _initVolume();
     _initBrightness();
     _initCastListener();
-    _startPlaybackTimer();
-  }
-
-  void _startPlaybackTimer() {
-    _playbackTimer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
-      if (_engine != null) {
-        final state = _engine!.getState();
-        final pos = _engine!.getPosition();
-        final dur = _engine!.getDuration();
-
-        if (state == 2) { // Playing
-           // Stall detection
-           if (pos == _lastPosition && pos > 0 && pos < dur - 1) {
-             _stallCounter++;
-             if (_stallCounter > 5) { // 5 seconds without position change while "playing"
-               setState(() => _isStalled = true);
-             }
-           } else {
-             _stallCounter = 0;
-             if (_isStalled) setState(() => _isStalled = false);
-           }
-           _lastPosition = pos;
-
-           setState(() {
-             _position = pos;
-             _duration = dur <= 0 ? 1 : dur;
-           });
-           _updateSubtitles(pos);
-
-           // Save progress every 5 seconds
-           if (timer.tick % 5 == 0 && widget.movieId != null) {
-             Provider.of<PlaybackProvider>(context, listen: false)
-                 .updateProgress(widget.movieId!, Duration(seconds: pos.toInt()));
-           }
-        }
-      }
-    });
-  }
-
-  void _updateSubtitles(double positionSeconds) {
-    if (_selectedSubtitle == 'Off' || _subtitleEntries.isEmpty) {
-      if (_currentSubtitleText.isNotEmpty) setState(() => _currentSubtitleText = '');
-      return;
-    }
-
-    final duration = Duration(milliseconds: (positionSeconds * 1000).toInt());
-    final currentEntry = _subtitleEntries.firstWhere(
-      (entry) => duration >= entry.start && duration <= entry.end,
-      orElse: () => SubtitleEntry(start: Duration.zero, end: Duration.zero, text: ''),
-    );
-
-    if (_currentSubtitleText != currentEntry.text) {
-      setState(() => _currentSubtitleText = currentEntry.text);
-    }
-  }
-
-  Future<void> _loadSubtitles(String url) async {
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        setState(() {
-          _subtitleEntries = SrtParser.parse(response.body);
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading subtitles: $e');
-    }
   }
 
   Future<void> _fetchData() async {
@@ -161,128 +80,129 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         if (_movie?.localPath != null) {
           final file = File(_movie!.localPath!);
           if (await file.exists()) {
-            final size = await file.length();
-            if (size > 1024) { // Basic sanity check: > 1KB
-              _sources.insert(
-                0,
-                StreamSource(
-                  label: 'Offline (Downloaded)',
-                  url: _movie!.localPath!,
-                  type: _movie!.localPath!.contains('.m3u8') ? 'hls' : 'direct',
-                  provider: 'local',
-                  quality: 'Original',
-                ),
-              );
-            }
+            _sources.insert(
+              0,
+              StreamSource(
+                label: 'Offline (Downloaded)',
+                url: _movie!.localPath!,
+                type: _movie!.localPath!.contains('.m3u8') ? 'hls' : 'direct',
+                provider: 'local',
+                quality: 'Original',
+              ),
+            );
           }
         }
 
         final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
-
         final List<dynamic> sourceData = response['sources'] ?? [];
-        final List<StreamSource> fetchedSources = sourceData.map((s) => StreamSource.fromJson(s)).toList();
-
-        // 5. SOURCE HANDLING - Implement Source priority system
-        // Priority order: 1. Admin/Local, 2. Direct MP4 (direct), 3. M3U8 HLS (hls), 4. DASH (dash), 5. Embed (embed)
-        fetchedSources.sort((a, b) {
-          int providerScore(String provider) {
-            if (provider == 'local') return 10;
-            if (provider == 'admin') return 5;
-            return 0;
-          }
-
-          int typeScore(String type) {
-            if (type == 'direct') return 4;
-            if (type == 'hls') return 3;
-            if (type == 'dash') return 2;
-            if (type == 'embed') return 1;
-            return 0;
-          }
-
-          int qualityScore(String q) {
-            final lowerQ = q.toLowerCase();
-            if (lowerQ.contains('original')) return 5;
-            if (lowerQ.contains('4k')) return 4;
-            if (lowerQ.contains('1080')) return 3;
-            if (lowerQ.contains('720')) return 2;
-            if (lowerQ.contains('480')) return 1;
-            return 0;
-          }
-
-          final ps = providerScore(b.provider).compareTo(providerScore(a.provider));
-          if (ps != 0) return ps;
-
-          final ts = typeScore(b.type).compareTo(typeScore(a.type));
-          if (ts != 0) return ts;
-
-          return qualityScore(b.quality).compareTo(qualityScore(a.quality));
-        });
-
-        _sources.addAll(fetchedSources);
+        _sources.addAll(sourceData.map((s) => StreamSource.fromJson(s)).toList());
 
         final List<dynamic> subtitleData = response['subtitles'] ?? [];
         _availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
 
         if (_sources.isNotEmpty) {
-          // If a specific URL was passed, try to find it in the sources
+          _currentSourceIndex = 0;
           if (widget.videoUrl != null) {
-            final index = _sources.indexWhere((s) => s.url == widget.videoUrl);
-            if (index != -1) {
-              _currentSourceIndex = index;
-            } else {
-              _currentSourceIndex = 0;
-            }
-          } else {
-            _currentSourceIndex = 0;
+            final idx = _sources.indexWhere((s) => s.url == widget.videoUrl);
+            if (idx != -1) _currentSourceIndex = idx;
           }
-
           _selectedSource = _sources[_currentSourceIndex];
-
-          // If a specific provider was requested, try to select it
-          if (widget.provider != null) {
-             final pIndex = _sources.indexWhere((s) => s.provider == widget.provider);
-             if (pIndex != -1) {
-               _currentSourceIndex = pIndex;
-               _selectedSource = _sources[pIndex];
-             }
-          }
-
-          if (mounted) _initPlayer();
+          _initPlayer();
         } else if (widget.videoUrl != null) {
-          if (mounted) _initPlayer();
+          _initPlayer();
         } else {
-          if (mounted) {
-            setState(() {
-              _isError = true;
-              _isLoadingSource = false;
-            });
-          }
+          setState(() { _isError = true; _isLoadingSource = false; });
         }
       } catch (e) {
-        debugPrint('Error fetching player data: $e');
-        if (mounted) {
-          setState(() {
-            _isError = true;
-            _isLoadingSource = false;
-          });
-        }
+        setState(() { _isError = true; _isLoadingSource = false; });
       }
     } else if (widget.videoUrl != null) {
-      if (mounted) _initPlayer();
-    } else {
-      if (mounted) {
-        setState(() {
-          _isError = true;
-          _isLoadingSource = false;
-        });
+      _initPlayer();
+    }
+  }
+
+  Future<void> _initPlayer() async {
+    setState(() => _isLoadingSource = true);
+    String? url = _selectedSource?.url ?? widget.videoUrl;
+    if (url == null) return;
+
+    await _player?.dispose();
+    _player = PlayerFactory.create(_movie ?? Movie(id: 0, title: 'Video', overview: '', posterPath: '', releaseDate: '', sourceType: 'scraped'), provider: _selectedSource?.provider ?? widget.provider);
+
+    _player!.addListener(_onPlayerStateChanged);
+    await _player!.initialize(url);
+
+    // Resume progress
+    if (widget.movieId != null) {
+      final savedPos = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId!);
+      if (savedPos > Duration.zero) {
+        await _player!.seek(savedPos);
       }
     }
+
+    _player!.play();
+    AnalyticsService.logVideoStart(_movie?.title ?? "Unknown", widget.movieId);
+
+    setState(() => _isLoadingSource = false);
+    _startHideControlsTimer();
+  }
+
+  void _onPlayerStateChanged() {
+    if (_player == null) return;
+    final state = _player!.state;
+
+    if (state.status == PlayerStatus.error) {
+      _handleSourceError();
+    }
+
+    _updateSubtitles(state.position.inSeconds.toDouble());
+
+    // Save progress periodically
+    if (state.status == PlayerStatus.playing && widget.movieId != null && state.position.inSeconds % 5 == 0) {
+      Provider.of<PlaybackProvider>(context, listen: false).updateProgress(widget.movieId!, state.position);
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  void _handleSourceError() {
+    if (_currentSourceIndex + 1 < _sources.length) {
+      _currentSourceIndex++;
+      _selectedSource = _sources[_currentSourceIndex];
+      _initPlayer();
+    } else {
+      setState(() { _isError = true; _isLoadingSource = false; });
+    }
+  }
+
+  void _updateSubtitles(double positionSeconds) {
+    if (_selectedSubtitle == 'Off' || _subtitleEntries.isEmpty) {
+      if (_currentSubtitleText.isNotEmpty) setState(() => _currentSubtitleText = '');
+      return;
+    }
+    final duration = Duration(milliseconds: (positionSeconds * 1000).toInt());
+    final currentEntry = _subtitleEntries.firstWhere(
+      (entry) => duration >= entry.start && duration <= entry.end,
+      orElse: () => SubtitleEntry(start: Duration.zero, end: Duration.zero, text: ''),
+    );
+    if (_currentSubtitleText != currentEntry.text) {
+      setState(() => _currentSubtitleText = currentEntry.text);
+    }
+  }
+
+  Future<void> _loadSubtitles(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        setState(() { _subtitleEntries = SrtParser.parse(response.body); });
+      }
+    } catch (e) { debugPrint('Subtitle error: $e'); }
   }
 
   void _initCastListener() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(castingProvider, (previous, next) {
-        if (next.connectedDevice != null && _engine != null && _engine!.getState() == 2) {
+        if (next.connectedDevice != null && _player?.state.status == PlayerStatus.playing) {
            _startCasting();
         }
       });
@@ -292,103 +212,13 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   Future<void> _startCasting() async {
     final castingNotifier = ref.read(castingProvider.notifier);
     String? url = _selectedSource?.url ?? widget.videoUrl;
-    String? title = _movie?.title ?? "Video";
-    String? poster = _movie != null ? (_movie!.posterPath.startsWith('http') ? _movie!.posterPath : 'https://image.tmdb.org/t/p/w500${_movie!.posterPath}') : null;
-
     if (url != null) {
-      _engine?.pause();
+      _player?.pause();
       await castingNotifier.castMedia(CastMedia(
         url: url,
-        title: title,
-        posterUrl: poster,
+        title: _movie?.title ?? "Video",
+        posterUrl: _movie?.posterPath,
       ));
-    }
-  }
-
-  Future<void> _initPlayer() async {
-    setState(() => _isLoadingSource = true);
-
-    String? url = _selectedSource?.url ?? widget.videoUrl;
-    if (url == null) {
-      setState(() => _isLoadingSource = false);
-      return;
-    }
-
-    // Front-end link validation (MX Player style link detection)
-    if (!_isValidLink(url)) {
-      debugPrint('Invalid or unreachable link detected on frontend: $url');
-      _handleSourceError();
-      return;
-    }
-
-    // For Admin/Local sources, we skip finding best stream and play instantly
-    final isInstantSource = _selectedSource?.provider == 'admin' || _selectedSource?.provider == 'local';
-    if (isInstantSource) {
-      debugPrint('Instant playback requested for ${_selectedSource?.provider} source');
-    }
-
-    _engine?.dispose();
-    _engine = RiyoVideoEngine();
-    _textureId = await TextureRegistryBridge.createTexture();
-    setState(() {}); // Ensure texture ID is registered in UI
-
-    // 2. IMPROVE THE VIDEO PLAYER - Integrate ExoPlayer (via native engine)
-    _engine!.load(url);
-    _engine!.setEventCallback();
-
-    // Connect the native player handle to the Flutter texture surface
-    await TextureRegistryBridge.connectPlayer(_textureId!, _engine!.handle.address);
-
-    // 6. ERROR HANDLING - Improve reliability of streaming
-    // Automatic switch to another source if one fails
-    _eventSubscription?.cancel();
-    _eventSubscription = _engine!.eventStream.listen((event) {
-      final eventType = event['event'] as int;
-      final data = event['data'] as String;
-
-      if (eventType == 4) { // Assume 4 is ERROR
-        debugPrint('Native player error received: $data. Switching source...');
-        _handleSourceError();
-      } else if (eventType == 8) { // POSITION_UPDATE
-         final pos = double.tryParse(data) ?? _position;
-         if (mounted) setState(() => _position = pos);
-      } else if (eventType == 9) { // DURATION_UPDATE
-         final dur = double.tryParse(data) ?? _duration;
-         if (mounted) setState(() => _duration = dur);
-      }
-    });
-
-    _engine!.play();
-
-    // Log video start event
-    AnalyticsService.logVideoStart(_movie?.title ?? "Unknown", widget.movieId);
-
-    // 4. RESUME PLAYBACK - Seek to saved position
-    if (widget.movieId != null) {
-      final savedPos = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId!);
-      if (savedPos > Duration.zero) {
-        debugPrint('Resuming playback at: ${savedPos.inSeconds}s');
-        _engine!.seek(savedPos.inSeconds.toDouble());
-      }
-    }
-
-    if (mounted) {
-      setState(() => _isLoadingSource = false);
-      _startHideControlsTimer();
-    }
-  }
-
-  void _handleSourceError() {
-    if (_currentSourceIndex + 1 < _sources.length) {
-      _currentSourceIndex++;
-      _selectedSource = _sources[_currentSourceIndex];
-      debugPrint('Switching to next source: ${_selectedSource?.label}');
-      _initPlayer();
-    } else {
-      setState(() {
-        _isError = true;
-        _isLoadingSource = false;
-      });
     }
   }
 
@@ -398,30 +228,20 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   }
 
   Future<void> _initBrightness() async {
-    try {
-      _currentBrightness = await ScreenBrightness().application;
-    } catch (e) {
-      _currentBrightness = 0.5;
-    }
+    try { _currentBrightness = await ScreenBrightness().application; } catch (e) { _currentBrightness = 0.5; }
     if (mounted) setState(() {});
   }
 
   void _toggleControls() {
-    setState(() {
-      _isControlsVisible = !_isControlsVisible;
-    });
-    if (_isControlsVisible) {
-      _startHideControlsTimer();
-    }
+    setState(() { _isControlsVisible = !_isControlsVisible; });
+    if (_isControlsVisible) _startHideControlsTimer();
   }
 
   void _startHideControlsTimer() {
     _hideControlsTimer?.cancel();
     _hideControlsTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _engine != null && _engine!.getState() == 2) {
-        setState(() {
-          _isControlsVisible = false;
-        });
+      if (mounted && _player?.state.status == PlayerStatus.playing) {
+        setState(() { _isControlsVisible = false; });
       }
     });
   }
@@ -434,23 +254,12 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    _playbackTimer?.cancel();
-    _subtitleTimer?.cancel();
-    _eventSubscription?.cancel();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     WakelockPlus.disable();
-    _engine?.dispose();
-    if (_textureId != null) {
-      TextureRegistryBridge.releaseTexture(_textureId!);
-    }
+    _player?.removeListener(_onPlayerStateChanged);
+    _player?.dispose();
     _hideControlsTimer?.cancel();
     super.dispose();
-  }
-
-  void _seekRelative(Duration duration) {
-    if (_engine == null) return;
-    final target = (_position + duration.inSeconds).clamp(0, _duration);
-    _engine!.seek(target.toDouble());
-    _startHideControlsTimer();
   }
 
   @override
@@ -464,13 +273,9 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
             children: [
               const Icon(Icons.error_outline, color: Colors.red, size: 64),
               const SizedBox(height: 16),
-              const Text('All streaming sources failed.', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Playback failed. Check your connection.', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-                child: const Text('Go Back'),
-              ),
+              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Go Back')),
             ],
           ),
         ),
@@ -483,97 +288,22 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         onTap: _toggleControls,
         child: Stack(
           children: <Widget>[
-            Center(
-              child: (_textureId != null)
-                  ? Container(
-                      width: MediaQuery.of(context).size.width,
-                      height: MediaQuery.of(context).size.height,
-                      color: Colors.black,
-                      child: Texture(textureId: _textureId!),
-                    )
-                  : const CircularProgressIndicator(color: Colors.purple),
-            ),
-            // Subtitle Overlay
+            Center(child: _player?.buildPlayer(context) ?? const CircularProgressIndicator(color: Colors.purple)),
             if (_selectedSubtitle != 'Off' && _currentSubtitleText.isNotEmpty)
               Positioned(
                 bottom: _isControlsVisible ? 100 : 40,
-                left: 20,
-                right: 20,
+                left: 20, right: 20,
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _currentSubtitleText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        shadows: [
-                          Shadow(blurRadius: 2, color: Colors.black, offset: Offset(1, 1)),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
+                    child: Text(_currentSubtitleText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                   ),
                 ),
               ),
-            // Loading and Buffering Indicator
-            if (_isLoadingSource || (_engine != null && _engine!.getState() == 4))
-              Container(
-                color: Colors.black26,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(color: Colors.purple),
-                      const SizedBox(height: 16),
-                      Text(
-                        _isLoadingSource
-                            ? (_selectedSource?.provider == 'admin' || _selectedSource?.provider == 'local'
-                                ? 'Starting instant playback...'
-                                : 'Finding best stream...')
-                            : 'Buffering...',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            if (_isStalled) _buildStallOverlay(),
+            if (_isLoadingSource || (_player?.state.status == PlayerStatus.buffering))
+              Container(color: Colors.black26, child: const Center(child: CircularProgressIndicator(color: Colors.purple))),
             if (_isControlsVisible) _buildControls(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStallOverlay() {
-    return Container(
-      color: Colors.black54,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
-            const SizedBox(height: 16),
-            const Text('Playback issue detected', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _isStalled = false;
-                  _stallCounter = 0;
-                });
-                _initPlayer(); // Restart player
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Tap to retry'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
-            ),
           ],
         ),
       ),
@@ -608,114 +338,62 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+          IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _movie?.title ?? 'Loading...',
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (widget.season != null)
-                   Text('Season ${widget.season} • Episode ${widget.episode}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(_movie?.title ?? 'Loading...', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                if (widget.season != null) Text('Season ${widget.season} • Episode ${widget.episode}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
               ],
             ),
           ),
           const CastingButton(),
-          // Button to trigger manual fallback/source switch
-          IconButton(
-            icon: const Icon(Icons.shuffle_rounded, color: Colors.white),
-            tooltip: 'Try Another Source',
-            onPressed: _handleSourceError,
-          ),
-          IconButton(icon: const Icon(Icons.more_vert_rounded, color: Colors.white), onPressed: () => _showSettingsMenu()),
+          IconButton(icon: const Icon(Icons.more_vert_rounded, color: Colors.white), onPressed: () {}),
         ],
       ),
     );
   }
 
   Widget _buildPlaybackControls() {
-    if (_engine == null) return const SizedBox();
-    final isPlaying = _engine!.getState() == 2;
+    if (_player == null) return const SizedBox();
+    final isPlaying = _player!.state.status == PlayerStatus.playing;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(
-          icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 48),
-          onPressed: () => _seekRelative(const Duration(seconds: -10)),
-        ),
+        IconButton(icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 48), onPressed: () => _player!.seek(_player!.state.position - const Duration(seconds: 10))),
         const SizedBox(width: 48),
         IconButton(
-          icon: Icon(
-            isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
-            color: Colors.purple,
-            size: 96,
-          ),
-          onPressed: () {
-            setState(() {
-              isPlaying ? _engine!.pause() : _engine!.play();
-              _startHideControlsTimer();
-            });
-          },
+          icon: Icon(isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded, color: Colors.purple, size: 96),
+          onPressed: () => isPlaying ? _player!.pause() : _player!.play(),
         ),
         const SizedBox(width: 48),
-        IconButton(
-          icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 48),
-          onPressed: () => _seekRelative(const Duration(seconds: 10)),
-        ),
+        IconButton(icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 48), onPressed: () => _player!.seek(_player!.state.position + const Duration(seconds: 10))),
       ],
     );
   }
 
   Widget _buildBottomBar() {
+    if (_player == null) return const SizedBox();
+    final state = _player!.state;
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Column(
-              children: [
-                 SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 2,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                    activeTrackColor: Colors.purple,
-                    inactiveTrackColor: Colors.white24,
-                    thumbColor: Colors.white,
-                  ),
-                  child: Slider(
-                    value: _position,
-                    max: _duration,
-                    onChanged: (val) {
-                      setState(() => _position = val);
-                      _engine!.seek(val);
-                    },
-                  ),
-                ),
-              ],
-            ),
+          Slider(
+            value: state.position.inSeconds.toDouble(),
+            max: state.duration.inSeconds.toDouble() <= 0 ? 1.0 : state.duration.inSeconds.toDouble(),
+            onChanged: (val) => _player!.seek(Duration(seconds: val.toInt())),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${_formatDuration(Duration(seconds: _position.toInt()))} / ${_formatDuration(Duration(seconds: _duration.toInt()))}',
-                style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-              ),
+              Text('${_formatDuration(state.position)} / ${_formatDuration(state.duration)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
               Row(
                 children: [
-                  _buildControlItem(Icons.dns_rounded, _selectedSource?.label ?? 'SERVER', _showSourceMenu),
                   _buildControlItem(Icons.subtitles_rounded, _selectedSubtitle, _showSubtitleMenu),
                   _buildControlItem(Icons.speed_rounded, '${_playbackSpeed}x', _showSpeedMenu),
-                  _buildControlItem(Icons.high_quality_rounded, _selectedSource?.quality ?? _selectedQuality, _showQualityMenu),
                 ],
               ),
             ],
@@ -736,54 +414,16 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       padding: const EdgeInsets.only(left: 24),
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white, size: 24),
-            const SizedBox(height: 4),
-            Text(label.toUpperCase(), style: const TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.w900)),
-          ],
-        ),
+        child: Column(children: [Icon(icon, color: Colors.white), Text(label, style: const TextStyle(color: Colors.white, fontSize: 10))]),
       ),
     );
-  }
-
-  void _showSourceMenu() {
-    _showBottomDialog('SELECT SERVER', _sources.map((s) => '${s.label} (${s.quality})').toList(), (val) {
-      final index = _sources.indexWhere((s) => '${s.label} (${s.quality})' == val);
-      setState(() {
-        _currentSourceIndex = index;
-        _selectedSource = _sources[index];
-        _initPlayer();
-      });
-    });
-  }
-
-  void _showSpeedMenu() {
-    _showBottomDialog('PLAYBACK SPEED', ['0.5x', '1.0x', '1.5x', '2.0x'], (val) {
-      final speed = double.parse(val.replaceAll('x', ''));
-      setState(() {
-        _playbackSpeed = speed;
-      });
-      _engine?.setSpeed(speed);
-    });
-  }
-
-  void _showQualityMenu() {
-    _showBottomDialog('VIDEO QUALITY', ['AUTO', '720P', '1080P', '4K'], (val) {
-      setState(() => _selectedQuality = val);
-    });
   }
 
   void _showSubtitleMenu() {
     final List<String> options = ['Off'];
     options.addAll(_availableSubtitles.map((s) => s['language'] as String));
-
-    _showBottomDialog('SELECT SUBTITLES', options, (val) {
-      setState(() {
-        _selectedSubtitle = val;
-        _currentSubtitleText = '';
-        _subtitleEntries = [];
-      });
+    _showBottomDialog('SUBTITLES', options, (val) {
+      setState(() { _selectedSubtitle = val; _currentSubtitleText = ''; _subtitleEntries = []; });
       if (val != 'Off') {
         final sub = _availableSubtitles.firstWhere((s) => s['language'] == val);
         _loadSubtitles(sub['url']);
@@ -791,55 +431,24 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     });
   }
 
-  void _showSettingsMenu() {
-    _showBottomDialog('PLAYER SETTINGS', ['AUTO-PLAY NEXT', 'SKIP INTRO', 'SKIP CREDITS'], (val) {});
-  }
-
-  bool _isValidLink(String url) {
-    // Simple check: must be http/https OR a local file path, and have a video extension
-    final lower = url.toLowerCase();
-    final isRemote = lower.startsWith('http');
-    final isLocal = lower.startsWith('/') || lower.contains('app_flutter'); // common flutter local path markers
-
-    final hasExtension = lower.contains('.m3u8') ||
-           lower.contains('.mp4') ||
-           lower.contains('.mpd') ||
-           lower.contains('.webm') ||
-           lower.contains('.mkv');
-
-    return (isRemote || isLocal) && hasExtension;
+  void _showSpeedMenu() {
+    _showBottomDialog('SPEED', ['0.5x', '1.0x', '1.5x', '2.0x'], (val) {
+      final speed = double.parse(val.replaceAll('x', ''));
+      setState(() => _playbackSpeed = speed);
+      _player?.setSpeed(speed);
+    });
   }
 
   void _showBottomDialog(String title, List<String> options, Function(String) onSelect) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).cardColor,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2)),
-            const SizedBox(height: 24),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: options.length,
-                separatorBuilder: (c, i) => Divider(color: Theme.of(context).dividerColor),
-                itemBuilder: (context, index) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(options[index], style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold)),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                  onTap: () {
-                    onSelect(options[index]);
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            ),
-          ],
+      backgroundColor: Colors.grey[900],
+      builder: (context) => ListView.builder(
+        shrinkWrap: true,
+        itemCount: options.length,
+        itemBuilder: (context, index) => ListTile(
+          title: Text(options[index], style: const TextStyle(color: Colors.white)),
+          onTap: () { onSelect(options[index]); Navigator.pop(context); },
         ),
       ),
     );
