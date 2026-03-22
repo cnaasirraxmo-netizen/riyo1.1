@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:riyo/core/video_engine/riyo_video_engine.dart';
@@ -154,18 +155,35 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     if (widget.movieId != null) {
       try {
         _movie = await apiService.getMovieDetails(widget.movieId!, token: auth.token);
+
+        // Check for local download first
+        if (_movie?.localPath != null && await File(_movie!.localPath!).exists()) {
+          _sources.insert(
+            0,
+            StreamSource(
+              label: 'Offline (Downloaded)',
+              url: _movie!.localPath!,
+              type: _movie!.localPath!.contains('.m3u8') ? 'hls' : 'direct',
+              provider: 'local',
+              quality: 'Original',
+            ),
+          );
+        }
+
         final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
 
         final List<dynamic> sourceData = response['sources'] ?? [];
-        _sources = sourceData.map((s) => StreamSource.fromJson(s)).toList();
-
-        final List<dynamic> subtitleData = response['subtitles'] ?? [];
-        _availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
+        final List<StreamSource> fetchedSources = sourceData.map((s) => StreamSource.fromJson(s)).toList();
 
         // 5. SOURCE HANDLING - Implement Source priority system
-        // Priority order: 1. Direct MP4 (direct), 2. M3U8 HLS (hls), 3. DASH (dash), 4. Embed (embed)
-        // Also sort by quality if type is same
-        _sources.sort((a, b) {
+        // Priority order: 1. Admin/Local, 2. Direct MP4 (direct), 3. M3U8 HLS (hls), 4. DASH (dash), 5. Embed (embed)
+        fetchedSources.sort((a, b) {
+          int providerScore(String provider) {
+            if (provider == 'local') return 10;
+            if (provider == 'admin') return 5;
+            return 0;
+          }
+
           int typeScore(String type) {
             if (type == 'direct') return 4;
             if (type == 'hls') return 3;
@@ -173,8 +191,10 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
             if (type == 'embed') return 1;
             return 0;
           }
+
           int qualityScore(String q) {
             final lowerQ = q.toLowerCase();
+            if (lowerQ.contains('original')) return 5;
             if (lowerQ.contains('4k')) return 4;
             if (lowerQ.contains('1080')) return 3;
             if (lowerQ.contains('720')) return 2;
@@ -182,10 +202,19 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
             return 0;
           }
 
+          final ps = providerScore(b.provider).compareTo(providerScore(a.provider));
+          if (ps != 0) return ps;
+
           final ts = typeScore(b.type).compareTo(typeScore(a.type));
           if (ts != 0) return ts;
+
           return qualityScore(b.quality).compareTo(qualityScore(a.quality));
         });
+
+        _sources.addAll(fetchedSources);
+
+        final List<dynamic> subtitleData = response['subtitles'] ?? [];
+        _availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
 
         if (_sources.isNotEmpty) {
           // If a specific URL was passed, try to find it in the sources
@@ -729,14 +758,18 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   }
 
   bool _isValidLink(String url) {
-    // Simple check: must be http/https and have a video extension
+    // Simple check: must be http/https OR a local file path, and have a video extension
     final lower = url.toLowerCase();
-    return lower.startsWith('http') &&
-           (lower.contains('.m3u8') ||
-            lower.contains('.mp4') ||
-            lower.contains('.mpd') ||
-            lower.contains('.webm') ||
-            lower.contains('.mkv'));
+    final isRemote = lower.startsWith('http');
+    final isLocal = lower.startsWith('/') || lower.contains('app_flutter'); // common flutter local path markers
+
+    final hasExtension = lower.contains('.m3u8') ||
+           lower.contains('.mp4') ||
+           lower.contains('.mpd') ||
+           lower.contains('.webm') ||
+           lower.contains('.mkv');
+
+    return (isRemote || isLocal) && hasExtension;
   }
 
   void _showBottomDialog(String title, List<String> options, Function(String) onSelect) {
