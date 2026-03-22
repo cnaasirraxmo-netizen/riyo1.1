@@ -1,10 +1,8 @@
 # Stage 1: Build Go app
 FROM golang:1.26-alpine AS builder
 WORKDIR /app
-
 COPY go.mod go.sum ./
 RUN go mod download
-
 COPY . .
 RUN go build -o main ./cmd/api
 
@@ -24,12 +22,11 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy Go binary + env + Firebase credentials
 COPY --from=builder /app/main .
 COPY .env* ./
 COPY firebase-credentials.json* ./
 
-# Rod / Puppeteer settings
+# Environment variables for Rod + Firebase
 ENV FIREBASE_CREDENTIALS_FILE=/app/firebase-credentials.json
 ENV ROD_SKIP_BROWSER_DOWNLOAD=true
 ENV CHROME_PATH=/usr/bin/chromium-browser
