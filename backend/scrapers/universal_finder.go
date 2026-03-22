@@ -1,42 +1,84 @@
 package scrapers
 
 import (
+	"context"
+	"log"
+	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 type UniversalFinder struct {
-	headless *HeadlessScraper
+	headlessRod *HeadlessScraperRod
+	semaphore   chan struct{}
 }
 
 func NewUniversalFinder() *UniversalFinder {
 	return &UniversalFinder{
-		headless: NewHeadlessScraper(),
+		headlessRod: NewHeadlessScraperRod(),
+		semaphore:   make(chan struct{}, 10), // Limit concurrent recursive scrapes
 	}
 }
 
-func (f *UniversalFinder) FindSources(url string) []string {
+func (f *UniversalFinder) FindSources(targetURL string) []string {
+	// Root context for the search
+	ctx, cancel := context.WithTimeout(context.Background(), 75*time.Second)
+	defer cancel()
+
+	var allResults []string
+	var mu sync.Mutex
+
+	// Hybrid Strategy: Run both simultaneously and merge
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	// 1. FAST PATH: Static HTML/Regex
-	fastSources := f.recursiveFind(url, 0, make(map[string]bool))
-	if len(fastSources) > 0 {
-		return fastSources
-	}
+	go func() {
+		defer wg.Done()
+		visited := &sync.Map{}
+		fastSources := f.recursiveFind(ctx, targetURL, 0, visited)
+		mu.Lock()
+		allResults = append(allResults, fastSources...)
+		mu.Unlock()
+	}()
 
-	// 2. DYNAMIC PATH: Headless Browser
-	return f.headless.ExtractDynamicSources(url)
+	// 2. DYNAMIC PATH: Headless Browser (Rod)
+	go func() {
+		defer wg.Done()
+		dynamicSources := f.headlessRod.ExtractSources(ctx, targetURL)
+		mu.Lock()
+		allResults = append(allResults, dynamicSources...)
+		mu.Unlock()
+	}()
+
+	wg.Wait()
+	return f.uniqueSources(allResults)
 }
 
-func (f *UniversalFinder) recursiveFind(url string, depth int, visited map[string]bool) []string {
-	if depth > 4 || visited[url] {
+func (f *UniversalFinder) recursiveFind(ctx context.Context, targetURL string, depth int, visited *sync.Map) []string {
+	if depth > 4 {
 		return nil
 	}
-	visited[url] = true
+
+	// Check visited in thread-safe way
+	if _, seen := visited.LoadOrStore(targetURL, true); seen {
+		return nil
+	}
+
+	// Rate limiting/Concurrency control
+	select {
+	case f.semaphore <- struct{}{}:
+		defer func() { <-f.semaphore }()
+	case <-ctx.Done():
+		return nil
+	}
 
 	var allSources []string
 	var mu sync.Mutex
 
 	// 1. REDIRECT EXTRACTION (METHOD 6)
-	finalURL, _ := FollowRedirects(url)
+	finalURL, _ := FollowRedirects(targetURL)
 	html, err := FetchHTML(finalURL)
 	if err != nil {
 		return nil
@@ -55,7 +97,7 @@ func (f *UniversalFinder) recursiveFind(url string, depth int, visited map[strin
 		wg.Add(1)
 		go func(iframeURL string) {
 			defer wg.Done()
-			discovered := f.recursiveFind(iframeURL, depth+1, visited)
+			discovered := f.recursiveFind(ctx, iframeURL, depth+1, visited)
 			mu.Lock()
 			allSources = append(allSources, discovered...)
 			mu.Unlock()
@@ -117,12 +159,36 @@ func (f *UniversalFinder) uniqueSources(sources []string) []string {
 	keys := make(map[string]bool)
 	var list []string
 	for _, entry := range sources {
-		if _, value := keys[entry]; !value && entry != "" {
-			keys[entry] = true
+		normalized := f.normalizeURL(entry)
+		if normalized == "" {
+			continue
+		}
+		if _, value := keys[normalized]; !value {
+			keys[normalized] = true
 			list = append(list, entry)
+			log.Printf("[FINDER] Valid Source Found: %s", entry)
 		}
 	}
 	return list
+}
+
+func (f *UniversalFinder) normalizeURL(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return strings.ToLower(rawURL)
+	}
+
+	// Remove common tracking and cache-busting parameters
+	q := u.Query()
+	paramsToRemove := []string{"token", "expires", "ip", "v", "key", "t", "st", "e", "verify"}
+	for _, p := range paramsToRemove {
+		q.Del(p)
+	}
+
+	u.RawQuery = q.Encode()
+	u.Fragment = "" // Fragments are usually not part of the direct video URL
+
+	return strings.ToLower(u.String())
 }
 
 func (f *UniversalFinder) IsValidVideo(url string) bool {
