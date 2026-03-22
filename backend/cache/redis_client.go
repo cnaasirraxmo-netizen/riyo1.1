@@ -201,8 +201,8 @@ func InvalidateSearchCache(query string) {
 // Configurable TTLs
 var (
 	MetadataTTL = 24 * time.Hour
-	TrendingTTL = 6 * time.Hour
-	SearchTTL   = 1 * time.Hour
-	SourcesTTL  = 1 * time.Hour
-	ProviderTTL = 30 * time.Minute
+	TrendingTTL = 12 * time.Hour
+	SearchTTL   = 2 * time.Hour
+	SourcesTTL  = 12 * time.Hour // INCREASED: 1h -> 12h to reduce scraping frequency
+	ProviderTTL = 1 * time.Hour  // INCREASED: 30m -> 1h
 )

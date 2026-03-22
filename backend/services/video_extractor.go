@@ -183,7 +183,7 @@ func (e *VideoExtractor) ValidateLink(url string) (bool, string) {
 		return false, ""
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-	req.Header.Set("Range", "bytes=0-1024") // Read first 1KB to ensure it's not just a small text error page
+	req.Header.Set("Range", "bytes=0-0") // REDUCED: Fetch only 1 byte to check connectivity and Content-Type
 
 	resp, err := e.client.Do(req)
 	if err != nil {

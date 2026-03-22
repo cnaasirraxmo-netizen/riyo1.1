@@ -22,42 +22,30 @@ func NewUniversalFinder() *UniversalFinder {
 }
 
 func (f *UniversalFinder) FindSources(targetURL string) []string {
-	// Root context for the search
-	ctx, cancel := context.WithTimeout(context.Background(), 75*time.Second)
+	// Root context for the search - REDUCED: 75s -> 25s
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 
 	var allResults []string
-	var mu sync.Mutex
 
-	// Hybrid Strategy: Run both simultaneously and merge
-	var wg sync.WaitGroup
-	wg.Add(2)
+	// 1. FAST PATH ONLY: Static HTML/Regex (Disable dynamic path to save RAM/CPU)
+	visited := &sync.Map{}
+	fastSources := f.recursiveFind(ctx, targetURL, 0, visited)
+	allResults = append(allResults, fastSources...)
 
-	// 1. FAST PATH: Static HTML/Regex
-	go func() {
-		defer wg.Done()
-		visited := &sync.Map{}
-		fastSources := f.recursiveFind(ctx, targetURL, 0, visited)
-		mu.Lock()
-		allResults = append(allResults, fastSources...)
-		mu.Unlock()
-	}()
-
-	// 2. DYNAMIC PATH: Headless Browser (Rod)
-	go func() {
-		defer wg.Done()
+	// 2. DYNAMIC PATH: Headless Browser (Only run if no sources found AND highly needed)
+	if len(allResults) == 0 {
+		// Run Rod in same thread or restricted to prevent RAM spikes
 		dynamicSources := f.headlessRod.ExtractSources(ctx, targetURL)
-		mu.Lock()
 		allResults = append(allResults, dynamicSources...)
-		mu.Unlock()
-	}()
+	}
 
-	wg.Wait()
 	return f.uniqueSources(allResults)
 }
 
 func (f *UniversalFinder) recursiveFind(ctx context.Context, targetURL string, depth int, visited *sync.Map) []string {
-	if depth > 4 {
+	// REDUCED DEPTH: 4 -> 2 to prevent excessive resource usage
+	if depth > 2 {
 		return nil
 	}
 

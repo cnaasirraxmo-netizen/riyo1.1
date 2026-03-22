@@ -57,12 +57,14 @@ func (s *ProviderService) fetchAllInternal(ctx context.Context, tmdbID int, titl
 	var wg sync.WaitGroup
 
 	// Set a global timeout for the entire scraping operation
-	scrapeCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	// REDUCED: 45s -> 20s to prevent hanging and resource exhaustion
+	scrapeCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	// 2. CONCURRENT SCRAPING (Worker Pool / Semaphore pattern)
 	allProviders := providers.GetAllProviders()
-	semaphore := make(chan struct{}, 5) // Max 5 concurrent providers
+	// REDUCED: 5 -> 2 to lower CPU and RAM spikes
+	semaphore := make(chan struct{}, 2)
 
 	for _, p := range allProviders {
 		wg.Add(1)
@@ -73,7 +75,8 @@ func (s *ProviderService) fetchAllInternal(ctx context.Context, tmdbID int, titl
 			defer func() { <-semaphore }()
 
 			// Individual provider timeout
-			pCtx, pCancel := context.WithTimeout(scrapeCtx, 15*time.Second)
+			// REDUCED: 15s -> 8s
+			pCtx, pCancel := context.WithTimeout(scrapeCtx, 8*time.Second)
 			defer pCancel()
 
 			start := time.Now()
