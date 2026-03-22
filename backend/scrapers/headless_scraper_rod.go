@@ -14,13 +14,10 @@ import (
 )
 
 type HeadlessScraperRod struct {
-	pool *BrowserPool
 }
 
 func NewHeadlessScraperRod() *HeadlessScraperRod {
-	return &HeadlessScraperRod{
-		pool: GetBrowserPool(),
-	}
+	return &HeadlessScraperRod{}
 }
 
 func (s *HeadlessScraperRod) ExtractSources(ctx context.Context, targetURL string) []string {
@@ -28,8 +25,12 @@ func (s *HeadlessScraperRod) ExtractSources(ctx context.Context, targetURL strin
 		log.Printf("[ROD] Browser extraction skipped (DISABLE_BROWSER=true)")
 		return []string{}
 	}
-	page, release := s.pool.GetPage(5 * time.Second)
-	defer release()
+
+	browser := rod.New().MustConnect()
+	defer browser.MustClose()
+
+	page := browser.MustPage("")
+	defer page.MustClose()
 
 	var discovered []string
 	var mu sync.Mutex

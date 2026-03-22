@@ -652,7 +652,7 @@ func SniffMedia(c *gin.Context) {
 
 	sniffer := scrapers.NewPlaywrightSniffer()
 	if sniffer == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Sniffer service unavailable"})
+		c.JSON(http.StatusOK, []interface{}{}) // Return empty list instead of error
 		return
 	}
 
