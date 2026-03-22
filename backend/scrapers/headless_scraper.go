@@ -3,6 +3,7 @@ package scrapers
 import (
 	"context"
 	"fmt"
+	"os"
 	"log"
 	"strings"
 	"sync"
@@ -25,6 +26,10 @@ func NewHeadlessScraper() *HeadlessScraper {
 }
 
 func (s *HeadlessScraper) ExtractDynamicSources(url string) []string {
+	if os.Getenv("DISABLE_BROWSER") == "true" {
+		log.Printf("[HEADLESS] Browser extraction skipped (DISABLE_BROWSER=true)")
+		return []string{}
+	}
 	var sources []string
 	var err error
 

@@ -3,6 +3,7 @@ package scrapers
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,10 @@ func NewPlaywrightSniffer() *PlaywrightSniffer {
 }
 
 func (s *PlaywrightSniffer) Sniff(targetURL string, headless bool, cookies []playwright.OptionalCookie) ([]MediaResource, error) {
+	if os.Getenv("DISABLE_BROWSER") == "true" {
+		log.Printf("[SNIFFER] Browser extraction skipped (DISABLE_BROWSER=true)")
+		return []MediaResource{}, nil
+	}
 	if s.pw == nil {
 		return nil, fmt.Errorf("playwright not initialized")
 	}

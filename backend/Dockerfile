@@ -9,14 +9,10 @@ RUN go build -o main ./cmd/api
 # Stage 2: Runtime
 FROM alpine:latest
 
-# Install dependencies + Chromium
+# Install dependencies (Chromium removed as requested for deployment)
 RUN apk add --no-cache \
     ffmpeg \
     ca-certificates \
-    chromium \
-    nss \
-    harfbuzz \
-    ttf-freefont \
     bash \
     fontconfig
 
@@ -26,10 +22,9 @@ COPY --from=builder /app/main .
 COPY .env* ./
 COPY firebase-credentials.json* ./
 
-# Environment variables for Rod + Firebase
+# Environment variables
 ENV FIREBASE_CREDENTIALS_FILE=/app/firebase-credentials.json
-ENV ROD_SKIP_BROWSER_DOWNLOAD=true
-ENV CHROME_PATH=/usr/bin/chromium-browser
+ENV DISABLE_BROWSER=true
 
 EXPOSE 5000
 

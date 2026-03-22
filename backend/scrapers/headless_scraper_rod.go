@@ -3,6 +3,7 @@ package scrapers
 import (
 	"context"
 	"fmt"
+	"os"
 	"log"
 	"strings"
 	"sync"
@@ -23,6 +24,10 @@ func NewHeadlessScraperRod() *HeadlessScraperRod {
 }
 
 func (s *HeadlessScraperRod) ExtractSources(ctx context.Context, targetURL string) []string {
+	if os.Getenv("DISABLE_BROWSER") == "true" {
+		log.Printf("[ROD] Browser extraction skipped (DISABLE_BROWSER=true)")
+		return []string{}
+	}
 	page, release := s.pool.GetPage(5 * time.Second)
 	defer release()
 
