@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"context"
 	"github.com/riyobox/backend/internal/models"
 )
 
@@ -17,6 +18,6 @@ func NewGenericProvider(name, baseURL string) *GenericProvider {
 	}
 }
 
-func (p *GenericProvider) Search(query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
-	return p.BaseProvider.Search(query, isTvShow, season, episode)
+func (p *GenericProvider) Search(ctx context.Context, query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
+	return p.BaseProvider.Search(ctx, query, isTvShow, season, episode)
 }

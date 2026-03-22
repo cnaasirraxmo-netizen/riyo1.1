@@ -7,9 +7,11 @@ import (
 	"net/url"
 	"strings"
 
+	"context"
 	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/models"
 	"github.com/riyobox/backend/scrapers"
+	"time"
 )
 
 type BaseProvider struct {
@@ -34,11 +36,11 @@ func (p *BaseProvider) detectType(url string, isEmbed bool) string {
 	return "direct"
 }
 
-func (p *BaseProvider) Search(query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
+func (p *BaseProvider) Search(ctx context.Context, query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
 	// METHOD 9 - PROVIDER RESPONSE CACHE
 	cacheKey := fmt.Sprintf("provider_%s_%s_%v_%v_%v", strings.ToLower(p.Name), strings.ReplaceAll(strings.ToLower(query), " ", "_"), isTvShow, season, episode)
 	cached, err := cache.GetOrSetCache(cacheKey, cache.ProviderTTL, func() (interface{}, error) {
-		return p.searchInternal(query, isTvShow, season, episode)
+		return p.searchInternal(ctx, query, isTvShow, season, episode)
 	})
 
 	if err != nil {
@@ -61,13 +63,32 @@ func (p *BaseProvider) Search(query string, isTvShow bool, season, episode int) 
 	return sources, nil
 }
 
-func (p *BaseProvider) searchInternal(query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
+func (p *BaseProvider) searchInternal(ctx context.Context, query string, isTvShow bool, season, episode int) ([]models.StreamSource, error) {
+	// Implement exponential backoff retry for provider search
+	var html string
+	var err error
+	maxRetries := 3
+
 	searchQuery := query
 	if isTvShow {
 		searchQuery = fmt.Sprintf("%s S%02dE%02d", query, season, episode)
 	}
 	searchURL := fmt.Sprintf("%s/?s=%s", p.BaseURL, url.QueryEscape(searchQuery))
-	html, err := scrapers.FetchHTML(searchURL)
+
+	for i := 0; i < maxRetries; i++ {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			html, err = scrapers.FetchHTML(searchURL)
+			if err == nil {
+				break
+			}
+			backoff := time.Duration(1<<uint(i)) * 500 * time.Millisecond
+			time.Sleep(backoff)
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"sync"
@@ -37,7 +38,9 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 			wg.Add(1)
 			go func(p providers.Provider) {
 				defer wg.Done()
-				sources, err := p.Search(title, isTvShow, season, episode)
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
+				sources, err := p.Search(ctx, title, isTvShow, season, episode)
 				if err == nil {
 					for _, s := range sources {
 						if isValid, ct := e.ValidateLink(s.URL); isValid {
@@ -173,48 +176,32 @@ func (e *VideoExtractor) ValidateLink(url string) (bool, string) {
 		return false, ""
 	}
 
-	// Try HEAD request first
-	req, err := http.NewRequest("HEAD", url, nil)
+	start := time.Now()
+	// Using a more reliable range-based GET request directly for validation + latency check
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return false, ""
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("Range", "bytes=0-1024") // Read first 1KB to ensure it's not just a small text error page
 
 	resp, err := e.client.Do(req)
-	if err == nil {
-		defer resp.Body.Close()
-		if resp.StatusCode == http.StatusOK {
-			contentType := strings.ToLower(resp.Header.Get("Content-Type"))
-			if strings.Contains(contentType, "video/") ||
-				strings.Contains(contentType, "application/x-mpegurl") ||
-				strings.Contains(contentType, "application/dash+xml") ||
-				strings.Contains(contentType, "application/octet-stream") ||
-				strings.Contains(contentType, "application/vnd.apple.mpegurl") {
-				return true, contentType
-			}
-		} else if resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusForbidden {
-			// Some servers block HEAD requests, fallback to GET with range
-		} else {
-			return false, ""
-		}
-	}
-
-	// Fallback to GET request with Range header if HEAD fails or is inconclusive
-	req, err = http.NewRequest("GET", url, nil)
-	if err != nil {
-		return false, ""
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-	req.Header.Set("Range", "bytes=0-0")
-
-	resp, err = e.client.Do(req)
 	if err != nil {
 		return false, ""
 	}
 	defer resp.Body.Close()
 
+	latency := time.Since(start).Milliseconds()
+
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
 		contentType := strings.ToLower(resp.Header.Get("Content-Type"))
+
+		// Heuristic: If it's a small file but claims to be video, it might be an ad or error
+		contentLength := resp.ContentLength
+		if contentLength > 0 && contentLength < 500 && !strings.Contains(contentType, "mpegurl") {
+			return false, ""
+		}
+
 		isValid := strings.Contains(contentType, "video/") ||
 			strings.Contains(contentType, "application/x-mpegurl") ||
 			strings.Contains(contentType, "application/dash+xml") ||
@@ -223,6 +210,9 @@ func (e *VideoExtractor) ValidateLink(url string) (bool, string) {
 			resp.StatusCode == http.StatusPartialContent
 
 		if isValid {
+			// We can potentially store latency here if we passed the source object,
+			// but for now we return the validity. The service handles the source update.
+			_ = latency
 			return true, contentType
 		}
 	}

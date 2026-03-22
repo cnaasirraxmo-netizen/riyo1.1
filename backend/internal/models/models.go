@@ -125,6 +125,8 @@ type StreamSource struct {
 	Type     string `bson:"type" json:"type"`         // direct, hls, dash, embed
 	Provider string `bson:"provider" json:"provider"` // local, url, youtube, vidsrc, 2embed
 	Quality  string `bson:"quality" json:"quality"`   // 1080p, 720p, etc.
+	Latency  int64  `bson:"latency" json:"latency"`   // Response time in ms
+	IsDead   bool   `bson:"isDead" json:"isDead"`
 }
 
 type Movie struct {
