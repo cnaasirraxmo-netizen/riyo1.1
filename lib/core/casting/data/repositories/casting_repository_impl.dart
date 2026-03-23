@@ -22,16 +22,22 @@ class CastingRepositoryImpl implements CastingRepository {
     _devicesController.add([]);
 
     // 1. Google Cast Discovery
+    _googleCastSub?.cancel();
     GoogleCastDiscoveryManager.instance.startDiscovery();
-    _googleCastSub = GoogleCastDiscoveryManager.instance.devicesStream.listen((googleDevices) {
-      _updateDevices(googleDevices.map((d) => CastDevice(
-        id: d.deviceID,
-        name: d.friendlyName,
-        model: d.modelName,
-        type: CastDeviceType.googleCast,
-        originalDevice: d,
-      )).toList(), CastDeviceType.googleCast);
-    });
+    _googleCastSub = GoogleCastDiscoveryManager.instance.devicesStream.listen(
+      (googleDevices) {
+        _updateDevices(googleDevices.map((d) => CastDevice(
+          id: d.deviceID,
+          name: d.friendlyName,
+          model: d.modelName,
+          type: CastDeviceType.googleCast,
+          originalDevice: d,
+        )).toList(), CastDeviceType.googleCast);
+      },
+      onError: (error) {
+        _devicesController.addError(error);
+      },
+    );
 
     // 2. DLNA Discovery
     await _dlnaApi.initializeUpnpService();

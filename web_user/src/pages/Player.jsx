@@ -27,6 +27,7 @@ const Player = () => {
   const [showSourceSelector, setShowSourceSelector] = useState(false);
   const [showSubtitleSelector, setShowSubtitleSelector] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('All Stream Links Failed');
   const videoRef = useRef(null);
   const controlsTimerRef = useRef(null);
 
@@ -95,10 +96,14 @@ const Player = () => {
           setSources([{ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' }]);
           setSourceIndex(0);
         } else {
+          if (movieRes.data.sourceType === 'admin') {
+            setErrorMessage('Official stream source is currently unavailable');
+          }
           setIsError(true);
         }
       } catch (err) {
         console.error(err);
+        setErrorMessage('Failed to load media content');
         setIsError(true);
       }
     };
@@ -171,7 +176,7 @@ const Player = () => {
       <div className="h-screen bg-[#050505] flex flex-col items-center justify-center space-y-6">
           <AlertTriangle size={64} className="text-red-600 animate-bounce" />
           <div className="text-white font-black uppercase italic tracking-widest text-2xl text-center">
-              All Stream Links Failed<br/>
+              {errorMessage}<br/>
               <span className="text-slate-500 text-sm font-bold uppercase mt-4 block">Please try again later or contact support.</span>
           </div>
           <button onClick={() => navigate(-1)} className="bg-purple-600 px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs">Return Home</button>

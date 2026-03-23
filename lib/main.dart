@@ -640,6 +640,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (!downloadsEnabled && index >= 2) {
       targetIndex = index + 1;
     }
-    widget.navigationShell.goBranch(targetIndex, initialLocation: targetIndex == widget.navigationShell.currentIndex);
+
+    // If the user clicks the current tab or home, force navigation to the branch root
+    final bool isRootRequested = targetIndex == 0 || targetIndex == widget.navigationShell.currentIndex;
+
+    widget.navigationShell.goBranch(targetIndex, initialLocation: isRootRequested);
   }
 }

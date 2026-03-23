@@ -6,8 +6,10 @@ import 'package:riyo/core/player/player_factory.dart';
 import 'package:riyo/presentation/widgets/player/unified_controls.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
+import 'package:riyo/providers/download_provider.dart';
 import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/providers/settings_provider.dart';
 import 'package:riyo/services/api_service.dart';
@@ -81,11 +83,13 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
         if (_movie?.sourceType == 'admin') {
           String? directUrl = _movie!.directUrl ?? _movie!.videoUrl;
 
-          if (_movie!.isTvShow && widget.season != null && widget.episode != null) {
+          if (_movie!.isTvShow && widget.season != null && widget.episode != null && _movie!.seasons != null && _movie!.seasons!.isNotEmpty) {
             final season = _movie!.seasons?.firstWhere((s) => s.number == widget.season, orElse: () => _movie!.seasons![0]);
-            final ep = season?.episodes.firstWhere((e) => e.number == widget.episode, orElse: () => season.episodes[0]);
-            if (ep?.videoUrl != null) {
-              directUrl = ep!.videoUrl;
+            if (season != null && season.episodes.isNotEmpty) {
+              final ep = season.episodes.firstWhere((e) => e.number == widget.episode, orElse: () => season.episodes[0]);
+              if (ep.videoUrl != null) {
+                directUrl = ep.videoUrl;
+              }
             }
           }
 
@@ -138,28 +142,39 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     await _player?.dispose();
     _player = PlayerFactory.create(_movie ?? Movie(id: 0, title: 'Video', overview: '', posterPath: '', releaseDate: '', sourceType: 'scraped'), provider: _selectedSource?.provider ?? widget.provider);
 
-    _player!.addListener(_onPlayerStateChanged);
-    await _player!.initialize(url);
+    _player?.addListener(_onPlayerStateChanged);
+    await _player?.initialize(url);
 
     // Set subtitles data
-    await _player!.setSubtitlesData(availableSubtitles);
+    await _player?.setSubtitlesData(availableSubtitles);
 
     // Apply settings
-    _player!.setSpeed(settings.defaultPlaybackSpeed);
+    _player?.setSpeed(settings.defaultPlaybackSpeed);
     if (settings.defaultVideoQuality != 'Auto') {
-       _player!.setQuality(settings.defaultVideoQuality);
+       _player?.setQuality(settings.defaultVideoQuality);
     }
 
     // Resume progress
     if (widget.movieId != null) {
       final savedPos = Provider.of<PlaybackProvider>(context, listen: false).getProgress(widget.movieId!);
       if (savedPos > Duration.zero) {
-        await _player!.seek(savedPos);
+        await _player?.seek(savedPos);
       }
     }
 
-    _player!.play();
+    _player?.play();
     AnalyticsService.logVideoStart(_movie?.title ?? "Unknown", widget.movieId);
+
+    // Auto-cache (download) watched video for future offline access
+    if (_movie != null && !kIsWeb) {
+       final downloads = Provider.of<DownloadProvider>(context, listen: false);
+       if (!downloads.isDownloaded(_movie!.id) && !downloads.isDownloading(_movie!.id)) {
+          // Pass the specific source URL to the download provider if possible,
+          // but DownloadProvider currently uses movie.directUrl or movie.videoUrl.
+          // We trigger download in background.
+          unawaited(downloads.startDownload(_movie!));
+       }
+    }
 
     setState(() => _isLoadingSource = false);
   }

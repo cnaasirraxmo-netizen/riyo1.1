@@ -234,14 +234,14 @@ class Movie {
       releaseDate: json['year']?.toString() ?? json['release_date'] ?? json['createdAt']?.toString().split('T')[0] ?? '',
       voteAverage: (json['rating'] as num?)?.toDouble() ?? (json['vote_average'] as num?)?.toDouble() ?? 0.0,
       runtime: json['duration'] is int ? json['duration'] : (json['duration'] != null ? _parseDuration(json['duration']) : (json['runtime'] is int ? json['runtime'] : null)),
-      genres: json['genre'] != null ? List<String>.from(json['genre']) : null,
-      cast: json['cast'] != null ? List<String>.from(json['cast']) : null,
+      genres: json['genre'] != null ? (json['genre'] as List).map((e) => e.toString()).toList() : null,
+      cast: json['cast'] != null ? (json['cast'] as List).map((e) => e.toString()).toList() : null,
       director: json['director'],
       ageRating: json['ageRating'] ?? json['contentRating'],
       contentRating: json['contentRating'] ?? json['ageRating'],
       language: json['language'],
       country: json['country'],
-      tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
+      tags: json['tags'] != null ? (json['tags'] as List).map((e) => e.toString()).toList() : null,
       quality: json['quality'],
       status: json['status'] ?? 'published',
       accessType: json['accessType'] ?? 'free',
@@ -392,7 +392,7 @@ class Episode {
     return Episode(
       number: json['number'] ?? 0,
       title: json['title'] ?? '',
-      duration: json['duration'] ?? '',
+      duration: json['duration'] ?? (json['runtime']?.toString() ?? ''),
       videoUrl: json['videoUrl'],
     );
   }

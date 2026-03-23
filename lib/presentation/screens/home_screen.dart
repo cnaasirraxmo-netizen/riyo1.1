@@ -253,7 +253,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     label: Text(category),
                                     selected: isSelected,
                                     onSelected: (bool selected) {
-                                      homeProvider.setSelectedCategory(category);
+                                      if (category == 'Kids') {
+                                        context.push('/kids');
+                                      } else if (category == 'Coming Soon') {
+                                        context.push('/coming-soon');
+                                      } else {
+                                        homeProvider.setSelectedCategory(category);
+                                      }
                                     },
                                     showCheckmark: false,
                                     shape: RoundedRectangleBorder(
@@ -287,10 +293,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           body: Selector<HomeProvider, bool>(
             selector: (_, h) => h.isLoadingConfig,
             builder: (context, isLoading, child) {
-              if (isLoading) {
-                return const Center(
-                    child: CircularProgressIndicator());
-              }
               return Consumer2<SettingsProvider, HomeProvider>(
                 builder: (context, settings, home, child) {
                   return FutureBuilder<List<Movie>>(
@@ -402,8 +404,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             fit: BoxFit.cover,
                             height: 500.0,
                             width: double.infinity,
-                            placeholder: (context, url) => const ShimmerLoading.rectangular(height: 500),
-                            errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+                            placeholder: (context, url) => Image.asset(
+                              'assets/images/placeholder.jpeg',
+                              fit: BoxFit.cover,
+                            ),
+                            errorWidget: (context, url, error) => Image.asset(
+                              'assets/images/placeholder.jpeg',
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         Container(
                           height: 500.0,
@@ -624,7 +632,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 style: AppTypography.titleLarge,
               ),
               IconButton(
-                onPressed: () => context.push('/genre/$title'),
+                onPressed: () => context.push('/home/genre/$title'),
                 icon: const Icon(Icons.arrow_forward_rounded, size: 20),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

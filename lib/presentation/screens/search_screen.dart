@@ -64,14 +64,19 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       List<Movie> filteredMovies;
       if (isOffline) {
-        final movies = await _apiService.getTrendingMovies(token: token);
-        filteredMovies = movies
+        // Search across all locally cached movies
+        final allMovies = await _apiService.getTrendingMovies(token: token);
+        filteredMovies = allMovies
             .where((movie) =>
-                movie.title.toLowerCase().contains(query.toLowerCase()) &&
-                movie.isDownloaded)
+                movie.title.toLowerCase().contains(query.toLowerCase()))
             .toList();
       } else {
         filteredMovies = await _apiService.search(query);
+      }
+
+      // Instant cache results for better performance and offline use
+      for (var movie in filteredMovies) {
+        _apiService.getMovieDetails(movie.backendId ?? movie.id.toString(), token: token);
       }
 
       if (mounted) {

@@ -40,15 +40,15 @@ class MovieCard extends StatelessWidget {
                   ? (movie.posterPath.startsWith('http')
                       ? movie.posterPath
                       : 'https://image.tmdb.org/t/p/w500${movie.posterPath}')
-                  : 'https://picsum.photos/seed/${movie.id}/200/300',
+                  : '',
               fit: BoxFit.cover,
-              placeholder: (context, url) =>
-                  ShimmerLoading.rectangular(height: height),
-              errorWidget: (context, url, error) => Center(
-                child: Icon(
-                  Icons.movie,
-                  color: Theme.of(context).textTheme.labelSmall?.color,
-                ),
+              placeholder: (context, url) => Image.asset(
+                'assets/images/placeholder.jpeg',
+                fit: BoxFit.cover,
+              ),
+              errorWidget: (context, url, error) => Image.asset(
+                'assets/images/placeholder.jpeg',
+                fit: BoxFit.cover,
               ),
             ),
           ),

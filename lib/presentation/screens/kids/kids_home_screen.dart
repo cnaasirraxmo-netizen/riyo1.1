@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
@@ -22,7 +23,14 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
   }
 
   Future<List<Movie>> _fetchKidsContent() async {
-    return _apiService.getKidsHome();
+    final movies = await _apiService.getKidsHome();
+
+    // Instant cache all kids content for offline use
+    for (var movie in movies) {
+       _apiService.getMovieDetails(movie.backendId ?? movie.id.toString());
+    }
+
+    return movies;
   }
 
   @override
@@ -36,7 +44,7 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.orange),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SingleChildScrollView(
@@ -46,12 +54,63 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
             _buildKidsHero(),
             const Padding(
               padding: EdgeInsets.fromLTRB(24, 32, 24, 16),
+              child: Text('Pick a Character', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
+            ),
+            _buildCharactersSection(),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 32, 24, 16),
+              child: Text('Trending for Kids', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
+            ),
+            _buildHorizontalKidsList(),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 32, 24, 16),
               child: Text('Fun Movies & Shows', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
             ),
             _buildKidsGrid(),
             const SizedBox(height: 40),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCharactersSection() {
+    final characters = [
+      {'name': 'Super Hero', 'color': Colors.redAccent, 'icon': Icons.bolt_rounded, 'genre': 'Action'},
+      {'name': 'Princess', 'color': Colors.pinkAccent, 'icon': Icons.auto_awesome_rounded, 'genre': 'Fantasy'},
+      {'name': 'Animal', 'color': Colors.greenAccent, 'icon': Icons.pets_rounded, 'genre': 'Nature'},
+      {'name': 'Space', 'color': Colors.blueAccent, 'icon': Icons.rocket_launch_rounded, 'genre': 'Sci-Fi'},
+    ];
+
+    return SizedBox(
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: characters.length,
+        itemBuilder: (context, index) {
+          final char = characters[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: InkWell(
+              onTap: () {
+                final genre = char['genre'] as String;
+                context.push('/home/genre/$genre');
+              },
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 35,
+                    backgroundColor: (char['color'] as Color).withOpacity(0.2),
+                    child: Icon(char['icon'] as IconData, color: char['color'] as Color, size: 35),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(char['name'] as String, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -99,6 +158,30 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHorizontalKidsList() {
+    return FutureBuilder<List<Movie>>(
+      future: _kidsContentFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox(height: 180, child: Center(child: CircularProgressIndicator()));
+        final movies = snapshot.data!.take(5).toList();
+        return SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: movies.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SizedBox(width: 140, child: MovieCard(movie: movies[index], height: 200)),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

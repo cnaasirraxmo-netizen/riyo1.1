@@ -53,6 +53,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   void _fetchSources() async {
+    if (_movieFuture == null) return;
     final movie = await _movieFuture;
     if (movie?.sourceType == 'admin') return;
 
@@ -126,6 +127,51 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     );
   }
 
+  Widget _buildShimmerDetails() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ShimmerLoading.rectangular(height: 300),
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ShimmerLoading.rectangular(height: 32, width: 250),
+                const SizedBox(height: 16),
+                Row(
+                  children: List.generate(3, (i) => const Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: ShimmerLoading.rectangular(height: 20, width: 60),
+                  )),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(4, (i) => const ShimmerLoading.circular(width: 50, height: 50)),
+                ),
+                const SizedBox(height: 32),
+                const ShimmerLoading.rectangular(height: 56),
+                const SizedBox(height: 32),
+                const ShimmerLoading.rectangular(height: 100),
+                const SizedBox(height: 32),
+                const ShimmerLoading.rectangular(height: 40, width: 150),
+                const SizedBox(height: 16),
+                Row(
+                  children: List.generate(3, (i) => const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: ShimmerLoading.rectangular(height: 180, width: 130),
+                  )),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,14 +179,14 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         future: _movieFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return _buildShimmerDetails();
           }
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           final movie = snapshot.data!;
 
-          if (movie.isTvShow && movie.seasons != null && _selectedSeason == null) {
+          if (movie.isTvShow && movie.seasons != null && movie.seasons!.isNotEmpty && _selectedSeason == null) {
             _selectedSeason = movie.seasons![0];
           }
 
@@ -210,8 +256,14 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                   ? (movie.backdropPath ?? movie.posterPath)
                   : 'https://image.tmdb.org/t/p/original${movie.backdropPath ?? movie.posterPath}',
               fit: BoxFit.cover,
-              placeholder: (context, url) => const ShimmerLoading.rectangular(height: 300),
-              errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+              placeholder: (context, url) => Image.asset(
+                'assets/images/placeholder.jpeg',
+                fit: BoxFit.cover,
+              ),
+              errorWidget: (context, url, error) => Image.asset(
+                'assets/images/placeholder.jpeg',
+                fit: BoxFit.cover,
+              ),
             ),
             Container(
               decoration: BoxDecoration(
@@ -573,7 +625,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         onTap: () {
           final s = _selectedSeason?.number ?? 1;
           final e = episode.number;
-          context.push('/movie/${widget.movieId}/play?s=$s&e=$e');
+          context.push('/movie/${Uri.encodeComponent(widget.movieId)}/play?s=$s&e=$e');
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,9 +722,17 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
           ),
         ],
         if (_availableSources.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('No sources found. Try the sniffer!', style: TextStyle(color: Colors.white38, fontSize: 13)),
+          FutureBuilder<Movie>(
+            future: _movieFuture,
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.sourceType != 'admin') {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('No sources found. Try the sniffer!', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
       ],
     );
