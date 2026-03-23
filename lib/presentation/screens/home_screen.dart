@@ -402,8 +402,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             fit: BoxFit.cover,
                             height: 500.0,
                             width: double.infinity,
-                            placeholder: (context, url) => const ShimmerLoading.rectangular(height: 500),
-                            errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+                            placeholder: (context, url) => Image.asset(
+                              'assets/images/placeholder.jpeg',
+                              fit: BoxFit.cover,
+                            ),
+                            errorWidget: (context, url, error) => Image.asset(
+                              'assets/images/placeholder.jpeg',
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         Container(
                           height: 500.0,

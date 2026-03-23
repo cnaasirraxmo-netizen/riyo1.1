@@ -211,8 +211,14 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                   ? (movie.backdropPath ?? movie.posterPath)
                   : 'https://image.tmdb.org/t/p/original${movie.backdropPath ?? movie.posterPath}',
               fit: BoxFit.cover,
-              placeholder: (context, url) => const ShimmerLoading.rectangular(height: 300),
-              errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+              placeholder: (context, url) => Image.asset(
+                'assets/images/placeholder.jpeg',
+                fit: BoxFit.cover,
+              ),
+              errorWidget: (context, url, error) => Image.asset(
+                'assets/images/placeholder.jpeg',
+                fit: BoxFit.cover,
+              ),
             ),
             Container(
               decoration: BoxDecoration(
