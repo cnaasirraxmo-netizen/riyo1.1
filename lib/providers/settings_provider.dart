@@ -29,6 +29,7 @@ class SettingsProvider with ChangeNotifier {
 
   // Playback
   String _defaultVideoQuality = 'Auto';
+  double _defaultPlaybackSpeed = 1.0;
   bool _preferWifiStreaming = true;
   bool _allowMobileDataStreaming = true;
   bool _doubleTapSeek = true;
@@ -82,7 +83,7 @@ class SettingsProvider with ChangeNotifier {
   // Getters
   bool get isKidsMode => _isKidsMode;
   String get kidsPin => _kidsPin;
-  bool get isOffline => _simulateSlowNetwork; // Assuming this based on current fields or adding a new one
+  bool get isOffline => _simulateSlowNetwork;
   ThemeMode get themeMode => _themeMode;
   bool get amoledMode => _amoledMode;
   bool get dynamicColor => _dynamicColor;
@@ -107,6 +108,7 @@ class SettingsProvider with ChangeNotifier {
   TimeOfDay get quietModeEnd => _quietModeEnd;
 
   String get defaultVideoQuality => _defaultVideoQuality;
+  double get defaultPlaybackSpeed => _defaultPlaybackSpeed;
   bool get preferWifiStreaming => _preferWifiStreaming;
   bool get allowMobileDataStreaming => _allowMobileDataStreaming;
   bool get doubleTapSeek => _doubleTapSeek;
@@ -182,6 +184,7 @@ class SettingsProvider with ChangeNotifier {
 
     // Playback
     _defaultVideoQuality = prefs.getString('defaultVideoQuality') ?? 'Auto';
+    _defaultPlaybackSpeed = prefs.getDouble('defaultPlaybackSpeed') ?? 1.0;
     _preferWifiStreaming = prefs.getBool('preferWifiStreaming') ?? true;
     _allowMobileDataStreaming = prefs.getBool('allowMobileDataStreaming') ?? true;
     _doubleTapSeek = prefs.getBool('doubleTapSeek') ?? true;
@@ -251,6 +254,11 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setInt(key, value);
   }
 
+  Future<void> _saveDouble(String key, double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(key, value);
+  }
+
   Future<void> _saveStringList(String key, List<String> value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(key, value);
@@ -281,6 +289,7 @@ class SettingsProvider with ChangeNotifier {
   void setQuietModeEnd(TimeOfDay time) { _quietModeEnd = time; _saveString('quietModeEnd', '${time.hour}:${time.minute}'); notifyListeners(); }
 
   void setDefaultVideoQuality(String quality) { _defaultVideoQuality = quality; _saveString('defaultVideoQuality', quality); notifyListeners(); }
+  void setDefaultPlaybackSpeed(double speed) { _defaultPlaybackSpeed = speed; _saveDouble('defaultPlaybackSpeed', speed); notifyListeners(); }
   void setPreferWifiStreaming(bool value) { _preferWifiStreaming = value; _saveBool('preferWifiStreaming', value); notifyListeners(); }
   void setAllowMobileDataStreaming(bool value) { _allowMobileDataStreaming = value; _saveBool('allowMobileDataStreaming', value); notifyListeners(); }
   void setDoubleTapSeek(bool value) { _doubleTapSeek = value; _saveBool('doubleTapSeek', value); notifyListeners(); }
@@ -323,7 +332,7 @@ class SettingsProvider with ChangeNotifier {
   void setDeveloperMode(bool value) { _isDeveloperModeEnabled = value; _saveBool('isDeveloperModeEnabled', value); notifyListeners(); }
   void setEnableDebugLogs(bool value) { _enableDebugLogs = value; _saveBool('enableDebugLogs', value); notifyListeners(); }
   void setSimulateSlowNetwork(bool value) { _simulateSlowNetwork = value; _saveBool('simulateSlowNetwork', value); notifyListeners(); }
-  void setOfflineMode(bool value) { _simulateSlowNetwork = value; _saveBool('simulateSlowNetwork', value); notifyListeners(); } // Implementing as requested
+  void setOfflineMode(bool value) { _simulateSlowNetwork = value; _saveBool('simulateSlowNetwork', value); notifyListeners(); }
 
   // Helpers
   ThemeMode _parseThemeMode(String theme) {

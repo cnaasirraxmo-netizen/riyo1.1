@@ -38,6 +38,8 @@ class NativePlayer extends BaseVideoPlayer {
       _state = _state.copyWith(
         status: PlayerStatus.idle,
         duration: _controller!.value.duration,
+        availableQualities: ['Original'],
+        currentQuality: 'Original',
       );
     } catch (e) {
       _state = _state.copyWith(status: PlayerStatus.error, error: e.toString());
@@ -72,6 +74,8 @@ class NativePlayer extends BaseVideoPlayer {
       buffered: _controller!.value.buffered.isNotEmpty
           ? _controller!.value.buffered.last.end
           : Duration.zero,
+      playbackSpeed: _controller!.value.playbackSpeed,
+      volume: _controller!.value.volume,
       error: _controller!.value.errorDescription,
     );
     notifyListeners();
@@ -100,6 +104,35 @@ class NativePlayer extends BaseVideoPlayer {
   @override
   Future<void> setSpeed(double speed) async {
     await _controller?.setPlaybackSpeed(speed);
+  }
+
+  @override
+  Future<void> setQuality(String quality) async {
+    _state = _state.copyWith(currentQuality: quality);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> setAudioTrack(String track) async {
+    _state = _state.copyWith(currentAudioTrack: track);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> setSubtitle(String subtitle) async {
+    _state = _state.copyWith(currentSubtitle: subtitle);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> setSubtitlesData(List<Map<String, dynamic>> subtitles) async {
+    _state = _state.copyWith(availableSubtitles: subtitles);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> enterPip() async {
+    // Picture-in-picture logic for native player
   }
 
   @override

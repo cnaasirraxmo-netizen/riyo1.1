@@ -12,7 +12,7 @@ class PlaybackSettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Playback'),
+        title: const Text('Playback Settings'),
       ),
       body: ListView(
         children: [
@@ -22,6 +22,20 @@ class PlaybackSettingsScreen extends StatelessWidget {
             title: 'Default Video Quality',
             subtitle: settings.defaultVideoQuality,
             onTap: () => _showQualityDialog(context, settings),
+          ),
+
+          const SettingsHeader(title: 'Player Defaults'),
+          SettingsItem(
+            icon: Icons.speed_rounded,
+            title: 'Default Playback Speed',
+            subtitle: '${settings.defaultPlaybackSpeed}x',
+            onTap: () => _showSpeedDialog(context, settings),
+          ),
+          SettingsItem(
+            icon: Icons.subtitles_rounded,
+            title: 'Default Subtitle Language',
+            subtitle: settings.subtitleLanguage,
+            onTap: () => _showSubtitleLangDialog(context, settings),
           ),
 
           const SettingsHeader(title: 'Streaming'),
@@ -38,7 +52,7 @@ class PlaybackSettingsScreen extends StatelessWidget {
             onChanged: (val) => settings.setAllowMobileDataStreaming(val),
           ),
 
-          const SettingsHeader(title: 'Player Controls'),
+          const SettingsHeader(title: 'Behavior'),
           SettingsToggle(
             icon: Icons.touch_app_outlined,
             title: 'Double Tap Seek',
@@ -70,18 +84,36 @@ class PlaybackSettingsScreen extends StatelessWidget {
   }
 
   void _showQualityDialog(BuildContext context, SettingsProvider settings) {
+    _showRadioDialog(context, 'Video Quality', ['Auto', '1080p', '720p', '480p', '360p'], settings.defaultVideoQuality, (val) {
+      settings.setDefaultVideoQuality(val);
+    });
+  }
+
+  void _showSpeedDialog(BuildContext context, SettingsProvider settings) {
+    _showRadioDialog(context, 'Playback Speed', ['0.5', '1.0', '1.5', '2.0'], settings.defaultPlaybackSpeed.toString(), (val) {
+      settings.setDefaultPlaybackSpeed(double.parse(val));
+    });
+  }
+
+  void _showSubtitleLangDialog(BuildContext context, SettingsProvider settings) {
+     _showRadioDialog(context, 'Subtitle Language', ['Auto detect', 'English', 'Spanish', 'French', 'Hindi'], settings.subtitleLanguage, (val) {
+      settings.setSubtitleLanguage(val);
+    });
+  }
+
+  void _showRadioDialog(BuildContext context, String title, List<String> options, String currentValue, Function(String) onSelect) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Video Quality'),
+        title: Text(title),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ['Auto', '1080p', '720p', '480p', '360p'].map((opt) => RadioListTile<String>(
+          children: options.map((opt) => RadioListTile<String>(
             title: Text(opt),
             value: opt,
-            groupValue: settings.defaultVideoQuality,
+            groupValue: currentValue,
             onChanged: (val) {
-              settings.setDefaultVideoQuality(val!);
+              onSelect(val!);
               Navigator.pop(context);
             },
             activeColor: Theme.of(context).colorScheme.primary,
