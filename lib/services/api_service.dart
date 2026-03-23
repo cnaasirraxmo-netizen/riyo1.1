@@ -48,6 +48,7 @@ class ApiService {
       cacheKey: 'home_data_aggregate',
       url: '$_backendUrl/api/v1/home',
       parser: (data) => {
+        'adminMovies': _parseList(data['adminMovies']),
         'trendingMovies': _parseList(data['trendingMovies']),
         'popularMovies': _parseList(data['popularMovies']),
         'topRatedMovies': _parseList(data['topRatedMovies']),

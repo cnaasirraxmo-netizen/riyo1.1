@@ -51,6 +51,15 @@ class _UnifiedPlayerControlsState extends State<UnifiedPlayerControls> {
     _startSubtitleTimer();
   }
 
+  @override
+  void didUpdateWidget(UnifiedPlayerControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.player != oldWidget.player) {
+      oldWidget.player.removeListener(_onPlayerUpdate);
+      widget.player.addListener(_onPlayerUpdate);
+    }
+  }
+
   void _onPlayerUpdate() {
     if (mounted) setState(() {});
   }

@@ -17,6 +17,7 @@ const Home = () => {
         const data = res.data;
 
         const sectionList = [
+          { title: "RIYOBOX EXCLUSIVES", movies: data.adminMovies },
           { title: "Trending Now", movies: data.trendingMovies },
           { title: "Top Rated Collections", movies: data.topRatedMovies },
           { title: "Most Popular", movies: data.popularMovies },

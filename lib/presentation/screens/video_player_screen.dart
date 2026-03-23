@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:riyo/core/player/base_player.dart';
 import 'package:riyo/core/player/player_factory.dart';
 import 'package:riyo/presentation/widgets/player/unified_controls.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
@@ -46,6 +47,7 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    WakelockPlus.enable();
     _fetchData();
   }
 
@@ -205,8 +207,12 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
   void dispose() {
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    WakelockPlus.disable();
     _player?.removeListener(_onPlayerStateChanged);
     _player?.dispose();
     super.dispose();
