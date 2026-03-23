@@ -74,8 +74,6 @@ class CppPlayer extends BaseVideoPlayer {
     final nativeState = _engine!.getState();
     PlayerStatus status;
 
-    // States from C++ Engine (Assumed mapping)
-    // 0: IDLE, 1: PREPARING/LOADING, 2: PLAYING, 3: PAUSED, 4: BUFFERING, 5: COMPLETED, 6: ERROR
     switch (nativeState) {
       case 1: status = PlayerStatus.loading; break;
       case 2: status = PlayerStatus.playing; break;
@@ -118,6 +116,38 @@ class CppPlayer extends BaseVideoPlayer {
   @override
   Future<void> setSpeed(double speed) async {
     _engine?.setSpeed(speed);
+  }
+
+  @override
+  Future<void> setQuality(String quality) async {
+    final levels = {'480p': 1, '720p': 2, '1080p': 3};
+    final level = levels[quality] ?? 0;
+    _engine?.setQuality(level);
+    _state = _state.copyWith(currentQuality: quality);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> setAudioTrack(String track) async {
+    _state = _state.copyWith(currentAudioTrack: track);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> setSubtitle(String subtitle) async {
+    _state = _state.copyWith(currentSubtitle: subtitle);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> setSubtitlesData(List<Map<String, dynamic>> subtitles) async {
+    _state = _state.copyWith(availableSubtitles: subtitles);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> enterPip() async {
+    // C++ Engine PiP trigger
   }
 
   @override

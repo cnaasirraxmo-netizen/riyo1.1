@@ -75,8 +75,11 @@ class DownloadProvider with ChangeNotifier {
   Future<void> startDownload(Movie movie) async {
     if (isDownloaded(movie.id) || isDownloading(movie.id)) return;
 
-    final videoUrl = movie.videoUrl;
-    if (videoUrl == null || videoUrl.isEmpty) return;
+    final videoUrl = movie.directUrl ?? movie.videoUrl;
+    if (videoUrl == null || videoUrl.isEmpty) {
+      debugPrint('DOWNLOAD ERROR: No valid video URL found for ${movie.title}');
+      return;
+    }
 
     final movieToDownload = movie.copyWith(isDownloading: true, downloadProgress: 0.0);
     _downloadingMovies.add(movieToDownload);

@@ -36,13 +36,39 @@ const Player = () => {
         const movieRes = await api.get(`/movies/${id}`);
         setMovie(movieRes.data);
 
-        let sourcesUrl = `/api/v1/movie/${id}/sources`;
-        if (season && episode) {
-          sourcesUrl = `/api/v1/tv/${id}/sources/${season}/${episode}`;
+        let sourcesData = [];
+        let subtitlesData = [];
+
+        if (movieRes.data.sourceType === 'admin') {
+          let directUrl = movieRes.data.directUrl || movieRes.data.videoUrl;
+
+          if (movieRes.data.isTvShow && season && episode) {
+            const sNum = parseInt(season);
+            const eNum = parseInt(episode);
+            const foundSeason = movieRes.data.seasons?.find(s => s.number === sNum);
+            const foundEpisode = foundSeason?.episodes?.find(e => e.number === eNum);
+            if (foundEpisode?.videoUrl) {
+              directUrl = foundEpisode.videoUrl;
+            }
+          }
+
+          if (directUrl) {
+            sourcesData = [{
+              url: directUrl,
+              label: 'Official Server',
+              quality: movieRes.data.quality || 'HD',
+              provider: 'admin'
+            }];
+          }
+        } else {
+          let sourcesUrl = `/api/v1/movie/${id}/sources`;
+          if (season && episode) {
+            sourcesUrl = `/api/v1/tv/${id}/sources/${season}/${episode}`;
+          }
+          const response = await api.get(sourcesUrl);
+          sourcesData = response.data.sources || [];
+          subtitlesData = response.data.subtitles || [];
         }
-        const response = await api.get(sourcesUrl);
-        const sourcesData = response.data.sources || [];
-        const subtitlesData = response.data.subtitles || [];
 
         setSources(sourcesData);
         setSubtitles(subtitlesData);
@@ -68,6 +94,8 @@ const Player = () => {
           setSelectedSource({ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' });
           setSources([{ url: initialUrl, label: 'Direct Link', quality: 'HD', provider: 'Auto' }]);
           setSourceIndex(0);
+        } else {
+          setIsError(true);
         }
       } catch (err) {
         console.error(err);
