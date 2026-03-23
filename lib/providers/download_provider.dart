@@ -116,7 +116,26 @@ class DownloadProvider with ChangeNotifier {
         // For a full HLS downloader, we'd need to parse the manifest and download segments.
         // For now, we'll download the manifest and allow the player to attempt playback.
         final dio = Dio();
-        await dio.download(videoUrl, filePath, cancelToken: cancelToken);
+        await dio.download(
+          videoUrl,
+          filePath,
+          cancelToken: cancelToken,
+          options: Options(
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            },
+          ),
+          onReceiveProgress: (received, total) {
+            if (total != -1) {
+              final progress = received / total;
+              final index = _downloadingMovies.indexWhere((m) => m.id == movie.id);
+              if (index != -1) {
+                _downloadingMovies[index] = _downloadingMovies[index].copyWith(downloadProgress: progress);
+                notifyListeners();
+              }
+            }
+          },
+        );
       } else {
       final dio = Dio();
       await dio.download(

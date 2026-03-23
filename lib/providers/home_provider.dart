@@ -81,7 +81,13 @@ class HomeProvider extends ChangeNotifier {
 
       _sectionFutures.clear();
       _sectionFutures['RIYOBOX EXCLUSIVES'] = Future.value(homeData['adminMovies']);
-      _sectionFutures['Trending Movies'] = Future.value(homeData['trendingMovies']);
+
+      final List<Movie> trendingWithAdmin = [
+        ...(homeData['adminMovies'] ?? []).take(5), // Prioritize new admin content
+        ...(homeData['trendingMovies'] ?? []),
+      ];
+      _sectionFutures['Trending Movies'] = Future.value(trendingWithAdmin);
+
       _sectionFutures['Popular Movies'] = Future.value(homeData['popularMovies']);
       _sectionFutures['Top Rated'] = Future.value(homeData['topRatedMovies']);
       _sectionFutures['TV Shows'] = Future.value(homeData['trendingTV']);
