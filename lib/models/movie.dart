@@ -392,7 +392,7 @@ class Episode {
     return Episode(
       number: json['number'] ?? 0,
       title: json['title'] ?? '',
-      duration: json['duration'] ?? '',
+      duration: json['duration'] ?? (json['runtime']?.toString() ?? ''),
       videoUrl: json['videoUrl'],
     );
   }

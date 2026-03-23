@@ -111,31 +111,8 @@ class DownloadProvider with ChangeNotifier {
         throw FileSystemException("Could not create downloads directory", downloadDir.path, e as dynamic);
       }
 
-      if (videoUrl.contains('.m3u8')) {
-        // HLS Downloader logic (Minimal - downloads manifest)
-        // For a full HLS downloader, we'd need to parse the manifest and download segments.
-        // For now, we'll download the manifest and allow the player to attempt playback.
-        final dio = Dio();
-        await dio.download(
-          videoUrl,
-          filePath,
-          cancelToken: cancelToken,
-          options: Options(
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            },
-          ),
-          onReceiveProgress: (received, total) {
-            if (total != -1) {
-              final progress = received / total;
-              final index = _downloadingMovies.indexWhere((m) => m.id == movie.id);
-              if (index != -1) {
-                _downloadingMovies[index] = _downloadingMovies[index].copyWith(downloadProgress: progress);
-                notifyListeners();
-              }
-            }
-          },
-        );
+      if (videoUrl.contains('.m3u8') || videoUrl.contains('playlist.m3u8')) {
+        await _downloadHls(videoUrl, filePath, movie.id, cancelToken);
       } else {
       final dio = Dio();
       await dio.download(
@@ -173,6 +150,71 @@ class DownloadProvider with ChangeNotifier {
     } finally {
       _cancelTokens.remove(movie.id);
     }
+  }
+
+  Future<void> _downloadHls(String url, String savePath, int movieId, CancelToken cancelToken) async {
+    final dio = Dio();
+    final response = await dio.get(url, options: Options(headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    }));
+
+    if (response.statusCode != 200) throw Exception("Failed to fetch M3U8 manifest");
+
+    final manifestContent = response.data.toString();
+    final lines = manifestContent.split('\n');
+    final segments = lines.where((line) => line.isNotEmpty && !line.startsWith('#')).toList();
+
+    if (segments.isEmpty) {
+       // Might be a Master Playlist, try to find a sub-playlist
+       final subPlaylist = lines.firstWhere((line) => line.contains('.m3u8'), orElse: () => '');
+       if (subPlaylist.isNotEmpty) {
+          String subUrl = subPlaylist;
+          if (!subUrl.startsWith('http')) {
+             final uri = Uri.parse(url);
+             subUrl = uri.resolve(subUrl).toString();
+          }
+          return _downloadHls(subUrl, savePath, movieId, cancelToken);
+       }
+    }
+
+    final downloadDir = Directory(p.dirname(savePath));
+    final hlsDir = Directory(p.join(downloadDir.path, 'hls_$movieId'));
+    if (!await hlsDir.exists()) await hlsDir.create(recursive: true);
+
+    String newManifest = "";
+    int downloadedCount = 0;
+
+    for (var line in lines) {
+      if (line.isEmpty) continue;
+      if (line.startsWith('#')) {
+        newManifest += line + "\n";
+      } else {
+        final segmentUrl = line;
+        String fullSegmentUrl = segmentUrl;
+        if (!segmentUrl.startsWith('http')) {
+           final uri = Uri.parse(url);
+           fullSegmentUrl = uri.resolve(segmentUrl).toString();
+        }
+
+        final segmentFileName = 'seg_$downloadedCount.ts';
+        final segmentPath = p.join(hlsDir.path, segmentFileName);
+
+        await dio.download(fullSegmentUrl, segmentPath, cancelToken: cancelToken);
+
+        newManifest += p.join('hls_$movieId', segmentFileName) + "\n";
+        downloadedCount++;
+
+        final progress = downloadedCount / segments.length;
+        final index = _downloadingMovies.indexWhere((m) => m.id == movieId);
+        if (index != -1) {
+          _downloadingMovies[index] = _downloadingMovies[index].copyWith(downloadProgress: progress);
+          notifyListeners();
+        }
+      }
+    }
+
+    final localManifestFile = File(savePath);
+    await localManifestFile.writeAsString(newManifest);
   }
 
   Future<String> _getFileSize(String path) async {
