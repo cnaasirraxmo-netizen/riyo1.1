@@ -105,7 +105,11 @@ class CppPlayer extends BaseVideoPlayer {
 
   @override
   Future<void> seek(Duration position) async {
-    _engine?.seek(position.inSeconds.toDouble());
+    if (_engine == null) return;
+    final Duration clampedPosition = Duration(
+      milliseconds: position.inMilliseconds.clamp(0, state.duration.inMilliseconds),
+    );
+    _engine?.seek(clampedPosition.inSeconds.toDouble());
   }
 
   @override

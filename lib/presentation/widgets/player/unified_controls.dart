@@ -376,8 +376,10 @@ class _UnifiedPlayerControlsState extends State<UnifiedPlayerControls> {
     _showOptionsDialog(context, 'Subtitles', options, (val) {
       widget.player.setSubtitle(val);
       if (val != 'Off') {
-        final sub = widget.player.state.availableSubtitles.firstWhere((s) => s['language'] == val);
-        _loadSubtitles(sub['url']);
+        final sub = widget.player.state.availableSubtitles.firstWhere((s) => s['language'] == val, orElse: () => <String, dynamic>{});
+        if (sub.containsKey('url')) {
+          _loadSubtitles(sub['url']);
+        }
       } else {
         setState(() {
           _subtitleEntries = [];

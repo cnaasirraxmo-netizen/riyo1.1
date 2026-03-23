@@ -29,10 +29,12 @@ class ApiService {
 
     try {
       final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
         final data = json.decode(response.body);
-        unawaited(_cacheService.cacheData(cacheKey, data));
-        return parser(data);
+        if (data != null) {
+          unawaited(_cacheService.cacheData(cacheKey, data));
+          return parser(data);
+        }
       }
     } catch (e) {
       debugPrint('ApiService network error for $url: $e');

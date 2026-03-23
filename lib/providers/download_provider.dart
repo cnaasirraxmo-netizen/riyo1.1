@@ -207,7 +207,8 @@ class DownloadProvider with ChangeNotifier {
   }
 
   Future<void> deleteDownload(int movieId) async {
-    final movie = _downloadedMovies.firstWhere((m) => m.id == movieId);
+    final movie = _downloadedMovies.firstWhere((m) => m.id == movieId, orElse: () => Movie(id: -1, title: '', overview: '', posterPath: '', releaseDate: ''));
+    if (movie.id == -1) return;
     if (movie.localPath != null) {
       final file = File(movie.localPath!);
       if (await file.exists()) {

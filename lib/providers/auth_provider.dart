@@ -42,11 +42,17 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error initializing AuthProvider dependencies: $e');
     }
-    _loadState().catchError((e) {
+    init();
+  }
+
+  Future<void> init() async {
+    try {
+      await _loadState();
+    } catch (e) {
       debugPrint('Error loading AuthProvider state: $e');
       _isInitialized = true;
       notifyListeners();
-    });
+    }
   }
 
   Future<void> _loadState() async {

@@ -93,7 +93,11 @@ class NativePlayer extends BaseVideoPlayer {
 
   @override
   Future<void> seek(Duration position) async {
-    await _controller?.seekTo(position);
+    if (_controller == null || !_controller!.value.isInitialized) return;
+    final Duration clampedPosition = Duration(
+      milliseconds: position.inMilliseconds.clamp(0, _controller!.value.duration.inMilliseconds),
+    );
+    await _controller?.seekTo(clampedPosition);
   }
 
   @override
