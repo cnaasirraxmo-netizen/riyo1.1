@@ -14,34 +14,22 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
-  final ApiService _apiService = ApiService();
-  List<String> _categories = [];
-  bool _isLoading = true;
+  final List<String> _categories = [
+    'Coming Soon',
+    'Kids',
+    'Action',
+    'Comedy',
+    'Drama',
+    'Horror',
+    'Sci-Fi',
+    'Anime',
+    'Romance',
+    'Documentary',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
-  }
-
-  Future<void> _loadCategories() async {
-    final cats = await _apiService.getHeaderCategories();
-    final systemConfig = Provider.of<SystemConfigProvider>(context, listen: false).config;
-
-    if (mounted) {
-      setState(() {
-        _categories = cats.where((c) {
-          if (c == 'Sports' && !systemConfig.sportsEnabled) return false;
-          if (c == 'Kids' && !systemConfig.kidsEnabled) return false;
-          return true;
-        }).toList();
-
-        if (!_categories.contains('Coming Soon')) {
-          _categories.insert(0, 'Coming Soon');
-        }
-        _isLoading = false;
-      });
-    }
   }
 
   @override
@@ -74,12 +62,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               child: Text('Explore Genres', style: AppTypography.titleMedium),
             ),
           ),
-          if (_isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            SliverPadding(
+          SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

@@ -253,7 +253,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     label: Text(category),
                                     selected: isSelected,
                                     onSelected: (bool selected) {
-                                      homeProvider.setSelectedCategory(category);
+                                      if (category == 'Kids') {
+                                        context.push('/kids');
+                                      } else if (category == 'Coming Soon') {
+                                        context.push('/coming-soon');
+                                      } else {
+                                        homeProvider.setSelectedCategory(category);
+                                      }
                                     },
                                     showCheckmark: false,
                                     shape: RoundedRectangleBorder(

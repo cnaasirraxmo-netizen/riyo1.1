@@ -46,12 +46,52 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
             _buildKidsHero(),
             const Padding(
               padding: EdgeInsets.fromLTRB(24, 32, 24, 16),
+              child: Text('Pick a Character', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
+            ),
+            _buildCharactersSection(),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 32, 24, 16),
               child: Text('Fun Movies & Shows', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
             ),
             _buildKidsGrid(),
             const SizedBox(height: 40),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCharactersSection() {
+    final characters = [
+      {'name': 'Super Hero', 'color': Colors.redAccent, 'icon': Icons.bolt_rounded},
+      {'name': 'Princess', 'color': Colors.pinkAccent, 'icon': Icons.auto_awesome_rounded},
+      {'name': 'Animal', 'color': Colors.greenAccent, 'icon': Icons.pets_rounded},
+      {'name': 'Space', 'color': Colors.blueAccent, 'icon': Icons.rocket_launch_rounded},
+    ];
+
+    return SizedBox(
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: characters.length,
+        itemBuilder: (context, index) {
+          final char = characters[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 35,
+                  backgroundColor: (char['color'] as Color).withOpacity(0.2),
+                  child: Icon(char['icon'] as IconData, color: char['color'] as Color, size: 35),
+                ),
+                const SizedBox(height: 8),
+                Text(char['name'] as String, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
