@@ -53,6 +53,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   }
 
   void _fetchSources() async {
+    if (_movieFuture == null) return;
     final movie = await _movieFuture;
     if (movie?.sourceType == 'admin') return;
 
@@ -140,7 +141,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
           }
           final movie = snapshot.data!;
 
-          if (movie.isTvShow && movie.seasons != null && _selectedSeason == null) {
+          if (movie.isTvShow && movie.seasons != null && movie.seasons!.isNotEmpty && _selectedSeason == null) {
             _selectedSeason = movie.seasons![0];
           }
 
@@ -573,7 +574,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         onTap: () {
           final s = _selectedSeason?.number ?? 1;
           final e = episode.number;
-          context.push('/movie/${widget.movieId}/play?s=$s&e=$e');
+          context.push('/movie/${Uri.encodeComponent(widget.movieId)}/play?s=$s&e=$e');
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,9 +671,17 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
           ),
         ],
         if (_availableSources.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('No sources found. Try the sniffer!', style: TextStyle(color: Colors.white38, fontSize: 13)),
+          FutureBuilder<Movie>(
+            future: _movieFuture,
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.sourceType != 'admin') {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('No sources found. Try the sniffer!', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
       ],
     );
