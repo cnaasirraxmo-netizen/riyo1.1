@@ -287,10 +287,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           body: Selector<HomeProvider, bool>(
             selector: (_, h) => h.isLoadingConfig,
             builder: (context, isLoading, child) {
-              if (isLoading) {
-                return const Center(
-                    child: CircularProgressIndicator());
-              }
               return Consumer2<SettingsProvider, HomeProvider>(
                 builder: (context, settings, home, child) {
                   return FutureBuilder<List<Movie>>(

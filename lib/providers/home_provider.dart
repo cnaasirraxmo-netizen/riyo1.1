@@ -6,12 +6,18 @@ import 'package:riyo/services/api_service.dart';
 class HomeProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
-  List<String> _categories = ["All"];
-  List<Map<String, dynamic>> _sections = [];
+  List<String> _categories = ["All", "Movies", "TV Shows", "Anime", "Kids", "My List"];
+  List<Map<String, dynamic>> _sections = [
+    {'title': 'RIYOBOX EXCLUSIVES', 'type': 'admin_only'},
+    {'title': 'Trending Movies', 'type': 'trending_new'},
+    {'title': 'Popular Movies', 'type': 'popular_new'},
+    {'title': 'Top Rated', 'type': 'top_rated_new'},
+    {'title': 'TV Shows', 'type': 'trending_tv_new'},
+  ];
   Map<String, Future<List<Movie>>> _sectionFutures = {};
   Future<List<Movie>>? _featuredFuture;
 
-  bool _isLoadingConfig = true;
+  bool _isLoadingConfig = false;
   String _selectedCategory = "All";
 
   List<String> get categories => _categories;
@@ -63,21 +69,18 @@ class HomeProvider extends ChangeNotifier {
   Future<void> loadConfig({String? token, bool forceRefresh = false}) async {
     if (_isDataLoaded && !forceRefresh) return;
 
-    _isLoadingConfig = true;
-    notifyListeners();
+    // We don't set _isLoadingConfig = true here to avoid full screen loaders
+    // Instead, sections will show shimmers if their futures are pending
 
     try {
-      _categories = await _apiService.getHeaderCategories();
+      // Background fetch categories but keep hardcoded ones as base
+      _apiService.getHeaderCategories().then((cats) {
+         _categories = cats;
+         notifyListeners();
+      });
 
       // Use new aggregation route for home data
       final homeData = await _apiService.getHomeData();
-      _sections = [
-        {'title': 'RIYOBOX EXCLUSIVES', 'type': 'admin_only'},
-        {'title': 'Trending Movies', 'type': 'trending_new'},
-        {'title': 'Popular Movies', 'type': 'popular_new'},
-        {'title': 'Top Rated', 'type': 'top_rated_new'},
-        {'title': 'TV Shows', 'type': 'trending_tv_new'},
-      ];
 
       _sectionFutures.clear();
       _sectionFutures['RIYOBOX EXCLUSIVES'] = Future.value(homeData['adminMovies']);
