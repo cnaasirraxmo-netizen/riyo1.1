@@ -127,6 +127,51 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     );
   }
 
+  Widget _buildShimmerDetails() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ShimmerLoading.rectangular(height: 300),
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ShimmerLoading.rectangular(height: 32, width: 250),
+                const SizedBox(height: 16),
+                Row(
+                  children: List.generate(3, (i) => const Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: ShimmerLoading.rectangular(height: 20, width: 60),
+                  )),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(4, (i) => const ShimmerLoading.circular(width: 50, height: 50)),
+                ),
+                const SizedBox(height: 32),
+                const ShimmerLoading.rectangular(height: 56),
+                const SizedBox(height: 32),
+                const ShimmerLoading.rectangular(height: 100),
+                const SizedBox(height: 32),
+                const ShimmerLoading.rectangular(height: 40, width: 150),
+                const SizedBox(height: 16),
+                Row(
+                  children: List.generate(3, (i) => const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: ShimmerLoading.rectangular(height: 180, width: 130),
+                  )),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,7 +179,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
         future: _movieFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const ShimmerLoading.rectangular(height: double.infinity);
+            return _buildShimmerDetails();
           }
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));

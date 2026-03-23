@@ -82,6 +82,11 @@ class HomeProvider extends ChangeNotifier {
       // Use new aggregation route for home data
       final homeData = await _apiService.getHomeData();
 
+      if (homeData['trendingMovies']!.isEmpty && _isDataLoaded) {
+        // Don't overwrite existing UI data if network fails and returns empty Map
+        return;
+      }
+
       _sectionFutures.clear();
       _sectionFutures['RIYOBOX EXCLUSIVES'] = Future.value(homeData['adminMovies']);
 

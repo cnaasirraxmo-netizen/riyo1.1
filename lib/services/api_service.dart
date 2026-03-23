@@ -46,17 +46,28 @@ class ApiService {
 
   // NEW AGGREGATION METHODS
   Future<Map<String, List<Movie>>> getHomeData() async {
-    return await _cacheThenNetwork<Map<String, List<Movie>>>(
-      cacheKey: 'home_data_aggregate',
-      url: '$_backendUrl/api/v1/home',
-      parser: (data) => {
-        'adminMovies': _parseList(data['adminMovies']),
-        'trendingMovies': _parseList(data['trendingMovies']),
-        'popularMovies': _parseList(data['popularMovies']),
-        'topRatedMovies': _parseList(data['topRatedMovies']),
-        'trendingTV': _parseList(data['trendingTV']),
-      },
-    );
+    try {
+      return await _cacheThenNetwork<Map<String, List<Movie>>>(
+        cacheKey: 'home_data_aggregate',
+        url: '$_backendUrl/api/v1/home',
+        parser: (data) => {
+          'adminMovies': _parseList(data['adminMovies']),
+          'trendingMovies': _parseList(data['trendingMovies']),
+          'popularMovies': _parseList(data['popularMovies']),
+          'topRatedMovies': _parseList(data['topRatedMovies']),
+          'trendingTV': _parseList(data['trendingTV']),
+        },
+      );
+    } catch (e) {
+      // Return empty Map with keys to prevent UI crashes if even cache fails
+      return {
+        'adminMovies': [],
+        'trendingMovies': [],
+        'popularMovies': [],
+        'topRatedMovies': [],
+        'trendingTV': [],
+      };
+    }
   }
 
   Future<Map<String, dynamic>> getSources(String id, {int? season, int? episode}) async {
@@ -115,12 +126,19 @@ class ApiService {
   }
 
   Future<Movie> getMovieDetails(String movieId, {String? token}) async {
-    return await _cacheThenNetwork<Movie>(
-      cacheKey: 'movie_details_$movieId',
-      url: '$_backendUrl/movies/$movieId',
-      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
-      parser: (data) => Movie.fromJson(data),
-    );
+    try {
+      return await _cacheThenNetwork<Movie>(
+        cacheKey: 'movie_details_$movieId',
+        url: '$_backendUrl/movies/$movieId',
+        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+        parser: (data) => Movie.fromJson(data),
+      );
+    } catch (e) {
+      // Fallback to local cache if everything fails, or return a mock movie to prevent crash
+      final cached = _cacheService.getCachedMovie(movieId);
+      if (cached != null) return Movie.fromJson(cached);
+      throw Exception('Failed to load movie details');
+    }
   }
 
   Future<bool> toggleWatchlist(String movieId, String token) async {
