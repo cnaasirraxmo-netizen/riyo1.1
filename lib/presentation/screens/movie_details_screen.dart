@@ -40,15 +40,22 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       setState(() {
-        _movieFuture = _apiService.getMovieDetails(widget.movieId, token: auth.token);
+        _movieFuture = _apiService.getMovieDetails(widget.movieId, token: auth.token).then((movie) {
+          if (movie.sourceType != 'admin') {
+            _fetchSources();
+          }
+          return movie;
+        });
         _recommendationsFuture = _apiService.getTrendingMovies(token: auth.token);
       });
       _checkWatchlistStatus();
-      _fetchSources();
     });
   }
 
   void _fetchSources() async {
+    final movie = await _movieFuture;
+    if (movie?.sourceType == 'admin') return;
+
     setState(() => _isLoadingSources = true);
     try {
       final response = await _apiService.getSources(widget.movieId);
@@ -155,7 +162,15 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                       if (movie.isTvShow) _buildSeasonSelector(movie),
                       if (movie.isTvShow) _buildEpisodeList(),
                       const SizedBox(height: 32),
-                      _buildSourceList(),
+                      FutureBuilder<Movie>(
+                        future: _movieFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData && snapshot.data!.sourceType == 'admin') {
+                            return const SizedBox.shrink();
+                          }
+                          return _buildSourceList();
+                        },
+                      ),
                       const SizedBox(height: 32),
                       _buildMoreInfo(movie),
                       const SizedBox(height: 48),
@@ -387,9 +402,13 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trailer not available yet')));
                   }
                } else {
-                  if (movie.sourceType == 'admin' && (movie.directUrl != null || movie.videoUrl != null)) {
+                  if (movie.sourceType == 'admin') {
                     final url = movie.directUrl ?? movie.videoUrl;
-                    context.push('/movie/$id/play?url=${Uri.encodeComponent(url!)}&provider=admin');
+                    if (url != null && url.isNotEmpty) {
+                      context.push('/movie/$id/play?url=${Uri.encodeComponent(url)}&provider=admin');
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Source URL not available for this movie')));
+                    }
                   } else {
                     context.push('/movie/$id/play');
                   }

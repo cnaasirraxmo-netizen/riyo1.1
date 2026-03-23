@@ -93,12 +93,34 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           }
         }
 
-        final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
-        final List<dynamic> sourceData = response['sources'] ?? [];
-        _sources.addAll(sourceData.map((s) => StreamSource.fromJson(s)).toList());
+        if (_movie?.sourceType == 'admin') {
+          String? directUrl = _movie!.directUrl ?? _movie!.videoUrl;
 
-        final List<dynamic> subtitleData = response['subtitles'] ?? [];
-        _availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
+          if (_movie!.isTvShow && widget.season != null && widget.episode != null) {
+            final season = _movie!.seasons?.firstWhere((s) => s.number == widget.season, orElse: () => _movie!.seasons![0]);
+            final episode = season?.episodes.firstWhere((e) => e.number == widget.episode, orElse: () => season.episodes[0]);
+            if (episode?.videoUrl != null) {
+              directUrl = episode!.videoUrl;
+            }
+          }
+
+          if (directUrl != null && directUrl.isNotEmpty) {
+            _sources.add(StreamSource(
+              label: 'Official Server',
+              url: directUrl,
+              type: directUrl.contains('.m3u8') ? 'hls' : 'direct',
+              provider: 'admin',
+              quality: _movie!.quality ?? 'HD',
+            ));
+          }
+        } else {
+          final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
+          final List<dynamic> sourceData = response['sources'] ?? [];
+          _sources.addAll(sourceData.map((s) => StreamSource.fromJson(s)).toList());
+
+          final List<dynamic> subtitleData = response['subtitles'] ?? [];
+          _availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
+        }
 
         if (_sources.isNotEmpty) {
           _currentSourceIndex = 0;

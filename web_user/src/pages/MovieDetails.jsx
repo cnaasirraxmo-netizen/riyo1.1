@@ -26,7 +26,9 @@ const MovieDetails = () => {
         const profileRes = await api.get('/users/profile');
         setIsInWatchlist(profileRes.data.watchlist?.some(m => m._id === id) || false);
 
-        fetchSources();
+        if (res.data.sourceType !== 'admin') {
+          fetchSources();
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -171,7 +173,7 @@ const MovieDetails = () => {
             </div>
 
             {/* Streaming Sources */}
-            {!movie.isTvShow && (
+            {!movie.isTvShow && movie.sourceType !== 'admin' && (
               <div className="mb-20">
                 <div className="flex items-center space-x-4 mb-8">
                     <div className="h-[2px] w-12 bg-purple-600"></div>
