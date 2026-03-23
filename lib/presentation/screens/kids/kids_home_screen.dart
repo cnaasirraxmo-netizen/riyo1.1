@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:riyo/models/movie.dart';
 import 'package:riyo/services/api_service.dart';
 import 'package:riyo/presentation/widgets/movie_card.dart';
@@ -43,7 +44,7 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.orange),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SingleChildScrollView(
@@ -56,6 +57,11 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
               child: Text('Pick a Character', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
             ),
             _buildCharactersSection(),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 32, 24, 16),
+              child: Text('Trending for Kids', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
+            ),
+            _buildHorizontalKidsList(),
             const Padding(
               padding: EdgeInsets.fromLTRB(24, 32, 24, 16),
               child: Text('Fun Movies & Shows', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
@@ -152,6 +158,30 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHorizontalKidsList() {
+    return FutureBuilder<List<Movie>>(
+      future: _kidsContentFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox(height: 180, child: Center(child: CircularProgressIndicator()));
+        final movies = snapshot.data!.take(5).toList();
+        return SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: movies.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SizedBox(width: 140, child: MovieCard(movie: movies[index], height: 200)),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

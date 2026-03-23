@@ -163,6 +163,17 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
     _player?.play();
     AnalyticsService.logVideoStart(_movie?.title ?? "Unknown", widget.movieId);
 
+    // Auto-cache (download) watched video for future offline access
+    if (_movie != null && !kIsWeb) {
+       final downloads = Provider.of<DownloadProvider>(context, listen: false);
+       if (!downloads.isDownloaded(_movie!.id) && !downloads.isDownloading(_movie!.id)) {
+          // Pass the specific source URL to the download provider if possible,
+          // but DownloadProvider currently uses movie.directUrl or movie.videoUrl.
+          // We trigger download in background.
+          unawaited(downloads.startDownload(_movie!));
+       }
+    }
+
     setState(() => _isLoadingSource = false);
   }
 
