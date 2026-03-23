@@ -632,7 +632,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 style: AppTypography.titleLarge,
               ),
               IconButton(
-                onPressed: () => context.push('/genre/$title'),
+                onPressed: () => context.push('/home/genre/$title'),
                 icon: const Icon(Icons.arrow_forward_rounded, size: 20),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

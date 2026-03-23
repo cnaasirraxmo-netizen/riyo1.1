@@ -131,7 +131,12 @@ class ApiService {
         cacheKey: 'movie_details_$movieId',
         url: '$_backendUrl/movies/$movieId',
         headers: token != null ? {'Authorization': 'Bearer $token'} : {},
-        parser: (data) => Movie.fromJson(data),
+        parser: (data) {
+           final movie = Movie.fromJson(data);
+           // Also save to specialized box for easy checking by UI
+           _cacheService.cacheMovie(movieId, data);
+           return movie;
+        },
       );
     } catch (e) {
       // Fallback to local cache if everything fails, or return a mock movie to prevent crash

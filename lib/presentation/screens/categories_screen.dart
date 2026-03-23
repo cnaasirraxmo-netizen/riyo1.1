@@ -81,7 +81,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         } else if (category == 'Kids') {
                           context.push('/kids');
                         } else {
-                          context.push('/genre/$category');
+                          context.push('/home/genre/$category');
                         }
                       },
                       child: _buildGenreCard(category, 'https://picsum.photos/seed/${category.hashCode}/400/200'),
@@ -138,7 +138,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => context.push('/genre/Anime'),
+                  onPressed: () => context.push('/home/genre/Anime'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,

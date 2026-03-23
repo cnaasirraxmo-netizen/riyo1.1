@@ -109,6 +109,13 @@ class HomeProvider extends ChangeNotifier {
         if (movie.videoUrl != null) {
           _apiService.preCacheVideo(movie.videoUrl!);
         }
+        // Cache detailed info immediately
+        _apiService.getMovieDetails(movie.backendId ?? movie.id.toString(), token: token);
+      }
+
+      // Cache admin content immediately
+      for (var movie in (homeData['adminMovies'] ?? []).take(5)) {
+         _apiService.getMovieDetails(movie.backendId ?? movie.id.toString(), token: token);
       }
     } catch (e) {
       debugPrint('Error loading home config: $e');

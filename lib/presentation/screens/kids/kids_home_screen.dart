@@ -22,7 +22,14 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
   }
 
   Future<List<Movie>> _fetchKidsContent() async {
-    return _apiService.getKidsHome();
+    final movies = await _apiService.getKidsHome();
+
+    // Instant cache all kids content for offline use
+    for (var movie in movies) {
+       _apiService.getMovieDetails(movie.backendId ?? movie.id.toString());
+    }
+
+    return movies;
   }
 
   @override
@@ -63,10 +70,10 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
 
   Widget _buildCharactersSection() {
     final characters = [
-      {'name': 'Super Hero', 'color': Colors.redAccent, 'icon': Icons.bolt_rounded},
-      {'name': 'Princess', 'color': Colors.pinkAccent, 'icon': Icons.auto_awesome_rounded},
-      {'name': 'Animal', 'color': Colors.greenAccent, 'icon': Icons.pets_rounded},
-      {'name': 'Space', 'color': Colors.blueAccent, 'icon': Icons.rocket_launch_rounded},
+      {'name': 'Super Hero', 'color': Colors.redAccent, 'icon': Icons.bolt_rounded, 'genre': 'Action'},
+      {'name': 'Princess', 'color': Colors.pinkAccent, 'icon': Icons.auto_awesome_rounded, 'genre': 'Fantasy'},
+      {'name': 'Animal', 'color': Colors.greenAccent, 'icon': Icons.pets_rounded, 'genre': 'Nature'},
+      {'name': 'Space', 'color': Colors.blueAccent, 'icon': Icons.rocket_launch_rounded, 'genre': 'Sci-Fi'},
     ];
 
     return SizedBox(
@@ -79,16 +86,22 @@ class _KidsHomeScreenState extends State<KidsHomeScreen> {
           final char = characters[index];
           return Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 35,
-                  backgroundColor: (char['color'] as Color).withOpacity(0.2),
-                  child: Icon(char['icon'] as IconData, color: char['color'] as Color, size: 35),
-                ),
-                const SizedBox(height: 8),
-                Text(char['name'] as String, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
-              ],
+            child: InkWell(
+              onTap: () {
+                final genre = char['genre'] as String;
+                context.push('/home/genre/$genre');
+              },
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 35,
+                    backgroundColor: (char['color'] as Color).withOpacity(0.2),
+                    child: Icon(char['icon'] as IconData, color: char['color'] as Color, size: 35),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(char['name'] as String, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+                ],
+              ),
             ),
           );
         },

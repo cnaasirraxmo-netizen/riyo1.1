@@ -74,6 +74,11 @@ class _SearchScreenState extends State<SearchScreen> {
         filteredMovies = await _apiService.search(query);
       }
 
+      // Instant cache results for better performance and offline use
+      for (var movie in filteredMovies) {
+        _apiService.getMovieDetails(movie.backendId ?? movie.id.toString(), token: token);
+      }
+
       if (mounted) {
         setState(() {
           _searchResults = filteredMovies;
