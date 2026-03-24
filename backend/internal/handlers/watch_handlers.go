@@ -69,6 +69,7 @@ func WatchMovie(c *gin.Context) {
 		"quality":  bestSource.Quality,
 		"type":     bestSource.Type,
 		"provider": bestSource.Provider,
+		"note":     "HLS compatible URL with CORS support",
 	})
 }
 

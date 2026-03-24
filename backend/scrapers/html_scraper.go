@@ -29,6 +29,8 @@ var (
 		regexp.MustCompile(`source\s+(?:src|data-src|data-video|data-main)=["'](https?://.*?)["']`),
 		regexp.MustCompile(`video_url\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`data-video-url=["'](https?://.*?)["']`),
+		regexp.MustCompile(`(?i)<video[^>]*src=["'](https?://[^"']+)["']`),
+		regexp.MustCompile(`(?i)<source[^>]*src=["'](https?://[^"']+)["']`),
 		regexp.MustCompile(`["'](https?://[^\s"']+\.(?:m3u8|mp4|mpd|webm|mkv|avi|mov|flv|f4v))["']`),
 		regexp.MustCompile(`(?:url|file|src)\s*[:=]\s*["'](https?://.*?)["']`),
 	}

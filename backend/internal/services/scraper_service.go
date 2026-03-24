@@ -40,68 +40,37 @@ func (s *ScraperService) Scrape(url string) ([]ScrapedSource, error) {
 	links := s.finder.FindSources(url)
 
 	var sources []ScrapedSource
-	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	// Concurrent validation with worker pool (max 3 concurrent)
-	sem := make(chan struct{}, 3)
-
-	for _, link := range links {
-		wg.Add(1)
-		go func(l string) {
-			defer wg.Done()
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-ctx.Done():
-				return
-			}
-
-			if isValid, ct := s.ValidateLink(l); isValid {
-				mu.Lock()
-				sources = append(sources, ScrapedSource{
-					URL:     l,
-					Type:    s.DetectType(l, ct),
-					Quality: s.finder.DetectQuality(l),
-				})
-				mu.Unlock()
-			}
-		}(link)
+	// Prepare tasks for the worker pool
+	tasks := make([]scrapers.WorkerTask, len(links))
+	for i, link := range links {
+		tasks[i] = scrapers.WorkerTask{
+			URL: link,
+			ScrapeFn: func(l string) ([]string, error) {
+				// We don't really need to scrape further here, just validate
+				if isValid, ct := s.ValidateLink(l); isValid {
+					mu.Lock()
+					sources = append(sources, ScrapedSource{
+						URL:     l,
+						Type:    s.DetectType(l, ct),
+						Quality: s.finder.DetectQuality(l),
+					})
+					mu.Unlock()
+				}
+				return nil, nil
+			},
+		}
 	}
 
-	wg.Wait()
+	// Concurrent validation with worker pool (max 3 concurrent as requested)
+	scrapers.RunWorkerPool(ctx, tasks, 3)
+
 	return sources, nil
 }
 
 func (s *ScraperService) ValidateLink(url string) (bool, string) {
-	req, err := http.NewRequest("HEAD", url, nil)
-	if err != nil {
-		return false, ""
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		// Fallback to GET for some providers that don't support HEAD
-		req.Method = "GET"
-		req.Header.Set("Range", "bytes=0-0")
-		resp, err = s.client.Do(req)
-		if err != nil {
-			return false, ""
-		}
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
-		ct := strings.ToLower(resp.Header.Get("Content-Type"))
-		isValid := strings.Contains(ct, "video/") ||
-			strings.Contains(ct, "mpegurl") ||
-			strings.Contains(ct, "dash+xml") ||
-			strings.Contains(ct, "application/octet-stream")
-		return isValid, ct
-	}
-
-	return false, ""
+	return scrapers.ValidateURL(url)
 }
 
 func (s *ScraperService) DetectType(url, ct string) string {
