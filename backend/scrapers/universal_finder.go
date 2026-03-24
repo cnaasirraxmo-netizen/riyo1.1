@@ -104,6 +104,12 @@ func (f *UniversalFinder) recursiveFind(ctx context.Context, targetURL string, d
 	allSources = append(allSources, jsSources...)
 	mu.Unlock()
 
+	// 8. JSON-LD EXTRACTION (METHOD 8)
+	jsonLDSources := ExtractJSONLD(html)
+	mu.Lock()
+	allSources = append(allSources, jsonLDSources...)
+	mu.Unlock()
+
 	// 6. PLAYER CONFIG PARSING (METHOD 4)
 	jsonSources := ExtractJSONConfig(html)
 	mu.Lock()

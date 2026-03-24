@@ -12,7 +12,6 @@ func RegisterNewRoutes(r *gin.Engine) {
 	api := r.Group("/api/v1")
 	{
 		api.GET("/home", middleware.Cache(6*time.Hour), GetHome)
-		api.GET("/search", middleware.Cache(1*time.Hour), SearchMovies)
 		api.GET("/movie/:id/sources", middleware.Cache(1*time.Hour), GetMovieSources)
 		api.GET("/tv/:id/sources/:season/:episode", middleware.Cache(1*time.Hour), GetTVSources)
 		api.GET("/stream/:id", ProxyStream)
@@ -21,6 +20,14 @@ func RegisterNewRoutes(r *gin.Engine) {
 		api.POST("/analytics/usage", LogUsage)
 		api.POST("/movies/:id/reviews", AddReview)
 		api.POST("/extract", SniffMedia)
+
+		// New Production-Ready Watch Routes
+		api.GET("/search", SearchTMDB)
+		api.GET("/embed/:tmdb_id", GetEmbeds)
+		api.GET("/scrape", ScrapeEmbed)
+		api.GET("/watch", WatchMovie)
+		api.GET("/watch/all", WatchAllSources)
+		api.POST("/refresh", RefreshMovieCache)
 	}
 }
 

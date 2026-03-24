@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 )
 
 type TMDbProvider struct {
@@ -100,11 +101,25 @@ func (p *TMDbProvider) SearchMovies(query string) ([]TMDbMovie, error) {
 }
 
 func (p *TMDbProvider) fetchMovies(url string) ([]TMDbMovie, error) {
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		switch resp.StatusCode {
+		case http.StatusUnauthorized:
+			return nil, fmt.Errorf("invalid TMDB API key")
+		case http.StatusTooManyRequests:
+			return nil, fmt.Errorf("TMDB API rate limit exceeded")
+		case http.StatusNotFound:
+			return nil, fmt.Errorf("TMDB resource not found")
+		default:
+			return nil, fmt.Errorf("TMDB API error: %s", resp.Status)
+		}
+	}
 
 	var tmdbResp TMDbResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
@@ -145,11 +160,16 @@ func (p *TMDbProvider) fetchTVShows(url string) ([]TMDbTVShow, error) {
 
 func (p *TMDbProvider) FetchMovieDetails(tmdbID int) (TMDbMovie, error) {
 	url := fmt.Sprintf("%s/movie/%d?api_key=%s&append_to_response=credits", p.BaseURL, tmdbID, p.APIKey)
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return TMDbMovie{}, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return TMDbMovie{}, fmt.Errorf("TMDB API error: %s", resp.Status)
+	}
 
 	var movie TMDbMovie
 	if err := json.NewDecoder(resp.Body).Decode(&movie); err != nil {
@@ -160,11 +180,16 @@ func (p *TMDbProvider) FetchMovieDetails(tmdbID int) (TMDbMovie, error) {
 
 func (p *TMDbProvider) FetchTVShowDetails(tmdbID int) (TMDbTVShow, error) {
 	url := fmt.Sprintf("%s/tv/%d?api_key=%s&append_to_response=credits", p.BaseURL, tmdbID, p.APIKey)
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return TMDbTVShow{}, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return TMDbTVShow{}, fmt.Errorf("TMDB API error: %s", resp.Status)
+	}
 
 	var tvShow TMDbTVShow
 	if err := json.NewDecoder(resp.Body).Decode(&tvShow); err != nil {
@@ -175,11 +200,16 @@ func (p *TMDbProvider) FetchTVShowDetails(tmdbID int) (TMDbTVShow, error) {
 
 func (p *TMDbProvider) FetchSeasonDetails(tvID int, seasonNumber int) (TMDbSeason, error) {
 	url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", p.BaseURL, tvID, seasonNumber, p.APIKey)
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return TMDbSeason{}, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return TMDbSeason{}, fmt.Errorf("TMDB API error: %s", resp.Status)
+	}
 
 	var season TMDbSeason
 	if err := json.NewDecoder(resp.Body).Decode(&season); err != nil {
