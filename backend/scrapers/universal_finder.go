@@ -22,10 +22,12 @@ func NewUniversalFinder() *UniversalFinder {
 }
 
 func (f *UniversalFinder) FindSources(targetURL string) []string {
-	// Root context for the search - REDUCED: 75s -> 25s
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
+	return f.FindSourcesWithContext(ctx, targetURL)
+}
 
+func (f *UniversalFinder) FindSourcesWithContext(ctx context.Context, targetURL string) []string {
 	var allResults []string
 
 	// 1. FAST PATH ONLY: Static HTML/Regex (Disable dynamic path to save RAM/CPU)
@@ -102,6 +104,12 @@ func (f *UniversalFinder) recursiveFind(ctx context.Context, targetURL string, d
 	jsSources := ExtractJSVariables(html)
 	mu.Lock()
 	allSources = append(allSources, jsSources...)
+	mu.Unlock()
+
+	// 8. JSON-LD EXTRACTION (METHOD 8)
+	jsonLDSources := ExtractJSONLD(html)
+	mu.Lock()
+	allSources = append(allSources, jsonLDSources...)
 	mu.Unlock()
 
 	// 6. PLAYER CONFIG PARSING (METHOD 4)

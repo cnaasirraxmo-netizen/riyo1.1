@@ -17,7 +17,6 @@ var client = &http.Client{
 }
 
 var (
-	iframeRe         = regexp.MustCompile(`(?i)<iframe.*?src=["'](.*?)["']`)
 	videoSourceRes   = []*regexp.Regexp{
 		regexp.MustCompile(`https?://[^\s"']+\.m3u8[^\s"']*`),
 		regexp.MustCompile(`https?://[^\s"']+\.mp4[^\s"']*`),
@@ -30,6 +29,8 @@ var (
 		regexp.MustCompile(`source\s+(?:src|data-src|data-video|data-main)=["'](https?://.*?)["']`),
 		regexp.MustCompile(`video_url\s*:\s*["'](https?://.*?)["']`),
 		regexp.MustCompile(`data-video-url=["'](https?://.*?)["']`),
+		regexp.MustCompile(`(?i)<video[^>]*src=["'](https?://[^"']+)["']`),
+		regexp.MustCompile(`(?i)<source[^>]*src=["'](https?://[^"']+)["']`),
 		regexp.MustCompile(`["'](https?://[^\s"']+\.(?:m3u8|mp4|mpd|webm|mkv|avi|mov|flv|f4v))["']`),
 		regexp.MustCompile(`(?:url|file|src)\s*[:=]\s*["'](https?://.*?)["']`),
 	}
@@ -59,6 +60,7 @@ var (
 		regexp.MustCompile(`["'](https?://[^"']*/v[0-9]/sources/[^"']+)["']`),
 		regexp.MustCompile(`["'](https?://[^"']*/player/get_playlist/[^"']+)["']`),
 	}
+	jsonLDRe = regexp.MustCompile(`(?s)<script type=["']application/ld\+json["']>(.*?)</script>`)
 )
 
 func FetchHTML(url string) (string, error) {
@@ -83,21 +85,6 @@ func FetchHTML(url string) (string, error) {
 	return string(body), nil
 }
 
-func ExtractIframes(html string) []string {
-	matches := iframeRe.FindAllStringSubmatch(html, -1)
-
-	var urls []string
-	for _, m := range matches {
-		if len(m) > 1 {
-			u := m[1]
-			if strings.HasPrefix(u, "//") {
-				u = "https:" + u
-			}
-			urls = append(urls, u)
-		}
-	}
-	return urls
-}
 
 func ExtractVideoSources(html string) []string {
 	// METHOD 1 – HTML PARSING & METHOD 5 - NETWORK DISCOVERY (MANIFESTS)
@@ -237,4 +224,19 @@ func ExtractNetworkDiscovery(html string) []string {
 		}
 	}
 	return endpoints
+}
+
+func ExtractJSONLD(html string) []string {
+	// METHOD 8 – JSON-LD EXTRACTION
+	var urls []string
+	matches := jsonLDRe.FindAllStringSubmatch(html, -1)
+	for _, m := range matches {
+		if len(m) > 1 {
+			var data interface{}
+			if err := json.Unmarshal([]byte(m[1]), &data); err == nil {
+				urls = append(urls, findURLsInJSON(data)...)
+			}
+		}
+	}
+	return urls
 }

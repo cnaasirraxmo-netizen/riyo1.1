@@ -1,0 +1,110 @@
+[
+  {
+    "name": "VidSrc.xyz",
+    "url_pattern": "https://vidsrc.xyz/embed/movie/{tmdb_id}",
+    "tv_pattern": "https://vidsrc.xyz/embed/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 1,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "VidSrc.to",
+    "url_pattern": "https://vidsrc.to/embed/movie/{tmdb_id}",
+    "tv_pattern": "https://vidsrc.to/embed/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 2,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "VidLink",
+    "url_pattern": "https://vidlink.pro/movie/{tmdb_id}",
+    "tv_pattern": "https://vidlink.pro/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 3,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "Embed.su",
+    "url_pattern": "https://embed.su/embed/movie/{tmdb_id}",
+    "tv_pattern": "https://embed.su/embed/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 4,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "2Embed",
+    "url_pattern": "https://2embed.cc/embed/movie/{tmdb_id}",
+    "tv_pattern": "https://2embed.cc/embed/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 5,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "VidSrc.in",
+    "url_pattern": "https://vidsrc.in/embed/movie/{tmdb_id}",
+    "tv_pattern": "https://vidsrc.in/embed/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 6,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "VidSrc.net",
+    "url_pattern": "https://vidsrc.net/embed/movie/{tmdb_id}",
+    "tv_pattern": "https://vidsrc.net/embed/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 7,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "MultiEmbed",
+    "url_pattern": "https://multiembed.mov/?video_id={tmdb_id}&tmdb=1",
+    "tv_pattern": "https://multiembed.mov/?video_id={tmdb_id}&tmdb=1&season={season}&episode={episode}",
+    "type": "both",
+    "priority": 8,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "AutoEmbed",
+    "url_pattern": "https://autoembed.cc/embed/movie/{tmdb_id}",
+    "tv_pattern": "https://autoembed.cc/embed/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 9,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "SuperEmbed",
+    "url_pattern": "https://superembed.stream/movie/{tmdb_id}",
+    "tv_pattern": "https://superembed.stream/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 10,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "MoviesAPI",
+    "url_pattern": "https://moviesapi.club/movie/{tmdb_id}",
+    "tv_pattern": "https://moviesapi.club/tv/{tmdb_id}-{season}-{episode}",
+    "type": "both",
+    "priority": 11,
+    "enabled": true,
+    "timeout_seconds": 15
+  },
+  {
+    "name": "EmbedFlix",
+    "url_pattern": "https://embedflix.net/movie/{tmdb_id}",
+    "tv_pattern": "https://embedflix.net/tv/{tmdb_id}/{season}/{episode}",
+    "type": "both",
+    "priority": 12,
+    "enabled": true,
+    "timeout_seconds": 15
+  }
+]
