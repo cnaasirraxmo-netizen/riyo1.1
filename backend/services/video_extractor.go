@@ -28,7 +28,7 @@ func NewVideoExtractor() *VideoExtractor {
 	}
 }
 
-// ExtractSources implements the core worker job (Step 2) to collect and validate sources.
+// ExtractSources implements the core discovery work (Step 5).
 func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool, season, episode int) []models.StreamSource {
 	var allSources []models.StreamSource
 	var mu sync.Mutex
@@ -36,7 +36,7 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 
 	log.Printf("[EXTRACTOR] Starting extraction for TMDb: %d, Title: %s", tmdbID, title)
 
-	// --- STEP 3: PROVIDERS GENERATE EMBED LINKS & STEP 4: REQUEST EMBED PAGE ---
+	// --- STEP 4: REQUEST EMBED PAGE ---
 	var embedProviders []providers.EmbedProvider
 	if isTvShow {
 		embedProviders = providers.GetTVEmbedProviders()
@@ -59,17 +59,6 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 				url = providers.GenerateMovieURL(p, tmdbID)
 			}
 
-			// Add the primary Embed Source (as a fallback or direct play option)
-			mu.Lock()
-			allSources = append(allSources, models.StreamSource{
-				Label:    p.Name + " (Embed)",
-				URL:      url,
-				Type:     "embed",
-				Provider: strings.ToLower(p.Name),
-				Quality:  "720p", // Default for embeds
-			})
-			mu.Unlock()
-
 			// --- STEP 5: UNIVERSAL VIDEO FINDER ---
 			// Scraper sends requests to embed pages and searches for streaming links.
 			discovered := e.finder.FindSources(url)
@@ -91,7 +80,7 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 		}(p)
 	}
 
-	// --- OPTIONAL: SEARCH PROVIDERS (Legacy/Community Search) ---
+	// --- OPTIONAL: SEARCH PROVIDERS ---
 	if title != "" {
 		newProviders := providers.GetAllProviders()
 		for _, p := range newProviders {
@@ -139,10 +128,10 @@ func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.Str
 
 	typeRank := func(t string) int {
 		switch t {
-		case "hls":    return 10 // Preferred for stability
-		case "direct": return 8  // MP4s are great
+		case "hls":    return 10
+		case "direct": return 8
 		case "dash":   return 7
-		case "embed":  return 1  // Embeds are last resort
+		case "embed":  return 1
 		default:       return 0
 		}
 	}
@@ -177,7 +166,6 @@ func (e *VideoExtractor) ValidateLink(url string) (bool, string) {
 		return false, ""
 	}
 
-	// Some embeds shouldn't be "validated" as they are pages, not files
 	if strings.Contains(url, "vidsrc.to") || strings.Contains(url, "2embed.cc") || strings.Contains(url, "multiembed.mov") {
 		return true, "text/html"
 	}

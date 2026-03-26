@@ -153,7 +153,7 @@ func (s *MetadataService) SyncTVShowFull(tmdbID int, isTrending bool, isFeatured
 
 	collection := db.DB.Collection("movies")
 	var existing models.Movie
-	err = collection.FindOne(context.TODO(), bson.M{"tmdbId": tmdbID}).Decode(&existing)
+	err = collection.FindOne(context.TODO(), bson.M{"tmdbId": tt.ID}).Decode(&existing)
 
 	posterURL := "https://image.tmdb.org/t/p/w500" + tt.PosterPath
 	bannerURL := "https://image.tmdb.org/t/p/original" + tt.BackdropPath
@@ -269,6 +269,7 @@ func (s *MetadataService) ScrapeTrendingSources() {
 	defer cursor.Close(context.TODO())
 
 	videoExt := NewVideoExtractor()
+	scraperSvc := NewScraperService(videoExt)
 
 	for cursor.Next(context.TODO()) {
 		var movie models.Movie
@@ -280,9 +281,8 @@ func (s *MetadataService) ScrapeTrendingSources() {
 		if movie.IsTvShow {
 			// Scrape first episode of first season for TV shows as a warmup
 			if len(movie.Seasons) > 0 && len(movie.Seasons[0].Episodes) > 0 {
-				sources = videoExt.ExtractSources(movie.TMDbID, movie.Title, true, movie.Seasons[0].Number, movie.Seasons[0].Episodes[0].Number)
+				sources = scraperSvc.GetTVShowSources(movie.TMDbID, movie.Title, movie.Seasons[0].Number, movie.Seasons[0].Episodes[0].Number)
 				// STEP 11: STORE IN DATABASE
-				// Updating the specific episode sources in the array
 				update := bson.M{
 					"$set": bson.M{
 						"seasons.0.episodes.0.sources": sources,
@@ -292,7 +292,7 @@ func (s *MetadataService) ScrapeTrendingSources() {
 				_, _ = collection.UpdateOne(context.TODO(), bson.M{"_id": movie.ID}, update)
 			}
 		} else {
-			sources = videoExt.ExtractSources(movie.TMDbID, movie.Title, false, 0, 0)
+			sources = scraperSvc.GetMovieSources(movie.TMDbID, movie.Title)
 			// STEP 11: STORE IN DATABASE
 			update := bson.M{
 				"$set": bson.M{

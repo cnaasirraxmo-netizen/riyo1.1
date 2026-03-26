@@ -412,6 +412,7 @@ func GetMovieSources(c *gin.Context) {
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
 		var allSources []models.StreamSource
+		scraperSvc := services.NewScraperService(VideoExt)
 
 		// STEP 11 & 12: MERGE OFFICIAL AND SCRAPED SOURCES
 
@@ -431,9 +432,9 @@ func GetMovieSources(c *gin.Context) {
 			allSources = append(allSources, movie.Sources...)
 		}
 
-		// 3. Scraped sources (If not explicitly disabled or if admin sources are few)
+		// 3. Scraped sources (Step 3: Providers generate embed links)
 		if movie.SourceType != "admin" || len(allSources) < 2 {
-			scrapedSources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+			scrapedSources := scraperSvc.GetMovieSources(movie.TMDbID, movie.Title)
 			allSources = append(allSources, scrapedSources...)
 		}
 
@@ -516,6 +517,7 @@ func GetTVSources(c *gin.Context) {
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
 		var allSources []models.StreamSource
+		scraperSvc := services.NewScraperService(VideoExt)
 
 		// Find admin episode sources (Highest Priority)
 		for _, s := range movie.Seasons {
@@ -539,9 +541,9 @@ func GetTVSources(c *gin.Context) {
 			}
 		}
 
-		// Scraped sources (If not explicitly disabled or if admin sources are few)
+		// Scraped sources (Step 3: Providers generate embed links)
 		if movie.SourceType != "admin" || len(allSources) < 2 {
-			scrapedSources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
+			scrapedSources := scraperSvc.GetTVShowSources(movie.TMDbID, movie.Title, season, episode)
 			allSources = append(allSources, scrapedSources...)
 		}
 
