@@ -76,10 +76,14 @@ class ApiService {
       url = '$_backendUrl/api/v1/tv/$id/sources/$season/$episode';
     }
 
-    final response = await http.get(Uri.parse(url));
+    debugPrint('ApiService: Fetching sources from $url');
+    final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(json.decode(response.body));
+      final data = json.decode(response.body);
+      debugPrint('ApiService: Sources found: ${(data['sources'] as List).length}');
+      return Map<String, dynamic>.from(data);
     }
+    debugPrint('ApiService: Failed to fetch sources: ${response.statusCode}');
     return {'sources': [], 'subtitles': []};
   }
 

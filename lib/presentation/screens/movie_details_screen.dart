@@ -41,9 +41,8 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       setState(() {
         _movieFuture = _apiService.getMovieDetails(widget.movieId, token: auth.token).then((movie) {
-          if (movie.sourceType != 'admin') {
-            _fetchSources();
-          }
+          // Always try to fetch fresh sources from the scraping pipeline
+          _fetchSources();
           return movie;
         });
         _recommendationsFuture = _apiService.getTrendingMovies(token: auth.token);
@@ -55,11 +54,12 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
   void _fetchSources() async {
     if (_movieFuture == null) return;
     final movie = await _movieFuture;
-    if (movie?.sourceType == 'admin') return;
+    if (movie == null) return;
 
     setState(() => _isLoadingSources = true);
     try {
-      final response = await _apiService.getSources(widget.movieId);
+      final id = movie.backendId ?? movie.id.toString();
+      final response = await _apiService.getSources(id);
       if (mounted) {
         setState(() {
           final List<dynamic> sourceData = response['sources'] ?? [];
@@ -70,7 +70,6 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     } catch (e) {
       debugPrint('Error fetching sources: $e');
       if (mounted) {
-        // Use cached sources if available in movie object from Snapshot
         setState(() => _isLoadingSources = false);
       }
     }
@@ -208,15 +207,7 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
                       if (movie.isTvShow) _buildSeasonSelector(movie),
                       if (movie.isTvShow) _buildEpisodeList(),
                       const SizedBox(height: 32),
-                      FutureBuilder<Movie>(
-                        future: _movieFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData && snapshot.data!.sourceType == 'admin') {
-                            return const SizedBox.shrink();
-                          }
-                          return _buildSourceList();
-                        },
-                      ),
+                      _buildSourceList(),
                       const SizedBox(height: 32),
                       _buildMoreInfo(movie),
                       const SizedBox(height: 48),
