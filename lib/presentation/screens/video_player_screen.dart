@@ -102,15 +102,21 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
           ));
         }
 
-        // Always fetch scraped sources as well
+        // Fetch sources (now only official from backend)
         final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
         final List<dynamic> sourceData = response['sources'] ?? [];
-        _sources.addAll(sourceData.map((s) => StreamSource.fromJson(s)).toList());
+        // Filter to only include admin/local sources
+        _sources.addAll(
+          sourceData
+            .map((s) => StreamSource.fromJson(s))
+            .where((s) => s.provider == 'admin' || s.provider == 'local')
+            .toList()
+        );
 
         final List<dynamic> subtitleData = response['subtitles'] ?? [];
         availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
 
-        // Deduplicate sources (Official vs Scraped)
+        // Deduplicate sources
         final seenUrls = <String>{};
         _sources = _sources.where((s) => seenUrls.add(s.url)).toList();
 

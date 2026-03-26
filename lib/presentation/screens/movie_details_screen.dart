@@ -63,7 +63,11 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
       if (mounted) {
         setState(() {
           final List<dynamic> sourceData = response['sources'] ?? [];
-          _availableSources = sourceData.map((s) => StreamSource.fromJson(s)).toList();
+          // Filter to only show admin/local providers
+          _availableSources = sourceData
+              .map((s) => StreamSource.fromJson(s))
+              .where((s) => s.provider == 'admin' || s.provider == 'local')
+              .toList();
           _isLoadingSources = false;
         });
       }
@@ -676,55 +680,18 @@ class _MovieDetailsScreenState extends rp.ConsumerState<MovieDetailsScreen> {
     }
 
     final adminSources = _availableSources.where((s) => s.provider == 'admin' || s.provider == 'local').toList();
-    final communitySources = _availableSources.where((s) => s.provider != 'admin' && s.provider != 'local').toList();
+
+    if (adminSources.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Available Servers', style: AppTypography.titleLarge),
         const SizedBox(height: 16),
-        if (adminSources.isNotEmpty) ...[
-          const Text('OFFICIAL SERVER (FAST)', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5)),
-          const SizedBox(height: 8),
-          ...adminSources.map((s) => _buildSourceItem(s, isOfficial: true)),
-          const SizedBox(height: 16),
-        ],
-        if (communitySources.isNotEmpty) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('COMMUNITY SERVERS', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5)),
-              TextButton.icon(
-                onPressed: () => context.push('/sniffer'),
-                icon: const Icon(Icons.radar_rounded, size: 14, color: Colors.grey),
-                label: const Text('SEARCH MORE', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 50,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: communitySources.length,
-              itemBuilder: (context, index) => _buildSourceItem(communitySources[index]),
-            ),
-          ),
-        ],
-        if (_availableSources.isEmpty)
-          FutureBuilder<Movie>(
-            future: _movieFuture,
-            builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!.sourceType != 'admin') {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('No sources found. Try the sniffer!', style: TextStyle(color: Colors.white38, fontSize: 13)),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+        const Text('OFFICIAL SERVER', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5)),
+        const SizedBox(height: 8),
+        ...adminSources.map((s) => _buildSourceItem(s, isOfficial: true)),
+        const SizedBox(height: 16),
       ],
     );
   }

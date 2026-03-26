@@ -18,15 +18,11 @@ import (
 	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
-	"github.com/riyobox/backend/services"
-	"github.com/riyobox/backend/scrapers"
 	"github.com/riyobox/backend/utils"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-var MetadataSvc *services.MetadataService
-var VideoExt *services.VideoExtractor
 
 func GetHome(c *gin.Context) {
 	cached, err := cache.GetOrSetCache("home_data", cache.TrendingTTL, func() (interface{}, error) {
@@ -412,31 +408,23 @@ func GetMovieSources(c *gin.Context) {
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
 		var allSources []models.StreamSource
-		scraperSvc := services.NewScraperService(VideoExt)
 
-		// STEP 11 & 12: MERGE OFFICIAL AND SCRAPED SOURCES
+		// ONLY USE ADMIN-UPLOADED SOURCES
 
-		// 1. Admin direct VideoURL (Highest Priority)
+		// 1. Admin direct VideoURL
 		if movie.VideoURL != "" {
 			allSources = append(allSources, models.StreamSource{
 				Label:    "Official Server",
 				URL:      movie.VideoURL,
-				Type:     VideoExt.DetectType(movie.VideoURL, ""),
+				Type:     DetectVideoType(movie.VideoURL),
 				Provider: "admin",
-				Quality:  "1080p", // Official usually high quality
+				Quality:  "1080p",
 			})
 		}
 
 		// 2. Admin specific Sources
 		if len(movie.Sources) > 0 {
 			allSources = append(allSources, movie.Sources...)
-		}
-
-		// 3. Scraped sources (Step 3: Providers generate embed links)
-		// We always try to fetch scraped sources if it's not an admin-exclusive movie
-		if movie.SourceType != "admin" {
-			scrapedSources := scraperSvc.GetMovieSources(movie.TMDbID, movie.Title)
-			allSources = append(allSources, scrapedSources...)
 		}
 
 		subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
@@ -518,9 +506,8 @@ func GetTVSources(c *gin.Context) {
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
 		var allSources []models.StreamSource
-		scraperSvc := services.NewScraperService(VideoExt)
 
-		// Find admin episode sources (Highest Priority)
+		// Find admin episode sources
 		for _, s := range movie.Seasons {
 			if s.Number == season {
 				for _, e := range s.Episodes {
@@ -529,7 +516,7 @@ func GetTVSources(c *gin.Context) {
 							allSources = append(allSources, models.StreamSource{
 								Label:    "Official Server",
 								URL:      e.VideoURL,
-								Type:     VideoExt.DetectType(e.VideoURL, ""),
+								Type:     DetectVideoType(e.VideoURL),
 								Provider: "admin",
 								Quality:  "1080p",
 							})
@@ -540,12 +527,6 @@ func GetTVSources(c *gin.Context) {
 				}
 				break
 			}
-		}
-
-		// Scraped sources (Step 3: Providers generate embed links)
-		if movie.SourceType != "admin" {
-			scrapedSources := scraperSvc.GetTVShowSources(movie.TMDbID, movie.Title, season, episode)
-			allSources = append(allSources, scrapedSources...)
 		}
 
 		subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
@@ -676,26 +657,16 @@ func GetKidsHome(c *gin.Context) {
 }
 
 func SniffMedia(c *gin.Context) {
-	var req struct {
-		URL      string `json:"url" binding:"required"`
-		Headless bool   `json:"headless"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
+	c.JSON(http.StatusForbidden, gin.H{"message": "Sniffing is disabled"})
+}
 
-	sniffer := scrapers.NewPlaywrightSniffer()
-	if sniffer == nil {
-		c.JSON(http.StatusOK, []interface{}{}) // Return empty list instead of error
-		return
+func DetectVideoType(url string) string {
+	lower := strings.ToLower(url)
+	if strings.Contains(lower, ".m3u8") {
+		return "hls"
 	}
-
-	results, err := sniffer.Sniff(req.URL, req.Headless, nil)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
+	if strings.Contains(lower, ".mpd") {
+		return "dash"
 	}
-
-	c.JSON(http.StatusOK, results)
+	return "direct"
 }

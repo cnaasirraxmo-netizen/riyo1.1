@@ -7,34 +7,17 @@ import (
 
 	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/handlers"
-	"github.com/riyobox/backend/services"
 )
 
 type Scheduler struct {
-	MetadataService *services.MetadataService
 }
 
-func NewScheduler(ms *services.MetadataService) *Scheduler {
-	return &Scheduler{MetadataService: ms}
+func NewScheduler() *Scheduler {
+	return &Scheduler{}
 }
 
 func (s *Scheduler) Start() {
 	log.Println("Scheduler started...")
-
-	// Initial sync
-	go s.MetadataService.SyncAll()
-
-	// Run every 6 hours
-	ticker := time.NewTicker(6 * time.Hour)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				log.Println("Scheduled task: Syncing Metadata")
-				s.MetadataService.SyncAll()
-			}
-		}
-	}()
 
 	// METHOD 8 - BACKGROUND CACHE REFRESH
 	// Run every 3 hours
@@ -74,7 +57,7 @@ func (s *Scheduler) WarmupCache() {
 
 	// We can use httptest to simulate a request to GetHome
 	w := httptest.NewRecorder()
-	ctx, _ := handlers.CreateTestContext(w) // Assuming we have or add this
+	ctx, _ := handlers.CreateTestContext(w)
 	handlers.GetHome(ctx)
 
 	log.Println("Cache warmed: home_data")
