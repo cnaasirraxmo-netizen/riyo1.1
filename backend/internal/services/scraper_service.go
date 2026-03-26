@@ -32,12 +32,14 @@ func NewScraperService() *ScraperService {
 }
 
 func (s *ScraperService) Scrape(url string) ([]ScrapedSource, error) {
-	// 15 second timeout per URL as requested
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+	return s.ScrapeWithContext(ctx, url)
+}
 
+func (s *ScraperService) ScrapeWithContext(ctx context.Context, url string) ([]ScrapedSource, error) {
 	// Using the existing finder which already implements multiple strategies (iframes, JS, JSON, etc.)
-	links := s.finder.FindSources(url)
+	links := s.finder.FindSourcesWithContext(ctx, url)
 
 	var sources []ScrapedSource
 	var mu sync.Mutex
