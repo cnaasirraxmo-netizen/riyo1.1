@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+// UniversalFinder implements the "STEP 5 — UNIVERSAL VIDEO FINDER" pipeline.
+// It searches for streaming links using 7-8 distinct extraction methods.
 type UniversalFinder struct {
 	headlessRod *HeadlessScraperRod
 	semaphore   chan struct{}
@@ -22,41 +24,44 @@ func NewUniversalFinder() *UniversalFinder {
 }
 
 func (f *UniversalFinder) FindSources(targetURL string) []string {
-	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	return f.FindSourcesWithContext(ctx, targetURL)
 }
 
 func (f *UniversalFinder) FindSourcesWithContext(ctx context.Context, targetURL string) []string {
 	var allResults []string
+	log.Printf("[FINDER] Starting search for URL: %s", targetURL)
 
-	// 1. FAST PATH ONLY: Static HTML/Regex (Disable dynamic path to save RAM/CPU)
+	// 1. FAST PATH: Static HTML/Regex discovery
 	visited := &sync.Map{}
 	fastSources := f.recursiveFind(ctx, targetURL, 0, visited)
 	allResults = append(allResults, fastSources...)
 
-	// 2. DYNAMIC PATH: Headless Browser (Only run if no sources found AND highly needed)
-	if len(allResults) == 0 {
-		// Run Rod in same thread or restricted to prevent RAM spikes
+	// 2. DYNAMIC PATH: Headless Browser (METHOD 5 & General Discovery)
+	// If the fast path yields few results or the URL is known for JS dependency,
+	// we use a headless browser to "sniff" traffic and parse dynamic DOM.
+	if len(allResults) < 2 {
+		log.Printf("[FINDER] Few/No sources found statically, attempting Dynamic Path for: %s", targetURL)
 		dynamicSources := f.headlessRod.ExtractSources(ctx, targetURL)
 		allResults = append(allResults, dynamicSources...)
 	}
 
-	return f.uniqueSources(allResults)
+	return f.UniqueSources(allResults)
 }
 
 func (f *UniversalFinder) recursiveFind(ctx context.Context, targetURL string, depth int, visited *sync.Map) []string {
-	// REDUCED DEPTH: 4 -> 2 to prevent excessive resource usage
+	// Recursive depth limit to prevent infinite loops and resource exhaustion
 	if depth > 2 {
 		return nil
 	}
 
-	// Check visited in thread-safe way
+	// Avoid re-visiting the same URL in the same extraction tree
 	if _, seen := visited.LoadOrStore(targetURL, true); seen {
 		return nil
 	}
 
-	// Rate limiting/Concurrency control
+	// Concurrency control to avoid overwhelming system or target
 	select {
 	case f.semaphore <- struct{}{}:
 		defer func() { <-f.semaphore }()
@@ -67,20 +72,29 @@ func (f *UniversalFinder) recursiveFind(ctx context.Context, targetURL string, d
 	var allSources []string
 	var mu sync.Mutex
 
-	// 1. REDIRECT EXTRACTION (METHOD 6)
-	finalURL, _ := FollowRedirects(targetURL)
+	// METHOD 6 — REDIRECT EXTRACTION
+	// Follow the URL to see where it leads (e.g., bit.ly -> actual player)
+	finalURL, err := FollowRedirects(targetURL)
+	if err != nil {
+		log.Printf("[FINDER][METHOD 6] Redirect failed for %s: %v", targetURL, err)
+		finalURL = targetURL
+	}
+
 	html, err := FetchHTML(finalURL)
 	if err != nil {
+		log.Printf("[FINDER] Failed to fetch HTML for %s: %v", finalURL, err)
 		return nil
 	}
 
-	// 2. EMBED PROVIDER EXTRACTION (METHOD 7)
+	// METHOD 7 — EMBED PROVIDER EXTRACTION
+	// Look for common embed providers inside this page
 	embeds := ExtractEmbeds(html)
 	mu.Lock()
 	allSources = append(allSources, embeds...)
 	mu.Unlock()
 
-	// 3. IFRAME EXTRACTION (METHOD 2) - Recursive discovery
+	// METHOD 2 — IFRAME EXTRACTION
+	// Extract iframes and recursively scan them for players or direct links
 	iframes := ExtractIframes(html)
 	var wg sync.WaitGroup
 	for _, iframe := range iframes {
@@ -94,37 +108,34 @@ func (f *UniversalFinder) recursiveFind(ctx context.Context, targetURL string, d
 		}(iframe)
 	}
 
-	// 4. HTML PARSING (METHOD 1)
+	// METHOD 1 — HTML PARSING
+	// Look for <video>, <source> tags and direct extensions in HTML
 	htmlSources := ExtractVideoSources(html)
 	mu.Lock()
 	allSources = append(allSources, htmlSources...)
 	mu.Unlock()
 
-	// 5. JAVASCRIPT VARIABLE PARSING (METHOD 3)
+	// METHOD 3 — JAVASCRIPT VARIABLE PARSING
+	// Parse JS variables for file: "..." or sources: [...]
 	jsSources := ExtractJSVariables(html)
 	mu.Lock()
 	allSources = append(allSources, jsSources...)
 	mu.Unlock()
 
-	// 8. JSON-LD EXTRACTION (METHOD 8)
-	jsonLDSources := ExtractJSONLD(html)
-	mu.Lock()
-	allSources = append(allSources, jsonLDSources...)
-	mu.Unlock()
-
-	// 6. PLAYER CONFIG PARSING (METHOD 4)
+	// METHOD 4 — PLAYER JSON CONFIG
+	// Parse large JSON blocks that look like player configurations
 	jsonSources := ExtractJSONConfig(html)
 	mu.Lock()
 	allSources = append(allSources, jsonSources...)
 	mu.Unlock()
 
-	// 7. NETWORK REQUEST DISCOVERY (METHOD 5)
+	// METHOD 5 — NETWORK DISCOVERY (Part 1: API/AJAX calls)
+	// Some sites fetch their video link via a separate AJAX request
 	networkEndpoints := ExtractNetworkDiscovery(html)
 	for _, endpoint := range networkEndpoints {
 		wg.Add(1)
 		go func(ep string) {
 			defer wg.Done()
-			// Fetch the endpoint and extract potential video links from it
 			respHTML, err := FetchHTML(ep)
 			if err == nil {
 				s := ExtractVideoSources(respHTML)
@@ -139,42 +150,47 @@ func (f *UniversalFinder) recursiveFind(ctx context.Context, targetURL string, d
 		}(endpoint)
 	}
 
+	// METHOD 8 — JSON-LD EXTRACTION (Bonus Method)
+	jsonLDSources := ExtractJSONLD(html)
+	mu.Lock()
+	allSources = append(allSources, jsonLDSources...)
+	mu.Unlock()
+
 	wg.Wait()
 
-	// Final Step: Follow redirects for all found sources
-	var finalSources []string
-	for _, s := range allSources {
-		fSource, _ := FollowRedirects(s)
-		finalSources = append(finalSources, fSource)
-	}
-
-	return f.uniqueSources(finalSources)
+	return allSources
 }
 
-func (f *UniversalFinder) uniqueSources(sources []string) []string {
+func (f *UniversalFinder) UniqueSources(sources []string) []string {
 	keys := make(map[string]bool)
 	var list []string
 	for _, entry := range sources {
-		normalized := f.normalizeURL(entry)
+		if !f.IsValidVideo(entry) {
+			continue
+		}
+
+		normalized := f.NormalizeURL(entry)
 		if normalized == "" {
 			continue
 		}
+
 		if _, value := keys[normalized]; !value {
 			keys[normalized] = true
 			list = append(list, entry)
-			log.Printf("[FINDER] Valid Source Found: %s", entry)
+			log.Printf("[FINDER] Valid Source Discovered: %s", entry)
 		}
 	}
 	return list
 }
 
-func (f *UniversalFinder) normalizeURL(rawURL string) string {
+func (f *UniversalFinder) NormalizeURL(rawURL string) string {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return strings.ToLower(rawURL)
 	}
 
-	// Remove common tracking and cache-busting parameters
+	// Remove common tracking and session parameters that change on every request
+	// but keep essential ones like 'sig' or 'hash' if they exist.
 	q := u.Query()
 	paramsToRemove := []string{"token", "expires", "ip", "v", "key", "t", "st", "e", "verify"}
 	for _, p := range paramsToRemove {
@@ -182,20 +198,30 @@ func (f *UniversalFinder) normalizeURL(rawURL string) string {
 	}
 
 	u.RawQuery = q.Encode()
-	u.Fragment = "" // Fragments are usually not part of the direct video URL
+	u.Fragment = ""
 
 	return strings.ToLower(u.String())
 }
 
 func (f *UniversalFinder) IsValidVideo(url string) bool {
-	// Simple pre-filter check
 	lower := strings.ToLower(url)
-	validExts := []string{".m3u8", ".mp4", ".mpd", ".webm", ".mkv", ".f4v", ".flv", "/manifest/", "/playlist/"}
+	validExts := []string{".m3u8", ".mp4", ".mpd", ".webm", ".mkv", ".f4v", ".flv", "/manifest/", "/playlist/", "/get_video/", "/stream/"}
+
+	// Check for common video extensions or keywords
 	for _, ext := range validExts {
 		if strings.Contains(lower, ext) {
 			return true
 		}
 	}
+
+	// Check for direct embed patterns that we consider "valid enough" to return to frontend
+	embedMarkers := []string{"vidsrc.to", "2embed.cc", "multiembed.mov", "vidlink.pro", "superembed.stream"}
+	for _, marker := range embedMarkers {
+		if strings.Contains(lower, marker) {
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -216,5 +242,5 @@ func (f *UniversalFinder) DetectQuality(url string) string {
 	if strings.Contains(lowerURL, "360") || strings.Contains(lowerURL, "640x360") {
 		return "360p"
 	}
-	return "720p"
+	return "720p" // Default to 720p if unknown
 }

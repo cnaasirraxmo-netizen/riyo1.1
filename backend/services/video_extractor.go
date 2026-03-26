@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"github.com/riyobox/backend/scrapers"
 )
 
+// VideoExtractor orchestrates the entire scraping pipeline (Steps 2-10).
 type VideoExtractor struct {
 	client *http.Client
 	finder *scrapers.UniversalFinder
@@ -26,19 +28,77 @@ func NewVideoExtractor() *VideoExtractor {
 	}
 }
 
+// ExtractSources implements the core worker job (Step 2) to collect and validate sources.
 func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool, season, episode int) []models.StreamSource {
 	var allSources []models.StreamSource
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
-	// --- 1. CONCURRENT SCRAPING WITH SEARCH PROVIDERS ---
+	log.Printf("[EXTRACTOR] Starting extraction for TMDb: %d, Title: %s", tmdbID, title)
+
+	// --- STEP 3: PROVIDERS GENERATE EMBED LINKS & STEP 4: REQUEST EMBED PAGE ---
+	var embedProviders []providers.EmbedProvider
+	if isTvShow {
+		embedProviders = providers.GetTVEmbedProviders()
+	} else {
+		embedProviders = providers.GetEmbedProviders()
+	}
+
+	for _, p := range embedProviders {
+		wg.Add(1)
+		go func(p providers.EmbedProvider) {
+			defer wg.Done()
+
+			var url string
+			if isTvShow {
+				s, ep := season, episode
+				if s < 1 { s = 1 }
+				if ep < 1 { ep = 1 }
+				url = providers.GenerateTVURL(p, tmdbID, s, ep)
+			} else {
+				url = providers.GenerateMovieURL(p, tmdbID)
+			}
+
+			// Add the primary Embed Source (as a fallback or direct play option)
+			mu.Lock()
+			allSources = append(allSources, models.StreamSource{
+				Label:    p.Name + " (Embed)",
+				URL:      url,
+				Type:     "embed",
+				Provider: strings.ToLower(p.Name),
+				Quality:  "720p", // Default for embeds
+			})
+			mu.Unlock()
+
+			// --- STEP 5: UNIVERSAL VIDEO FINDER ---
+			// Scraper sends requests to embed pages and searches for streaming links.
+			discovered := e.finder.FindSources(url)
+			for _, link := range discovered {
+				// --- STEP 7: SOURCE VALIDATION ---
+				if isValid, ct := e.ValidateLink(link); isValid {
+					mu.Lock()
+					allSources = append(allSources, models.StreamSource{
+						Label:    p.Name + " (Direct)",
+						URL:      link,
+						Type:     e.DetectType(link, ct),
+						Provider: strings.ToLower(p.Name),
+						// --- STEP 8: QUALITY DETECTION ---
+						Quality:  e.finder.DetectQuality(link),
+					})
+					mu.Unlock()
+				}
+			}
+		}(p)
+	}
+
+	// --- OPTIONAL: SEARCH PROVIDERS (Legacy/Community Search) ---
 	if title != "" {
 		newProviders := providers.GetAllProviders()
 		for _, p := range newProviders {
 			wg.Add(1)
 			go func(p providers.Provider) {
 				defer wg.Done()
-				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 				defer cancel()
 				sources, err := p.Search(ctx, title, isTvShow, season, episode)
 				if err == nil {
@@ -55,74 +115,20 @@ func (e *VideoExtractor) ExtractSources(tmdbID int, title string, isTvShow bool,
 		}
 	}
 
-	// --- 2. CONCURRENT SCRAPING WITH EMBED PROVIDERS ---
-	var embedProviders []providers.EmbedProvider
-	if isTvShow {
-		embedProviders = providers.GetTVEmbedProviders()
-	} else {
-		embedProviders = providers.GetEmbedProviders()
-	}
-
-	for _, p := range embedProviders {
-		wg.Add(1)
-		go func(p providers.EmbedProvider) {
-			defer wg.Done()
-
-			var url string
-			if isTvShow {
-				s, ep := season, episode
-				if s < 1 {
-					s = 1
-				}
-				if ep < 1 {
-					ep = 1
-				}
-				url = providers.GenerateTVURL(p, tmdbID, s, ep)
-			} else {
-				url = providers.GenerateMovieURL(p, tmdbID)
-			}
-
-			// Add the Embed Source
-			mu.Lock()
-			allSources = append(allSources, models.StreamSource{
-				Label:    p.Name + " (Embed)",
-				URL:      url,
-				Type:     "embed",
-				Provider: strings.ToLower(p.Name),
-				Quality:  "720p",
-			})
-			mu.Unlock()
-
-			// Use Universal Finder to discover direct links from embed
-			// This now includes Headless scanning for JS-heavy pages
-			discovered := e.finder.FindSources(url)
-			for _, link := range discovered {
-			if e.finder.IsValidVideo(link) {
-				if isValid, ct := e.ValidateLink(link); isValid {
-					mu.Lock()
-					allSources = append(allSources, models.StreamSource{
-						Label:    p.Name + " (Direct)",
-						URL:      link,
-						Type:     e.DetectType(link, ct),
-						Provider: strings.ToLower(p.Name),
-						Quality:  e.finder.DetectQuality(link),
-					})
-					mu.Unlock()
-				}
-				}
-			}
-		}(p)
-	}
-
 	wg.Wait()
+
+	// --- STEP 6: MERGE SOURCES & REMOVE DUPLICATES ---
 	deduped := e.deduplicateSources(allSources)
 
-	// Return raw sources, including embeds as fallback
-	return e.rankSources(deduped)
+	// --- STEP 9: SOURCE RANKING ---
+	ranked := e.rankSources(deduped)
+
+	log.Printf("[EXTRACTOR] Extraction complete. Found %d unique sources for %d", len(ranked), tmdbID)
+	return ranked
 }
 
+// rankSources implements STEP 9 — SOURCE RANKING.
 func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.StreamSource {
-	// Step 9: Source Ranking (Quality > Provider Reliability > Speed/Type)
 	qualityMap := map[string]int{
 		"4K":    50,
 		"1080p": 40,
@@ -131,27 +137,21 @@ func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.Str
 		"360p":  10,
 	}
 
-	// Direct links (hls, dash, direct) are more reliable than external sources
 	typeRank := func(t string) int {
 		switch t {
-		case "hls":
-			return 5
-		case "direct":
-			return 4
-		case "dash":
-			return 3
-		default:
-			return 0
+		case "hls":    return 10 // Preferred for stability
+		case "direct": return 8  // MP4s are great
+		case "dash":   return 7
+		case "embed":  return 1  // Embeds are last resort
+		default:       return 0
 		}
 	}
 
-	// Some providers are historically better/faster
 	providerReliability := map[string]int{
-		"vidsrc":      10,
-		"vidlink":     9,
-		"superembed":  8,
-		"2embed":      7,
-		"vidsrcpro":   10,
+		"vidsrc":     15,
+		"vidlink":    14,
+		"superembed": 12,
+		"2embed":     10,
 	}
 
 	for i := 0; i < len(sources); i++ {
@@ -171,52 +171,49 @@ func (e *VideoExtractor) rankSources(sources []models.StreamSource) []models.Str
 	return sources
 }
 
+// ValidateLink implements STEP 7 — SOURCE VALIDATION using HEAD/GET requests.
 func (e *VideoExtractor) ValidateLink(url string) (bool, string) {
 	if url == "" {
 		return false, ""
 	}
 
-	start := time.Now()
-	// Using a more reliable range-based GET request directly for validation + latency check
+	// Some embeds shouldn't be "validated" as they are pages, not files
+	if strings.Contains(url, "vidsrc.to") || strings.Contains(url, "2embed.cc") || strings.Contains(url, "multiembed.mov") {
+		return true, "text/html"
+	}
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		log.Printf("[VALIDATOR] Error creating request for %s: %v", url, err)
 		return false, ""
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-	req.Header.Set("Range", "bytes=0-0") // REDUCED: Fetch only 1 byte to check connectivity and Content-Type
+	req.Header.Set("Range", "bytes=0-0")
 
 	resp, err := e.client.Do(req)
 	if err != nil {
+		log.Printf("[VALIDATOR] Connection error for %s: %v", url, err)
 		return false, ""
 	}
 	defer resp.Body.Close()
 
-	latency := time.Since(start).Milliseconds()
-
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
 		contentType := strings.ToLower(resp.Header.Get("Content-Type"))
 
-		// Heuristic: If it's a small file but claims to be video, it might be an ad or error
-		contentLength := resp.ContentLength
-		if contentLength > 0 && contentLength < 500 && !strings.Contains(contentType, "mpegurl") {
-			return false, ""
-		}
-
 		isValid := strings.Contains(contentType, "video/") ||
-			strings.Contains(contentType, "application/x-mpegurl") ||
-			strings.Contains(contentType, "application/dash+xml") ||
+			strings.Contains(contentType, "mpegurl") ||
+			strings.Contains(contentType, "dash+xml") ||
 			strings.Contains(contentType, "application/octet-stream") ||
-			strings.Contains(contentType, "application/vnd.apple.mpegurl") ||
 			resp.StatusCode == http.StatusPartialContent
 
-		if isValid {
-			// We can potentially store latency here if we passed the source object,
-			// but for now we return the validity. The service handles the source update.
-			_ = latency
-			return true, contentType
+		if !isValid {
+			log.Printf("[VALIDATOR] Invalid Content-Type: %s for %s", contentType, url)
 		}
+
+		return isValid, contentType
 	}
 
+	log.Printf("[VALIDATOR] Status Error: %d for %s", resp.StatusCode, url)
 	return false, ""
 }
 
@@ -228,9 +225,6 @@ func (e *VideoExtractor) DetectType(url, contentType string) string {
 		return "dash"
 	}
 	if strings.Contains(url, ".mp4") || strings.Contains(contentType, "video/mp4") || strings.Contains(contentType, "application/octet-stream") {
-		return "direct"
-	}
-	if strings.Contains(contentType, "video/") {
 		return "direct"
 	}
 	return "embed"

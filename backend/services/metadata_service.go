@@ -276,13 +276,32 @@ func (s *MetadataService) ScrapeTrendingSources() {
 			continue
 		}
 
+		var sources []models.StreamSource
 		if movie.IsTvShow {
-			// Scrape first episode of first season for TV shows
+			// Scrape first episode of first season for TV shows as a warmup
 			if len(movie.Seasons) > 0 && len(movie.Seasons[0].Episodes) > 0 {
-				videoExt.ExtractSources(movie.TMDbID, movie.Title, true, movie.Seasons[0].Number, movie.Seasons[0].Episodes[0].Number)
+				sources = videoExt.ExtractSources(movie.TMDbID, movie.Title, true, movie.Seasons[0].Number, movie.Seasons[0].Episodes[0].Number)
+				// STEP 11: STORE IN DATABASE
+				// Updating the specific episode sources in the array
+				update := bson.M{
+					"$set": bson.M{
+						"seasons.0.episodes.0.sources": sources,
+						"updatedAt":                    time.Now(),
+					},
+				}
+				_, _ = collection.UpdateOne(context.TODO(), bson.M{"_id": movie.ID}, update)
 			}
 		} else {
-			videoExt.ExtractSources(movie.TMDbID, movie.Title, false, 0, 0)
+			sources = videoExt.ExtractSources(movie.TMDbID, movie.Title, false, 0, 0)
+			// STEP 11: STORE IN DATABASE
+			update := bson.M{
+				"$set": bson.M{
+					"sources":   sources,
+					"isScraped": true,
+					"updatedAt": time.Now(),
+				},
+			}
+			_, _ = collection.UpdateOne(context.TODO(), bson.M{"_id": movie.ID}, update)
 		}
 
 		// Throttle to avoid overwhelming providers

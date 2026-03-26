@@ -411,12 +411,9 @@ func GetMovieSources(c *gin.Context) {
 		cacheKey = fmt.Sprintf("movie_sources_%d", movie.TMDbID)
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		var scrapedSources []models.StreamSource
-		if movie.SourceType != "admin" {
-			scrapedSources = VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
-		}
-
 		var allSources []models.StreamSource
+
+		// STEP 11 & 12: MERGE OFFICIAL AND SCRAPED SOURCES
 
 		// 1. Admin direct VideoURL (Highest Priority)
 		if movie.VideoURL != "" {
@@ -425,7 +422,7 @@ func GetMovieSources(c *gin.Context) {
 				URL:      movie.VideoURL,
 				Type:     VideoExt.DetectType(movie.VideoURL, ""),
 				Provider: "admin",
-				Quality:  "Auto",
+				Quality:  "1080p", // Official usually high quality
 			})
 		}
 
@@ -434,12 +431,16 @@ func GetMovieSources(c *gin.Context) {
 			allSources = append(allSources, movie.Sources...)
 		}
 
-		// 3. Scraped sources
-		allSources = append(allSources, scrapedSources...)
+		// 3. Scraped sources (If not explicitly disabled or if admin sources are few)
+		if movie.SourceType != "admin" || len(allSources) < 2 {
+			scrapedSources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
+			allSources = append(allSources, scrapedSources...)
+		}
 
 		subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
 
 		return gin.H{
+			"movie_id":  fmt.Sprintf("%d", movie.TMDbID),
 			"sources":   allSources,
 			"subtitles": subtitles,
 		}, nil
@@ -514,11 +515,6 @@ func GetTVSources(c *gin.Context) {
 		cacheKey = fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		var scrapedSources []models.StreamSource
-		if movie.SourceType != "admin" {
-			scrapedSources = VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
-		}
-
 		var allSources []models.StreamSource
 
 		// Find admin episode sources (Highest Priority)
@@ -532,7 +528,7 @@ func GetTVSources(c *gin.Context) {
 								URL:      e.VideoURL,
 								Type:     VideoExt.DetectType(e.VideoURL, ""),
 								Provider: "admin",
-								Quality:  "Auto",
+								Quality:  "1080p",
 							})
 						}
 						allSources = append(allSources, e.Sources...)
@@ -543,11 +539,16 @@ func GetTVSources(c *gin.Context) {
 			}
 		}
 
-		allSources = append(allSources, scrapedSources...)
+		// Scraped sources (If not explicitly disabled or if admin sources are few)
+		if movie.SourceType != "admin" || len(allSources) < 2 {
+			scrapedSources := VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
+			allSources = append(allSources, scrapedSources...)
+		}
 
 		subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
 
 		return gin.H{
+			"movie_id":  fmt.Sprintf("%d", movie.TMDbID),
 			"sources":   allSources,
 			"subtitles": subtitles,
 		}, nil
