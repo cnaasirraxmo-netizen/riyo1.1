@@ -10,7 +10,6 @@ import 'package:riyo/providers/playback_provider.dart';
 import 'package:riyo/providers/download_provider.dart';
 import 'package:riyo/providers/auth_provider.dart';
 import 'package:riyo/providers/home_provider.dart';
-import 'package:riyo/providers/media_sniffer_provider.dart';
 import 'package:riyo/providers/system_config_provider.dart';
 import 'package:riyo/presentation/screens/splash_screen.dart';
 import 'package:riyo/presentation/screens/onboarding_screen.dart';
@@ -29,7 +28,6 @@ import 'package:riyo/presentation/screens/search_screen.dart';
 import 'package:riyo/presentation/screens/coming_soon_screen.dart';
 import 'package:riyo/presentation/screens/genre_movies_screen.dart';
 import 'package:riyo/presentation/screens/kids/kids_home_screen.dart';
-import 'package:riyo/presentation/screens/media_sniffer_screen.dart';
 import 'package:riyo/presentation/widgets/state_widgets.dart';
 import 'package:riyo/presentation/screens/admin/admin_panel_screen.dart';
 import 'package:riyo/presentation/screens/download_settings_screen.dart';
@@ -449,11 +447,6 @@ class _MyAppState extends State<MyApp> {
           parentNavigatorKey: _rootNavigatorKey,
           builder: (context, state) => const AdminPanelScreen(),
         ),
-        GoRoute(
-          path: '/sniffer',
-          parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) => const MediaSnifferScreen(),
-        ),
       ],
     );
   }
@@ -468,7 +461,6 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
         ChangeNotifierProvider(create: (_) => SystemConfigProvider()),
-        ChangeNotifierProvider(create: (_) => MediaSnifferProvider()),
       ],
       child: DynamicColorBuilder(
         builder: (lightDynamic, darkDynamic) {

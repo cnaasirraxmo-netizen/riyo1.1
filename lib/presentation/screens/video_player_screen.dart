@@ -80,36 +80,45 @@ class _VideoPlayerScreenState extends rp.ConsumerState<VideoPlayerScreen> {
 
         List<Map<String, dynamic>> availableSubtitles = [];
 
-        if (_movie?.sourceType == 'admin') {
-          String? directUrl = _movie!.directUrl ?? _movie!.videoUrl;
-
-          if (_movie!.isTvShow && widget.season != null && widget.episode != null && _movie!.seasons != null && _movie!.seasons!.isNotEmpty) {
-            final season = _movie!.seasons?.firstWhere((s) => s.number == widget.season, orElse: () => _movie!.seasons![0]);
-            if (season != null && season.episodes.isNotEmpty) {
-              final ep = season.episodes.firstWhere((e) => e.number == widget.episode, orElse: () => season.episodes[0]);
-              if (ep.videoUrl != null) {
-                directUrl = ep.videoUrl;
-              }
+        // Always add official server if it exists
+        String? directUrl = _movie!.directUrl ?? _movie!.videoUrl;
+        if (_movie!.isTvShow && widget.season != null && widget.episode != null && _movie!.seasons != null && _movie!.seasons!.isNotEmpty) {
+          final season = _movie!.seasons?.firstWhere((s) => s.number == widget.season, orElse: () => _movie!.seasons![0]);
+          if (season != null && season.episodes.isNotEmpty) {
+            final ep = season.episodes.firstWhere((e) => e.number == widget.episode, orElse: () => season.episodes[0]);
+            if (ep.videoUrl != null) {
+              directUrl = ep.videoUrl;
             }
           }
-
-          if (directUrl != null && directUrl.isNotEmpty) {
-            _sources.add(StreamSource(
-              label: 'Official Server',
-              url: directUrl,
-              type: directUrl.contains('.m3u8') ? 'hls' : 'direct',
-              provider: 'admin',
-              quality: _movie!.quality ?? 'HD',
-            ));
-          }
-        } else {
-          final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
-          final List<dynamic> sourceData = response['sources'] ?? [];
-          _sources.addAll(sourceData.map((s) => StreamSource.fromJson(s)).toList());
-
-          final List<dynamic> subtitleData = response['subtitles'] ?? [];
-          availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
         }
+
+        if (directUrl != null && directUrl.isNotEmpty) {
+          _sources.add(StreamSource(
+            label: 'Official Server',
+            url: directUrl,
+            type: directUrl.contains('.m3u8') ? 'hls' : 'direct',
+            provider: 'admin',
+            quality: _movie!.quality ?? 'HD',
+          ));
+        }
+
+        // Fetch sources (now only official from backend)
+        final response = await apiService.getSources(widget.movieId!, season: widget.season, episode: widget.episode);
+        final List<dynamic> sourceData = response['sources'] ?? [];
+        // Filter to only include admin/local sources
+        _sources.addAll(
+          sourceData
+            .map((s) => StreamSource.fromJson(s))
+            .where((s) => s.provider == 'admin' || s.provider == 'local')
+            .toList()
+        );
+
+        final List<dynamic> subtitleData = response['subtitles'] ?? [];
+        availableSubtitles = List<Map<String, dynamic>>.from(subtitleData);
+
+        // Deduplicate sources
+        final seenUrls = <String>{};
+        _sources = _sources.where((s) => seenUrls.add(s.url)).toList();
 
         if (_sources.isNotEmpty) {
           _currentSourceIndex = 0;

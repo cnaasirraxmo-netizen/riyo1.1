@@ -18,15 +18,11 @@ import (
 	"github.com/riyobox/backend/cache"
 	"github.com/riyobox/backend/internal/db"
 	"github.com/riyobox/backend/internal/models"
-	"github.com/riyobox/backend/services"
-	"github.com/riyobox/backend/scrapers"
 	"github.com/riyobox/backend/utils"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-var MetadataSvc *services.MetadataService
-var VideoExt *services.VideoExtractor
 
 func GetHome(c *gin.Context) {
 	cached, err := cache.GetOrSetCache("home_data", cache.TrendingTTL, func() (interface{}, error) {
@@ -411,21 +407,18 @@ func GetMovieSources(c *gin.Context) {
 		cacheKey = fmt.Sprintf("movie_sources_%d", movie.TMDbID)
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		var scrapedSources []models.StreamSource
-		if movie.SourceType != "admin" {
-			scrapedSources = VideoExt.ExtractSources(movie.TMDbID, movie.Title, movie.IsTvShow, 0, 0)
-		}
-
 		var allSources []models.StreamSource
 
-		// 1. Admin direct VideoURL (Highest Priority)
+		// ONLY USE ADMIN-UPLOADED SOURCES
+
+		// 1. Admin direct VideoURL
 		if movie.VideoURL != "" {
 			allSources = append(allSources, models.StreamSource{
 				Label:    "Official Server",
 				URL:      movie.VideoURL,
-				Type:     VideoExt.DetectType(movie.VideoURL, ""),
+				Type:     DetectVideoType(movie.VideoURL),
 				Provider: "admin",
-				Quality:  "Auto",
+				Quality:  "1080p",
 			})
 		}
 
@@ -434,12 +427,10 @@ func GetMovieSources(c *gin.Context) {
 			allSources = append(allSources, movie.Sources...)
 		}
 
-		// 3. Scraped sources
-		allSources = append(allSources, scrapedSources...)
-
 		subtitles := utils.GetSubtitles(movie.TMDbID, movie.IsTvShow, 0, 0)
 
 		return gin.H{
+			"movie_id":  fmt.Sprintf("%d", movie.TMDbID),
 			"sources":   allSources,
 			"subtitles": subtitles,
 		}, nil
@@ -514,14 +505,9 @@ func GetTVSources(c *gin.Context) {
 		cacheKey = fmt.Sprintf("tv_sources_%d_%d_%d", movie.TMDbID, season, episode)
 	}
 	cached, err := cache.GetOrSetCache(cacheKey, cache.SourcesTTL, func() (interface{}, error) {
-		var scrapedSources []models.StreamSource
-		if movie.SourceType != "admin" {
-			scrapedSources = VideoExt.ExtractSources(movie.TMDbID, movie.Title, true, season, episode)
-		}
-
 		var allSources []models.StreamSource
 
-		// Find admin episode sources (Highest Priority)
+		// Find admin episode sources
 		for _, s := range movie.Seasons {
 			if s.Number == season {
 				for _, e := range s.Episodes {
@@ -530,9 +516,9 @@ func GetTVSources(c *gin.Context) {
 							allSources = append(allSources, models.StreamSource{
 								Label:    "Official Server",
 								URL:      e.VideoURL,
-								Type:     VideoExt.DetectType(e.VideoURL, ""),
+								Type:     DetectVideoType(e.VideoURL),
 								Provider: "admin",
-								Quality:  "Auto",
+								Quality:  "1080p",
 							})
 						}
 						allSources = append(allSources, e.Sources...)
@@ -543,11 +529,10 @@ func GetTVSources(c *gin.Context) {
 			}
 		}
 
-		allSources = append(allSources, scrapedSources...)
-
 		subtitles := utils.GetSubtitles(movie.TMDbID, true, season, episode)
 
 		return gin.H{
+			"movie_id":  fmt.Sprintf("%d", movie.TMDbID),
 			"sources":   allSources,
 			"subtitles": subtitles,
 		}, nil
@@ -672,26 +657,16 @@ func GetKidsHome(c *gin.Context) {
 }
 
 func SniffMedia(c *gin.Context) {
-	var req struct {
-		URL      string `json:"url" binding:"required"`
-		Headless bool   `json:"headless"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
+	c.JSON(http.StatusForbidden, gin.H{"message": "Sniffing is disabled"})
+}
 
-	sniffer := scrapers.NewPlaywrightSniffer()
-	if sniffer == nil {
-		c.JSON(http.StatusOK, []interface{}{}) // Return empty list instead of error
-		return
+func DetectVideoType(url string) string {
+	lower := strings.ToLower(url)
+	if strings.Contains(lower, ".m3u8") {
+		return "hls"
 	}
-
-	results, err := sniffer.Sniff(req.URL, req.Headless, nil)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
+	if strings.Contains(lower, ".mpd") {
+		return "dash"
 	}
-
-	c.JSON(http.StatusOK, results)
+	return "direct"
 }

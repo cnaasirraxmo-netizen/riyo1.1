@@ -16,9 +16,7 @@ import (
 	"github.com/riyobox/backend/internal/middleware"
 	"github.com/riyobox/backend/internal/services"
 	"github.com/riyobox/backend/internal/utils"
-	"github.com/riyobox/backend/providers"
 	"github.com/riyobox/backend/workers"
-	appServices "github.com/riyobox/backend/services"
 )
 
 func main() {
@@ -33,21 +31,13 @@ func main() {
 	cache.InitRedis()
 	utils.InitR2()
 
-	// Initialize New Services
-	tmdbProv := providers.NewTMDbProvider()
-	metaSvc := appServices.NewMetadataService(tmdbProv)
-	videoExt := appServices.NewVideoExtractor()
-
-	handlers.MetadataSvc = metaSvc
-	handlers.VideoExt = videoExt
-
-	// Start Scheduler
-	scheduler := workers.NewScheduler(metaSvc)
-	scheduler.Start()
-
 	// Start Health Checker
 	healthChecker := workers.NewHealthChecker()
 	healthChecker.Start()
+
+	// Start Scheduler
+	scheduler := workers.NewScheduler()
+	scheduler.Start()
 
 	// Initialize Video Pipeline
 	videoOrchestrator := services.NewVideoOrchestrator()
