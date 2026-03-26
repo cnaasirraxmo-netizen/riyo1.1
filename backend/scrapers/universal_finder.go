@@ -205,7 +205,7 @@ func (f *UniversalFinder) NormalizeURL(rawURL string) string {
 
 func (f *UniversalFinder) IsValidVideo(url string) bool {
 	lower := strings.ToLower(url)
-	validExts := []string{".m3u8", ".mp4", ".mpd", ".webm", ".mkv", ".f4v", ".flv", "/manifest/", "/playlist/", "/get_video/", "/stream/"}
+	validExts := []string{".m3u8", ".mp4", ".mpd", ".webm", ".mkv", ".f4v", ".flv", "/manifest/", "/playlist/", "/get_video/", "/stream/", "/video/"}
 
 	// Check for common video extensions or keywords
 	for _, ext := range validExts {
@@ -215,7 +215,27 @@ func (f *UniversalFinder) IsValidVideo(url string) bool {
 	}
 
 	// Check for direct embed patterns that we consider "valid enough" to return to frontend
-	embedMarkers := []string{"vidsrc.to", "2embed.cc", "multiembed.mov", "vidlink.pro", "superembed.stream"}
+	embedMarkers := []string{
+		"vidsrc.to",
+		"2embed.cc",
+		"multiembed.mov",
+		"vidlink.pro",
+		"superembed.stream",
+		"fmovies.to",
+		"sflix.to",
+		"dopebox.to",
+		"moviebox.pro",
+		"flixhq.to",
+		"primewire.mx",
+		"hdhub4u.work",
+		"embedflix.net",
+		"moviesapi.club",
+		"player.autoembed.cc",
+		"vidsrc.me",
+		"vidsrc.xyz",
+		"vidsrc.pro",
+		"vidsrc.cc",
+	}
 	for _, marker := range embedMarkers {
 		if strings.Contains(lower, marker) {
 			return true

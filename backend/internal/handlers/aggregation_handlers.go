@@ -433,7 +433,8 @@ func GetMovieSources(c *gin.Context) {
 		}
 
 		// 3. Scraped sources (Step 3: Providers generate embed links)
-		if movie.SourceType != "admin" || len(allSources) < 2 {
+		// We always try to fetch scraped sources if it's not an admin-exclusive movie
+		if movie.SourceType != "admin" {
 			scrapedSources := scraperSvc.GetMovieSources(movie.TMDbID, movie.Title)
 			allSources = append(allSources, scrapedSources...)
 		}
@@ -542,7 +543,7 @@ func GetTVSources(c *gin.Context) {
 		}
 
 		// Scraped sources (Step 3: Providers generate embed links)
-		if movie.SourceType != "admin" || len(allSources) < 2 {
+		if movie.SourceType != "admin" {
 			scrapedSources := scraperSvc.GetTVShowSources(movie.TMDbID, movie.Title, season, episode)
 			allSources = append(allSources, scrapedSources...)
 		}
